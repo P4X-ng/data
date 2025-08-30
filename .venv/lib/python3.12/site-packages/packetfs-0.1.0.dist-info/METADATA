@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: packetfs
+Version: 0.1.0
+Summary: Ultra-minimal raw-Ethernet offset streaming
+Requires-Python: >=3.10
+Dynamic: requires-python
+Dynamic: summary

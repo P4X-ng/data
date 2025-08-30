@@ -1,0 +1,7 @@
+aioquic
+fastapi
+uvicorn
+redis
+zstandard
+ctypes
+Cython

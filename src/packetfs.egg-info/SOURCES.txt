@@ -1,0 +1,12 @@
+README.md
+setup.py
+/home/punk/Projects/packetfs/src/native/bitpack.c
+/home/punk/Projects/packetfs/src/native/prp.c
+src/packetfs/__init__.py
+src/packetfs/protocol.py
+src/packetfs/rawio.py
+src/packetfs/seed_pool.py
+src/packetfs.egg-info/PKG-INFO
+src/packetfs.egg-info/SOURCES.txt
+src/packetfs.egg-info/dependency_links.txt
+src/packetfs.egg-info/top_level.txt
