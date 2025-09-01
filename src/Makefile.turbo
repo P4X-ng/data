@@ -1,0 +1,161 @@
+# PacketFS TURBO Build System
+# Ultra-Optimized Performance Compilation
+
+CC = gcc
+CFLAGS = -std=c99 -Wall -Wextra -O3 -march=native -mtune=native \
+         -ffast-math -funroll-loops -fomit-frame-pointer \
+         -flto -fwhole-program -DNDEBUG
+         
+# OpenMP for parallel processing
+OPENMP_FLAGS = -fopenmp
+
+# SIMD and vectorization flags (AVX2 optimized)
+SIMD_FLAGS = -mavx2 -mfma -msse4.2 -mpopcnt -ftree-vectorize
+
+# Memory optimization flags
+MEMORY_FLAGS = -falign-functions=64 -falign-loops=64 -falign-jumps=64 \
+               -falign-labels=64 -fprefetch-loop-arrays
+
+# Link flags
+LDFLAGS = -pthread -lm -lrt
+
+# Target executable
+TARGET = packetfs_turbo
+SOURCE = packetfs_core.c
+
+# Debug version flags
+DEBUG_FLAGS = -g -O0 -DDEBUG -fsanitize=address -fsanitize=undefined
+
+.PHONY: all clean debug turbo benchmark test massive cpu-info help install-deps
+
+# Default target - ultra optimized
+all: turbo
+
+# Ultra-optimized build
+turbo: $(SOURCE)
+	@echo "🚀 Building PacketFS TURBO with maximum optimizations..."
+	$(CC) $(CFLAGS) $(OPENMP_FLAGS) $(SIMD_FLAGS) $(MEMORY_FLAGS) \
+		-o $(TARGET) $(SOURCE) $(LDFLAGS)
+	@echo "✅ PacketFS TURBO compiled successfully!"
+	@echo "   Run with: ./$(TARGET) [filesystem_size_GB] [test_file_size_MB]"
+	@echo "   Example: ./$(TARGET) 2 500  # 2GB filesystem, 500MB test file"
+
+# Debug build
+debug: $(SOURCE)
+	@echo "🔧 Building PacketFS DEBUG version..."
+	$(CC) -std=c99 $(DEBUG_FLAGS) $(OPENMP_FLAGS) \
+		-o $(TARGET)_debug $(SOURCE) $(LDFLAGS)
+	@echo "✅ PacketFS DEBUG compiled successfully!"
+
+# Performance benchmark build
+benchmark: $(SOURCE)
+	@echo "📊 Building PacketFS BENCHMARK version..."
+	$(CC) $(CFLAGS) $(OPENMP_FLAGS) $(SIMD_FLAGS) $(MEMORY_FLAGS) \
+		-DBENCHMARK_MODE -pg -o $(TARGET)_benchmark $(SOURCE) $(LDFLAGS)
+	@echo "✅ PacketFS BENCHMARK compiled with profiling enabled!"
+
+# Run quick test (1GB filesystem, 50MB test file)
+test: turbo
+	@echo "🧪 Running PacketFS quick test..."
+	./$(TARGET) 1 50
+
+# Run massive test (4GB filesystem, 1GB test file)
+massive: turbo
+	@echo "💥 Running MASSIVE PacketFS test..."
+	./$(TARGET) 4 1000
+
+# Run insane test (8GB filesystem, 2GB test file)
+insane: turbo
+	@echo "🔥 Running INSANE PacketFS test..."
+	./$(TARGET) 8 2000
+
+# Check CPU capabilities
+cpu-info:
+	@echo "💻 CPU Capabilities:"
+	@cat /proc/cpuinfo | grep flags | head -1 | tr ' ' '\n' | grep -E "avx|sse|fma" | sort | uniq
+	@echo ""
+	@echo "🧠 CPU Cores: $$(nproc)"
+	@echo "💾 Memory: $$(free -h | grep Mem | awk '{print $$2}')"
+	@echo "🚀 Max OpenMP threads: $$(echo $$(nproc))"
+
+# Clean build artifacts
+clean:
+	@echo "🧹 Cleaning build artifacts..."
+	rm -f $(TARGET) $(TARGET)_debug $(TARGET)_benchmark
+	rm -f *.pfs gmon.out
+	@echo "✅ Clean complete!"
+
+# Install system dependencies
+install-deps:
+	@echo "📦 Installing PacketFS dependencies..."
+	sudo apt-get update
+	sudo apt-get install -y build-essential libc6-dev gcc-multilib
+	sudo apt-get install -y libomp-dev
+	@echo "✅ Dependencies installed!"
+
+# Memory info
+memory-info:
+	@echo "💾 System Memory Information:"
+	@free -h
+	@echo ""
+	@echo "🔥 Available huge pages:"
+	@cat /proc/meminfo | grep -i huge
+
+# System info
+system-info: cpu-info memory-info
+	@echo ""
+	@echo "📊 System Performance Profile:"
+	@echo "   Cores: $$(nproc)"
+	@echo "   Memory: $$(free -h | grep Mem | awk '{print $$2}')"
+	@echo "   Architecture: $$(uname -m)"
+	@echo "   Kernel: $$(uname -r)"
+
+# GIF-worthy demo targets
+demo: demo_packetfs.c
+	@echo "Building PacketFS demo..."
+	$(CC) $(CFLAGS) $(OPENMP_FLAGS) $(SIMD_FLAGS) $(MEMORY_FLAGS) \
+		-o packetfs_demo demo_packetfs.c $(LDFLAGS)
+	@echo "Ready for GIF recording!"
+
+# Quick demo - perfect for recording
+record: demo
+	@echo "=== RECORDING READY ==="
+	@echo "Run: ./packetfs_demo 1 200"
+	@echo "Shows: 1GB filesystem + 200MB file transfer"
+	@echo "Time: ~2-3 seconds total"
+
+# Insane demo - for showing off
+insane: demo
+	@echo "=== INSANE DEMO READY ==="
+	@echo "Run: ./packetfs_demo 10 1000"
+	@echo "Shows: 10GB filesystem + 1GB file transfer"
+	@echo "Warning: Requires ~8GB+ RAM"
+
+# Quick run for testing
+quick: demo
+	./packetfs_demo 1 50
+
+# Help
+help:
+	@echo "PacketFS TURBO Build System - MAXIMUM PERFORMANCE"
+	@echo ""
+	@echo "Targets:"
+	@echo "  turbo      - Build ultra-optimized PacketFS (default)"
+	@echo "  debug      - Build debug version with sanitizers"
+	@echo "  benchmark  - Build with profiling for performance analysis"
+	@echo "  test       - Run quick test (1GB filesystem, 50MB file)"
+	@echo "  massive    - Run massive test (4GB filesystem, 1GB file)"
+	@echo "  insane     - Run insane test (8GB filesystem, 2GB file)"
+	@echo "  cpu-info   - Show CPU capabilities"
+	@echo "  memory-info - Show memory information"
+	@echo "  system-info - Show complete system information"
+	@echo "  clean      - Remove build artifacts"
+	@echo "  install-deps - Install system dependencies"
+	@echo ""
+	@echo "Usage examples:"
+	@echo "  make -f Makefile.turbo"
+	@echo "  make -f Makefile.turbo turbo && ./packetfs_turbo 2 200"
+	@echo "  make -f Makefile.turbo debug && ./packetfs_turbo_debug 1 10"
+	@echo "  make -f Makefile.turbo massive"
+	@echo ""
+	@echo "🚀 Ready to obliterate traditional filesystem performance!"

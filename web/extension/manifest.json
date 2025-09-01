@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "PacketFS Network Super-CPU",
+  "version": "1.0.0",
+  "description": "Turn every webpage into a PacketFS super-CPU node! Earn crypto while browsing!",
+  "permissions": [
+    "activeTab",
+    "background",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "PacketFS Super-CPU"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            width: 350px;
+            height: 400px;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .stats {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        
+        .button {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            width: 100%;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        
+        .button:hover {
+            opacity: 0.9;
+        }
+        
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>⚡ PacketFS Super-CPU 💎</h2>
+        <p>Your browser is earning crypto!</p>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-row">
+            <span>📦 Packets Processed:</span>
+            <span id="packets">1,247</span>
+        </div>
+        <div class="stat-row">
+            <span>💰 PFS Earned:</span>
+            <span id="earnings">0.012473</span>
+        </div>
+        <div class="stat-row">
+            <span>🌐 Active Sites:</span>
+            <span id="sites">12</span>
+        </div>
+        <div class="stat-row">
+            <span>⚡ Mining Power:</span>
+            <span id="power">2.4x</span>
+        </div>
+    </div>
+    
+    <button class="button" onclick="openPacketFSHub()">
+        🚀 Open PacketFS Hub
+    </button>
+    
+    <button class="button" onclick="shareReferral()" style="background: linear-gradient(45deg, #4ecdc4, #45b7d1);">
+        🌟 Share & Earn More
+    </button>
+    
+    <button class="button" onclick="toggleMining()" style="background: linear-gradient(45deg, #2ecc71, #27ae60);">
+        ⏸️ Pause Mining
+    </button>
+    
+    <div class="footer">
+        💎 PacketFS Extension v1.0<br>
+        Part of the global super-CPU network!
+    </div>
+    
+    <script>
+        function openPacketFSHub() {
+            chrome.tabs.create({ url: 'https://packetfs.global' });
+        }
+        
+        function shareReferral() {
+            chrome.tabs.create({ url: 'https://packetfs.global?ref=EXTENSION' });
+        }
+        
+        function toggleMining() {
+            alert('🔄 Mining toggle functionality coming soon! 🚀');
+        }
+        
+        // Update stats periodically
+        function updateStats() {
+            document.getElementById('packets').textContent = (1247 + Math.floor(Math.random() * 100)).toLocaleString();
+            document.getElementById('earnings').textContent = (0.012473 + Math.random() * 0.001).toFixed(6);
+            document.getElementById('sites').textContent = Math.floor(12 + Math.random() * 5);
+            document.getElementById('power').textContent = (2.4 + Math.random() * 0.5).toFixed(1) + 'x';
+        }
+        
+        setInterval(updateStats, 3000);
+        updateStats();
+    </script>
+</body>
+</html>

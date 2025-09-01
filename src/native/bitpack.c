@@ -79,11 +79,10 @@ static PyObject* py_pack_refs(PyObject *self, PyObject *args){
     for(Py_ssize_t i=0;i<n;++i){
         if(ref_bits==8){ if(bw_put_bits(&w, p[i], 8)) goto err; }
         else if(ref_bits==16){
-            uint16_t v; memcpy(&v, p + i*2, 2); v = (uint16_t)((v>>8)|((v&0xFF)<<8)); // host to big-endian bits order-ish
+            uint16_t v; memcpy(&v, p + i*2, 2); // No byte swapping - preserve original data
             if(bw_put_bits(&w, v, 16)) goto err;
         } else if(ref_bits==32){
-            uint32_t v; memcpy(&v, p + i*4, 4);
-            v = ((v>>24)&0xFF) | ((v>>8)&0xFF00) | ((v<<8)&0xFF0000) | ((v<<24)&0xFF000000);
+            uint32_t v; memcpy(&v, p + i*4, 4); // No byte swapping - preserve original data
             if(bw_put_bits(&w, v, 32)) goto err;
         } else { goto err; }
     }
@@ -98,8 +97,104 @@ err:
     return NULL;
 }
 
+// Bitreader for decoding
+typedef struct {
+    const uint8_t *buf;    // input buffer
+    Py_ssize_t len;        // length in bytes
+    Py_ssize_t pos;        // bit position from start
+    int current_tier;      // -1 none, 0=L1,1=L2,2=L3
+} bitreader_t;
+
+static inline int br_init(bitreader_t *r, Py_buffer *in){
+    r->buf = (const uint8_t*)in->buf;
+    r->len = in->len;
+    r->pos = 0;
+    r->current_tier = -1;
+    return 0;
+}
+
+static inline uint32_t br_get_bits(bitreader_t *r, int nb){
+    if(nb <= 0 || r->pos + nb > r->len * 8) return 0;
+    uint32_t result = 0;
+    for(int i = 0; i < nb; i++){
+        Py_ssize_t byte = r->pos >> 3;
+        int off = 7 - (r->pos & 7);
+        uint32_t bit = (r->buf[byte] >> off) & 1u;
+        result = (result << 1) | bit;
+        r->pos++;
+    }
+    return result;
+}
+
+static inline int br_read_tier(bitreader_t *r){
+    if(r->pos + 2 > r->len * 8) return -1;
+    uint32_t tier_bits = br_get_bits(r, 2);
+    switch(tier_bits){
+        case 0b00: return 0;  // L1
+        case 0b01: return 1;  // L2 
+        case 0b10: return 2;  // L3
+        default: return -1;
+    }
+}
+
+// Python API: unpack_refs(in_bytes, expected_size, ref_width_bits)
+// - in_bytes: encoded bitstream
+// - expected_size: expected output size in bytes
+// - ref_width_bits: 8/16/32
+static PyObject* py_unpack_refs(PyObject *self, PyObject *args){
+    PyObject *in_obj;
+    int expected_size, ref_bits;
+    if(!PyArg_ParseTuple(args, "Oii", &in_obj, &expected_size, &ref_bits)){
+        return NULL;
+    }
+    
+    Py_buffer inv;
+    if(PyObject_GetBuffer(in_obj, &inv, PyBUF_SIMPLE) < 0) return NULL;
+    
+    bitreader_t r;
+    br_init(&r, &inv);
+    
+    // Read initial tier
+    int tier = br_read_tier(&r);
+    if(tier < 0) goto err;
+    r.current_tier = tier;
+    
+    // Allocate output
+    PyObject *result = PyBytes_FromStringAndSize(NULL, expected_size);
+    if(!result) goto err;
+    
+    uint8_t *out = (uint8_t*)PyBytes_AsString(result);
+    int stride = ref_bits / 8;
+    int n = expected_size / stride;
+    
+    for(int i = 0; i < n; i++){
+        if(ref_bits == 8){
+            uint32_t v = br_get_bits(&r, 8);
+            out[i] = (uint8_t)v;
+        } else if(ref_bits == 16){
+            uint32_t v = br_get_bits(&r, 16);
+            memcpy(out + i*2, &v, 2);
+        } else if(ref_bits == 32){
+            uint32_t v = br_get_bits(&r, 32);
+            memcpy(out + i*4, &v, 4);
+        } else {
+            goto err;
+        }
+    }
+    
+    PyBuffer_Release(&inv);
+    return result;
+    
+err:
+    PyBuffer_Release(&inv);
+    if(result) Py_DECREF(result);
+    PyErr_SetString(PyExc_RuntimeError, "bitpack decode error");
+    return NULL;
+}
+
 static PyMethodDef BitpackMethods[] = {
     {"pack_refs", py_pack_refs, METH_VARARGS, "Pack tiered references into a bitstream. Returns bits written."},
+    {"unpack_refs", py_unpack_refs, METH_VARARGS, "Unpack tiered references from a bitstream. Returns decoded bytes."},
     {NULL, NULL, 0, NULL}
 };
 

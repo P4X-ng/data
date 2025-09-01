@@ -1,1 +1,8 @@
-setuptools>=68\nwheel\n
+setuptools>=68
+wheel
+pytest
+matplotlib
+seaborn
+pandas
+numpy
+psutil

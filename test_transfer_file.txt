@@ -1,0 +1,9 @@
+This is a test file for PacketFS transfer!
+PacketFS uses revolutionary offset-based protocol.
+No more copying data - just send pointers!
+Performance: 37K fps, 21 Mbps throughput
+Latency: Sub-microsecond processing
+Real-time ready: Perfect for HFT and IoT
+Cross-platform: x86_64 and ARM64 support
+This file will demonstrate the power of synchronized data blobs.
+Sat Aug 30 11:52:59 PM EDT 2025
