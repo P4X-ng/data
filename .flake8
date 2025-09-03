@@ -1,0 +1,22 @@
+[flake8]
+max-line-length = 120
+extend-ignore = E203, W503
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    build,
+    dist,
+    cleanup_tmp,
+    fake_trash,
+    node_modules,
+    .eggs,
+    *.egg-info
+
+# Relax rules for developer tools; keep production code stricter
+per-file-ignores =
+    dev/working/tools/*: E501, F401, F841, F541, W293, E722
+    realsrc/**/*.py: E203, W503
+    all-code/**/*.py: E203, W503
+
