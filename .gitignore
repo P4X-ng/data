@@ -1,1 +1,80 @@
-__pycache__/\n*.so\n*.o\n*.pyc\n.build/\ndist/\nbuild/\n.eggs/\n*.egg-info/\n.venv/\nvenv/\n
+__pycache__/
+*.so
+*.o
+*.pyc
+.build/
+dist/
+build/
+.eggs/
+*.egg-info/
+.venv/
+venv/
+
+# Python caches and tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+coverage.xml
+.coverage
+htmlcov/
+.hypothesis/
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+*.bak
+*.old
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.history/
+
+# Build caches and tooling
+.cache/
+ccache/
+.ccls-cache/
+.clangd/
+.cmake/
+CMakeFiles/
+CMakeCache.txt
+cmake-build-*/
+
+# Compiled artifacts (C/C++)
+*.a
+*.d
+*.out
+*.obj
+*.dll
+*.lib
+*.exp
+*.dylib
+
+# Packaging and local env
+.env
+.env.*
+pip-wheel-metadata/
+pip-log.txt
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node (if present)
+node_modules/
+
+# Project-specific transient dirs
+cleanup_tmp/
+tmp/
+cache/
+bin/
+local/
+.realsrc_native_build/
+.realsrc_build/
+build-*/
