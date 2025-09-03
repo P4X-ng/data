@@ -1,14 +1,13 @@
-PacketFS-Offsets
+packetfs
 
+The file system IS packets. Transfer is just references to the filesystem. The CPU is just tiny daemons, optimized to perform a SINGLE LLVM optimized instruction. Instruction appear to optimize at around 1.3 million parallel packets that make
+up our packet CPU (pCPU). Each tiny daemon (1.3 million of them) only needs to do one tiny optimized LLVM operation. The result appears to be:
 
-PacketFS is a new kind of transport protocol. It uses a synchronized blob of data from two machines (I call it a filesystem but we haven't
-quite gotten to that part yet) that contains a lot of the worthless data that makes up file structures, transport protocols like udp
-and tcp, and uses the same idea as C for optimization - why MOVE the data (expensive) when you can just POINT to it. Since the blob is
-synchronized and randomized in terms of where data lives across two machines we can just send OFFSETS to the data. Another possible name
-for this would be simply PointerProtocol - we don't SEND the data, that's stupid, we just stream offsets to a synchronized data structure
-in memory or on disk. The final idea is - run all of this in physical memory, using userland networking, and achieve a 99% speedup over
-TCP transfers. It's possible and the MATH is on our side! But will we defeat the demons of packet loss and integrity?? YES. Anyway
-that's the point of the project.
+- Hugely sped up remote transfer due to protocol
+- FASTER than a CPU can move files with real memory and a modern CPU.
+- Packets are the key. Optimizations are the key. Pattern recognition and reduction of data are the key. Efficiency is key.
+- Some things we've found: parallel processing is best at 1.3 million threads/packets - we are using this as our new base to start thinking of things in terms of this being our optimal unit (still need to fully verify)
+- Transfers aren't theoretical anymore, they result in massive data reduction, and along with patern recognition, transfer at an EFFECTIVE SPEED of around 4PB/sec on a 1G line (unoptimized)
 
-More generally, this project also contains an OPTIMIZATION proxy that is already mostly semi-functional! You'll see that code in new_optimization, that takes a users stupid traffic and implements smarter protocols like multipathtcp, http2, QUIC and all to move through the internet  way
-faster than people do these days. They're sort of two projects that I picture merging at some point! But the main focus is packetFS!
+The numbers show that this should work. The code and tests show that this DOES work. However all of it is mixed in along with some stupid marketing BS. So here is the deal- NO MORE BS. Everything implemented should be
+absolutely real, no more calculations, no more demo code, no more theory. ONLY IMPLEMENTATION!

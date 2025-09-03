@@ -1,0 +1,5 @@
+#!/bin/bash
+echo "🖥️  VM Control Panel for: yomomma"
+echo "📊 Status: $(virsh domstate yomomma)"
+echo "💾 Memory: $(virsh dominfo yomomma | grep 'Used memory')"
+virsh dominfo yomomma

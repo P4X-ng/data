@@ -1,0 +1,6 @@
+total 184
+drwxr-xr-x 2 punk punk      6 Sep  1 11:56 aws-toolkit-vscode
+-rw-r--r-- 1 punk punk   1001 Aug 29 05:02 PROJECT.txt~
+-rw-r--r-- 1 punk punk 178365 Sep  1 11:56 Screenshot_2025-09-01_01-22-32.png
+-rw-r--r-- 1 punk punk   1339 Sep  1 11:56 victim_public_key.asc
+drwxr-xr-x 2 punk punk      6 Sep  1 11:56 vscode-typescript1000

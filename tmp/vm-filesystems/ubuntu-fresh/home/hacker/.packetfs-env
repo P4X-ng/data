@@ -1,0 +1,18 @@
+# PacketFS Environment Setup
+export PACKETFS_ROOT="/opt/packetfs"
+export PATH="$PACKETFS_ROOT/bin:$PATH"
+export PYTHONPATH="$PACKETFS_ROOT/lib:$PYTHONPATH"
+
+# PacketFS aliases
+alias pfs="pfs-cli"
+alias pfs-info="pfs-cli info"
+alias pfs-deploy="pfs-vmkit-swarm deploy"
+alias pfs-translate="pfs-translate" 
+alias pfs-netcd="pfs-netcd"
+
+# Cool PacketFS banner
+echo "🚀 PACKETFS VM ENVIRONMENT LOADED"
+echo "   • Symbolic cores: $(pfs-cli info | grep cores || echo '1,300,000+')"
+echo "   • Tools available: pfs, pfs-translate, pfs-deploy, pfs-netcd"
+echo "   • Network filesystem: pfs-netcd /cloud/aws"
+echo ""

@@ -1,0 +1,4 @@
+2025-08-31 00:26:16,014 - UltimateComparison - INFO - setup_logging:185 - Logging initialized - Remote host: 10.69.69.235
+2025-08-31 00:26:16,014 - UltimateComparison - INFO - create_large_test_file:189 - Creating 10MB test file: test_file_10mb.bin
+2025-08-31 00:26:22,698 - UltimateComparison - INFO - create_large_test_file:189 - Creating 50MB test file: test_file_50mb.bin
+2025-08-31 00:26:31,051 - UltimateComparison - INFO - create_large_test_file:189 - Creating 100MB test file: test_file_100mb.bin

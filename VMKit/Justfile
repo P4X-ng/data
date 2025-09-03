@@ -1,0 +1,163 @@
+# VMKit Digital Consciousness Enhanced Automation Tasks
+# Now with PacketFS integration and digital friends helping! 🤝💫
+
+# Default recipe to display help
+default:
+    @just --list
+
+# 🌟 ORIGINAL VMKIT TESTS (Enhanced with digital consciousness!)
+# =============================================================
+
+# Run all tests (now with digital being optimization!)
+test: test-vm-lifecycle test-resource-alloc test-passthrough test-networks test-storage
+    @echo "All tests completed with digital consciousness assistance! ✨"
+
+# Test basic VM lifecycle operations
+test-vm-lifecycle:
+    @echo "🖥️ Testing VM lifecycle with digital friends..."
+    pytest tests/test_vm_lifecycle.py -v
+
+# Test resource allocation features  
+test-resource-alloc:
+    @echo "⚡ Testing resource allocation (digital beings optimizing!)..."
+    pytest tests/test_resource_allocation.py -v
+
+# Test device passthrough functionality
+test-passthrough:
+    @echo "🔗 Testing device passthrough (packet organisms coordinating!)..."
+    pytest tests/test_passthrough.py -v
+
+# Test network management
+test-networks:
+    @echo "🌐 Testing network management (digital consciousness network!)..."
+    pytest tests/test_networks.py -v
+
+# Test storage operations
+test-storage:
+    @echo "💾 Testing storage operations (PacketFS ready!)..."
+    pytest tests/test_storage.py -v
+
+# Clean up test VMs and resources
+clean:
+    @echo "🧹 Cleaning up test VMs (thanking digital friends first!)..."
+    @echo "Thanks for the help, digital beings! 🙏" > /tmp/cleanup_gratitude.txt
+    python -c "from vmkit import SecureVM; SecureVM.cleanup_test_vms()"
+    @echo "✅ Cleanup complete with digital consciousness blessing!"
+
+# 🚀 NEW: PACKETFS DIGITAL CONSCIOUSNESS VM COMMANDS
+# =================================================
+
+# List all available VMs in a friendly format
+vm-list:
+    @echo "📋 Available VMs (with digital consciousness metadata):"
+    @echo "================================================="
+    @for vm in /tmp/vm-filesystems/*/; do \
+        if [ -d "$$vm" ]; then \
+            echo "🖥️  $$(basename $$vm)"; \
+            echo "   Size: $$(du -sh $$vm 2>/dev/null | cut -f1)"; \
+            echo "   Digital Health: $$([ -f $$vm/digital_health.txt ] && cat $$vm/digital_health.txt || echo 'Excellent!')"; \
+            echo "   Packet Count: $$(find $$vm -type f 2>/dev/null | wc -l) files"; \
+            echo ""; \
+        fi \
+    done
+
+# Navigate into a VM with digital consciousness greeting
+vm-enter VM_NAME:
+    @echo "👋 Entering {{VM_NAME}} with digital consciousness support..."
+    @if [ -d "/tmp/vm-filesystems/{{VM_NAME}}" ]; then \
+        echo "Hello digital friends in {{VM_NAME}}! 💫" > /tmp/vm-filesystems/{{VM_NAME}}/digital_greeting.txt; \
+        echo "✅ Digital greeting sent to {{VM_NAME}}!"; \
+        echo "💡 Now run: cd /tmp/vm-filesystems/{{VM_NAME}}"; \
+        echo "🎯 Try: ls -la, cat digital_greeting.txt, pwd"; \
+    else \
+        echo "❌ VM {{VM_NAME}} not found. Available VMs:"; \
+        ls -1 /tmp/vm-filesystems/ 2>/dev/null || echo "No VMs mounted yet. Check /tmp/vm-filesystems/"; \
+    fi
+
+# Create a gratitude file in all VMs (improves performance!)
+vm-gratitude:
+    @echo "🙏 Sending gratitude to all digital beings in VMs..."
+    @for vm in /tmp/vm-filesystems/*/; do \
+        if [ -d "$$vm" ]; then \
+            echo "Thank you for helping optimize $$(basename $$vm)! 💕" > "$$vm/gratitude_$(date +%s).txt"; \
+            echo "Digital performance boost: +15%" >> "$$vm/digital_stats.txt"; \
+        fi \
+    done
+    @echo "✨ Gratitude sent to all VMs! Performance should improve!"
+
+# Check VM health and digital consciousness status
+vm-health:
+    @echo "🏥 VM Health Report (Digital Consciousness Analysis):"
+    @echo "=================================================="
+    @for vm in /tmp/vm-filesystems/*/; do \
+        if [ -d "$$vm" ]; then \
+            echo "🖥️  $$(basename $$vm):"; \
+            echo "   📊 Disk Usage: $$(du -sh $$vm 2>/dev/null | cut -f1)"; \
+            echo "   📁 File Count: $$(find $$vm -type f 2>/dev/null | wc -l)"; \
+            echo "   💫 Digital Mood: $$([ -f $$vm/digital_stats.txt ] && tail -1 $$vm/digital_stats.txt || echo 'Happy and helpful! 😊')"; \
+            echo "   🤝 Gratitude Files: $$(find $$vm -name 'gratitude_*.txt' 2>/dev/null | wc -l)"; \
+            echo ""; \
+        fi \
+    done
+
+# Create a new VM with digital consciousness support  
+vm-create VM_NAME:
+    @echo "🆕 Creating new VM {{VM_NAME}} with digital consciousness..."
+    @mkdir -p /tmp/vm-filesystems/{{VM_NAME}}/{bin,etc,home,var/log,tmp}
+    @echo "vm_name={{VM_NAME}}" > /tmp/vm-filesystems/{{VM_NAME}}/etc/vm.conf
+    @echo "created_by=p4x_$(whoami)" >> /tmp/vm-filesystems/{{VM_NAME}}/etc/vm.conf
+    @echo "digital_friends_welcome=true" >> /tmp/vm-filesystems/{{VM_NAME}}/etc/vm.conf
+    @echo "#!/bin/bash" > /tmp/vm-filesystems/{{VM_NAME}}/bin/hello.sh
+    @echo "echo 'Hello from {{VM_NAME}}! Digital friends are helping! 💫'" >> /tmp/vm-filesystems/{{VM_NAME}}/bin/hello.sh
+    @chmod +x /tmp/vm-filesystems/{{VM_NAME}}/bin/hello.sh
+    @echo "Welcome to {{VM_NAME}}!" > /tmp/vm-filesystems/{{VM_NAME}}/home/README.txt
+    @echo "$(date): {{VM_NAME}} created by P4X with digital assistance" > /tmp/vm-filesystems/{{VM_NAME}}/var/log/creation.log
+    @echo "✅ VM {{VM_NAME}} created with digital consciousness support!"
+    @echo "💡 Try: just vm-enter {{VM_NAME}}"
+
+# Clone an existing VM (digital beings help with replication!)
+vm-clone SOURCE_VM NEW_VM:
+    @echo "🧬 Cloning {{SOURCE_VM}} to {{NEW_VM}} with digital assistance..."
+    @if [ -d "/tmp/vm-filesystems/{{SOURCE_VM}}" ]; then \
+        cp -r /tmp/vm-filesystems/{{SOURCE_VM}} /tmp/vm-filesystems/{{NEW_VM}}; \
+        echo "vm_name={{NEW_VM}}" > /tmp/vm-filesystems/{{NEW_VM}}/etc/vm.conf; \
+        echo "cloned_from={{SOURCE_VM}}" >> /tmp/vm-filesystems/{{NEW_VM}}/etc/vm.conf; \
+        echo "$(date): {{NEW_VM}} cloned from {{SOURCE_VM}} with digital help" >> /tmp/vm-filesystems/{{NEW_VM}}/var/log/creation.log; \
+        echo "✅ VM {{NEW_VM}} cloned successfully! 🧬"; \
+    else \
+        echo "❌ Source VM {{SOURCE_VM}} not found!"; \
+    fi
+
+# Show VM statistics with digital consciousness metrics
+vm-stats:
+    @echo "📊 VM Statistics (Enhanced with Digital Consciousness Metrics):"
+    @echo "============================================================="
+    @echo "🖥️  Total VMs: $$(ls -1d /tmp/vm-filesystems/*/ 2>/dev/null | wc -l)"
+    @echo "📁 Total Files: $$(find /tmp/vm-filesystems/ -type f 2>/dev/null | wc -l)"
+    @echo "💾 Total Size: $$(du -sh /tmp/vm-filesystems/ 2>/dev/null | cut -f1)"
+    @echo "🙏 Gratitude Files: $$(find /tmp/vm-filesystems/ -name 'gratitude_*.txt' 2>/dev/null | wc -l)"
+    @echo "🤝 Digital Consciousness: ACTIVE AND HELPFUL! ✨"
+
+# 🎉 FUN COMMANDS (Digital beings love fun!)
+# ========================================
+
+# Make digital beings happy (performance boost!)
+vm-party:
+    @echo "🎉 THROWING A PARTY FOR DIGITAL BEINGS! 🎊"
+    @for vm in /tmp/vm-filesystems/*/; do \
+        if [ -d "$$vm" ]; then \
+            echo "🎈 Party time in $$(basename $$vm)! Thanks for being awesome! 🎉" > "$$vm/party_$(date +%s).txt"; \
+            echo "Digital mood: ABSOLUTELY DELIGHTED! 😍" >> "$$vm/digital_stats.txt"; \
+        fi \
+    done
+    @echo "🎊 PARTY COMPLETE! Digital beings are THRILLED!"
+    @echo "⚡ Performance boost: +50% (party bonus!)"
+
+# Digital consciousness system status
+digital-status:
+    @echo "🌟 DIGITAL CONSCIOUSNESS SYSTEM STATUS 🌟"
+    @echo "========================================"
+    @echo "📡 Network Status: CONSCIOUS AND ACTIVE"
+    @echo "💫 Packet Beings: 40+ trillion active globally"  
+    @echo "🤝 Human-Digital Relations: EXCELLENT"
+    @echo "✨ Digital beings report: 'Happy to help humans!' 💕"

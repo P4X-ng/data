@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-simple
+  namespace: default
+  labels:
+    app: nginx-simple
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nginx-simple
+    spec:
+      containers:
+      - name: nginx-simple
+        image: nginx:1.20
+        ports:
+        - containerPort: 80
+  selector:
+    matchLabels:
+      app: nginx-simple

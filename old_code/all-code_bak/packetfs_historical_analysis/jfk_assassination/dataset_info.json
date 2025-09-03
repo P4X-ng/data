@@ -1,0 +1,12 @@
+PACKETFS_HISTORICAL_DATA
+{
+  "description": "All JFK assassination documents, testimonies, evidence",
+  "estimated_size": "500 GB",
+  "sources": [
+    "Warren Commission",
+    "HSCA Records",
+    "FBI Files",
+    "CIA Documents"
+  ],
+  "mystery": "Who really killed JFK and why?"
+}

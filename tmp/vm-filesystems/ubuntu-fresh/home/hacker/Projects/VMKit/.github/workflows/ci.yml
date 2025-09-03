@@ -1,0 +1,164 @@
+name: VMKit CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort mypy
+        pip install -e .
+    
+    - name: Lint with flake8
+      run: |
+        flake8 vmkit/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 vmkit/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+    
+    - name: Format check with black
+      run: black --check vmkit/
+    
+    - name: Import sorting check with isort
+      run: isort --check-only vmkit/
+    
+    - name: Type checking with mypy
+      run: mypy vmkit/ || true  # Allow failure for now
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients \
+                               ovmf cloud-image-utils pciutils \
+                               python3-libvirt python3-lxml
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov pytest-mock psutil
+        pip install -e .
+    
+    - name: Run unit tests
+      run: |
+        pytest tests/ -v --cov=vmkit --cov-report=xml --cov-report=term-missing
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients \
+                               ovmf cloud-image-utils pciutils ethtool \
+                               python3-libvirt python3-lxml
+        # Enable QEMU user permissions for testing
+        sudo usermod -aG libvirt $USER
+        sudo systemctl start libvirtd
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-mock psutil
+        pip install -e .
+    
+    - name: Run integration tests
+      run: |
+        # Test basic VMKit functionality
+        python -c "import vmkit; print('VMKit imports successfully')"
+        # Run dry-run tests that don't require actual hardware
+        pytest tests/integration/ -v -k "dry_run or mock"
+
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-benchmark psutil
+        pip install -e .
+    
+    - name: Run benchmarks
+      run: |
+        pytest benchmarks/ -v --benchmark-only --benchmark-json=benchmark-results.json
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: benchmark-results.json
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+        pip install -e .
+    
+    - name: Run Bandit security linter
+      run: bandit -r vmkit/ -f json -o bandit-report.json || true
+    
+    - name: Check dependencies for vulnerabilities
+      run: safety check --json --output safety-report.json || true
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json

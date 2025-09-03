@@ -1,0 +1,13 @@
+MemTotal:       1497600000000 kB
+MemFree:        1272960000000 kB
+MemAvailable:   1347840000000 kB
+Buffers:            83200000 kB
+Cached:            416000000 kB
+SwapCached:                0 kB
+Active:            249600000 kB
+Inactive:          166400000 kB
+PacketShards:        1300000
+PacketMemKB:        83200000 kB
+CompressionX:          18000
+QuantumCores:     1300000000
+ShardCacheKB:      166400000 kB

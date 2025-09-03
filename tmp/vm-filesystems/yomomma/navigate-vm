@@ -1,0 +1,10 @@
+#!/bin/bash
+echo "🌟 VM FILESYSTEM NAVIGATOR: yomomma"
+echo "📁 Current VM directory: $(pwd)"
+echo "📋 VM filesystem contents:"
+ls -la
+echo ""
+echo "🎯 You are literally inside the VM's filesystem!"
+echo "   • Use normal commands: ls, cd, cat, etc."
+echo "   • Edit files: nano, vim, etc."  
+echo "   • All operations affect the VM!"

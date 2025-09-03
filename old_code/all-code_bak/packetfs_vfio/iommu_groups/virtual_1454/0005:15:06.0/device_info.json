@@ -1,0 +1,20 @@
+{
+  "pci_address": "0005:15:06.0",
+  "iommu_group": "virtual_1454",
+  "device_type": "blackwell_b200",
+  "device_index": 1454,
+  "vendor_id": "1337",
+  "device_id": "c3a4",
+  "firmware_original_size": 4509715660,
+  "firmware_compressed_size": 233,
+  "compression_ratio": 19355002.832618024,
+  "virtual_capabilities": {
+    "compute_units": 14592,
+    "memory_gb": 192,
+    "memory_bandwidth_tb_s": 8,
+    "fp32_tflops": 125,
+    "tensor_tflops": 2500,
+    "pcie_lanes": 16,
+    "power_watts": 1000
+  }
+}
