@@ -19,12 +19,12 @@ test:
 
 lint:
     @echo "Linting"
-    {{VENV_PATH}}/bin/black --check realsrc dev/working/tools
-    {{VENV_PATH}}/bin/flake8 realsrc dev/working/tools
+    {{VENV_PATH}}/bin/python -m black --check realsrc dev/working/tools
+    {{VENV_PATH}}/bin/python -m flake8 realsrc dev/working/tools
 
 format:
     @echo "Formatting"
-    {{VENV_PATH}}/bin/black realsrc dev/working/tools
+    {{VENV_PATH}}/bin/python -m black realsrc dev/working/tools
 
 bench:
     @echo "Benchmarks"

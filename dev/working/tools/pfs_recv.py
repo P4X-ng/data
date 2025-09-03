@@ -17,7 +17,9 @@ def recv_frames(ifname: str):
         info = dec.scan_for_sync(payload)
         if info:
             win, crc = info
-            print(f"Got frame payload {len(payload)} bytes | SYNC window={win} crc=0x{crc:04x}")
+            print(
+                f"Got frame payload {len(payload)} bytes | SYNC window={win} crc=0x{crc:04x}"
+            )
         else:
             print(f"Got frame payload {len(payload)} bytes")
 
@@ -28,6 +30,6 @@ def main():
     args = ap.parse_args()
     recv_frames(args.iface)
 
+
 if __name__ == "__main__":
     main()
-

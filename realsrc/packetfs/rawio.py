@@ -10,15 +10,18 @@ DEST_MAC = b"\xff\xff\xff\xff\xff\xff"  # default broadcast for MVP
 SRC_IF = None  # set at runtime
 
 
-def make_eth_header(src_mac: bytes, dst_mac: bytes = DEST_MAC, ethertype: int = ETH_P_PFS) -> bytes:
-    return dst_mac + src_mac + struct.pack('!H', ethertype)
+def make_eth_header(
+    src_mac: bytes, dst_mac: bytes = DEST_MAC, ethertype: int = ETH_P_PFS
+) -> bytes:
+    return dst_mac + src_mac + struct.pack("!H", ethertype)
 
 
 def get_if_mac(ifname: str) -> bytes:
     import fcntl
+
     SIOCGIFHWADDR = 0x8927
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    ifr = struct.pack('256s', ifname[:15].encode())
+    ifr = struct.pack("256s", ifname[:15].encode())
     res = fcntl.ioctl(s.fileno(), SIOCGIFHWADDR, ifr)
     mac = res[18:24]
     return mac
@@ -40,4 +43,3 @@ def send_frames(ifname: str, payloads: Iterable[bytes]):
         if len(frame) < 60:
             frame = frame + b"\x00" * (60 - len(frame))
         s.send(frame)
-

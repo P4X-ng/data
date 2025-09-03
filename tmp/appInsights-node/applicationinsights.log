@@ -1,2 +1,0 @@
-Failed to initialize TelemetryClient TypeError: r.trace.getTracerProvider(...).getDelegate(...).addSpanProcessor is not a function,
-Failed to initialize TelemetryClient TypeError: r.trace.getTracerProvider(...).getDelegate(...).addSpanProcessor is not a function,

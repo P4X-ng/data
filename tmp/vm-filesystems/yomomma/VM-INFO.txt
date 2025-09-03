@@ -1,7 +1,0 @@
-
-🌟 VIRTUAL VM FILESYSTEM: yomomma
-
-This is a virtual representation of the VM filesystem.
-The VM's actual files would be accessible here if mounted successfully.
-
-VM Status: running

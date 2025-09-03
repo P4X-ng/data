@@ -1,141 +1,0 @@
-[0;32m🎬 Recording started at Sun Aug 31 08:29:10 AM EDT 2025[0m
-
-[0;34m💻 System: x86_64 | Cores: 24 | RAM: 30Gi[0m
-
-[0;35m📈 Running Incremental PacketFS Demo[0m
-[0;33mMultiple filesystem sizes with performance scaling[0m
-
-[0;36m▶ Quick start: 1GB FS + 25MB file[0m
-
-🚀 PacketFS Live Demo - Real-time Performance
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Config: 1GB filesystem | 25MB test | 24 threads
-
-=== PacketFS Live Demo ===
-Creating 1GB filesystem: demo.pfs
-✅ Filesystem ready! 0ms | 15.8M packets | 1.0GB
-📁 File: demo.pfs | Size: 1.00GB
-
-Generating 25MB test pattern...
-✅ Test data ready
-
-Writing 25MB test file...
->> Writing: 0.0% [0/546134] Hash: 0x9C3B5245     >> Writing: 64.1% [350000/546134] Hash: 0x9C3B5245     >> Writing: 73.2% [400000/546134] Hash: 0x9C3B5245     >> Writing: 36.6% [200000/546134] Hash: 0x9C3B5245     >> Writing: 45.8% [250000/546134] Hash: 0x9C3B5245     >> Writing: 18.3% [100000/546134] Hash: 0x9C3B5245     >> Writing: 9.2% [50000/546134] Hash: 0x9C3B5245     >> Writing: 82.4% [450000/546134] Hash: 0x9C3B5245     >> Writing: 27.5% [150000/546134] Hash: 0x9C3B5245     >> Writing: 54.9% [300000/546134] Hash: 0x9C3B5245     >> Writing: 91.6% [500000/546134] Hash: 0x9C3B5245     ✅ Write complete: 1352 MB/s | 18ms | 546134 packets | Hash: 0x9C3B5245
-Reading test file...
->> Reading: 9.2% [50000/546134] Hash: 0x268BFC2D     >> Reading: 45.8% [250000/546134] Hash: 0x89E3F3C5     >> Reading: 18.3% [100000/546134] Hash: 0x80696CCB     >> Reading: 54.9% [300000/546134] Hash: 0x3E435860     >> Reading: 91.6% [500000/546134] Hash: 0x08E34A44     >> Reading: 36.6% [200000/546134] Hash: 0x3C076BE7     >> Reading: 27.5% [150000/546134] Hash: 0x8F61A030     >> Reading: 64.1% [350000/546134] Hash: 0x033DF461     >> Reading: 73.2% [400000/546134] Hash: 0x1B41269F     >> Reading: 0.0% [0/546134] Hash: 0x00001505     >> Reading: 82.4% [450000/546134] Hash: 0xAD1BBDE6     ✅ Read complete: 4133 MB/s | 6ms | Hash: 0x9C3B5245
-
-🏆 FINAL RESULTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total time: 0.0s
-Data integrity: ✅ PERFECT
-Original hash: 0x9C3B5245
-Read hash:     0x9C3B5245
-Packets: 546134
-Performance: 🚀 PacketFS >> Traditional FS
-
-🧹 Cleanup complete - ready for next demo!
-
-[0;36m▶ Warming up: 1GB FS + 50MB file[0m
-
-🚀 PacketFS Live Demo - Real-time Performance
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Config: 1GB filesystem | 50MB test | 24 threads
-
-=== PacketFS Live Demo ===
-Creating 1GB filesystem: demo.pfs
-✅ Filesystem ready! 7ms | 15.8M packets | 1.0GB
-📁 File: demo.pfs | Size: 1.00GB
-
-Generating 50MB test pattern...
-✅ Test data ready
-
-Writing 50MB test file...
->> Writing: 0.0% [0/1092267] Hash: 0xB1B18185     >> Writing: 4.6% [50000/1092267] Hash: 0xB1B18185     >> Writing: 54.9% [600000/1092267] Hash: 0xB1B18185     >> Writing: 96.1% [1050000/1092267] Hash: 0xB1B18185     >> Writing: 68.7% [750000/1092267] Hash: 0xB1B18185     >> Writing: 50.4% [550000/1092267] Hash: 0xB1B18185     >> Writing: 18.3% [200000/1092267] Hash: 0xB1B18185     >> Writing: 13.7% [150000/1092267] Hash: 0xB1B18185     >> Writing: 41.2% [450000/1092267] Hash: 0xB1B18185     >> Writing: 91.6% [1000000/1092267] Hash: 0xB1B18185     >> Writing: 82.4% [900000/1092267] Hash: 0xB1B18185     >> Writing: 64.1% [700000/1092267] Hash: 0xB1B18185     >> Writing: 32.0% [350000/1092267] Hash: 0xB1B18185     >> Writing: 87.0% [950000/1092267] Hash: 0xB1B18185     >> Writing: 27.5% [300000/1092267] Hash: 0xB1B18185     >> Writing: 9.2% [100000/1092267] Hash: 0xB1B18185     >> Writing: 59.5% [650000/1092267] Hash: 0xB1B18185     >> Writing: 36.6% [400000/1092267] Hash: 0xB1B18185     >> Writing: 73.2% [800000/1092267] Hash: 0xB1B18185     >> Writing: 45.8% [500000/1092267] Hash: 0xB1B18185     >> Writing: 77.8% [850000/1092267] Hash: 0xB1B18185     >> Writing: 22.9% [250000/1092267] Hash: 0xB1B18185     ✅ Write complete: 2346 MB/s | 21ms | 1092267 packets | Hash: 0xB1B18185
-Reading test file...
->> Reading: 96.1% [1050000/1092267] Hash: 0xAB1E0CE0     >> Reading: 4.6% [50000/1092267] Hash: 0x4CA0D9A4     >> Reading: 50.4% [550000/1092267] Hash: 0x67AA7F50     >> Reading: 9.2% [100000/1092267] Hash: 0x3FDB8AEA     >> Reading: 13.7% [150000/1092267] Hash: 0x895B9E80     >> Reading: 27.5% [300000/1092267] Hash: 0x4172DDF4     >> Reading: 18.3% [200000/1092267] Hash: 0x590246AF     >> Reading: 22.9% [250000/1092267] Hash: 0xD9ED7197     >> Reading: 32.0% [350000/1092267] Hash: 0xA48FB30D     >> Reading: 87.0% [950000/1092267] Hash: 0xE4FC712A     >> Reading: 59.5% [650000/1092267] Hash: 0xC259CDD7     >> Reading: 82.4% [900000/1092267] Hash: 0xE5ABD64B     >> Reading: 0.0% [0/1092267] Hash: 0x00001505     >> Reading: 91.6% [1000000/1092267] Hash: 0x52E9EAF5     >> Reading: 41.2% [450000/1092267] Hash: 0xBB9B1B41     >> Reading: 73.2% [800000/1092267] Hash: 0x9F2133B0     >> Reading: 77.8% [850000/1092267] Hash: 0x47292CD6     >> Reading: 36.6% [400000/1092267] Hash: 0x9FE5EAE0     >> Reading: 68.7% [750000/1092267] Hash: 0x0522E4C9     >> Reading: 45.8% [500000/1092267] Hash: 0xA3976624     >> Reading: 54.9% [600000/1092267] Hash: 0x29BBFD7D     >> Reading: 64.1% [700000/1092267] Hash: 0xF2ADAE03     ✅ Read complete: 8496 MB/s | 6ms | Hash: 0xB1B18185
-
-🏆 FINAL RESULTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total time: 0.0s
-Data integrity: ✅ PERFECT
-Original hash: 0xB1B18185
-Read hash:     0xB1B18185
-Packets: 1092267
-Performance: 🚀 PacketFS >> Traditional FS
-
-🧹 Cleanup complete - ready for next demo!
-
-[0;36m▶ Accelerating: 2GB FS + 100MB file[0m
-
-🚀 PacketFS Live Demo - Real-time Performance
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Config: 2GB filesystem | 100MB test | 24 threads
-
-=== PacketFS Live Demo ===
-Creating 2GB filesystem: demo.pfs
-✅ Filesystem ready! 10ms | 31.6M packets | 2.0GB
-📁 File: demo.pfs | Size: 2.00GB
-
-Generating 100MB test pattern...
-✅ Test data ready
-
-Writing 100MB test file...
->> Writing: 0.0% [0/2184534] Hash: 0xF1522405     >> Writing: 71.0% [1550000/2184534] Hash: 0xF1522405     >> Writing: 96.1% [2100000/2184534] Hash: 0xF1522405     >> Writing: 38.9% [850000/2184534] Hash: 0xF1522405     >> Writing: 84.7% [1850000/2184534] Hash: 0xF1522405     >> Writing: 87.0% [1900000/2184534] Hash: 0xF1522405     >> Writing: 68.7% [1500000/2184534] Hash: 0xF1522405     >> Writing: 59.5% [1300000/2184534] Hash: 0xF1522405     >> Writing: 75.5% [1650000/2184534] Hash: 0xF1522405     >> Writing: 9.2% [200000/2184534] Hash: 0xF1522405     >> Writing: 25.2% [550000/2184534] Hash: 0xF1522405     >> Writing: 34.3% [750000/2184534] Hash: 0xF1522405     >> Writing: 13.7% [300000/2184534] Hash: 0xF1522405     >> Writing: 4.6% [100000/2184534] Hash: 0xF1522405     >> Writing: 41.2% [900000/2184534] Hash: 0xF1522405     >> Writing: 29.8% [650000/2184534] Hash: 0xF1522405     >> Writing: 93.8% [2050000/2184534] Hash: 0xF1522405     >> Writing: 54.9% [1200000/2184534] Hash: 0xF1522405     >> Writing: 80.1% [1750000/2184534] Hash: 0xF1522405     >> Writing: 43.5% [950000/2184534] Hash: 0xF1522405     >> Writing: 57.2% [1250000/2184534] Hash: 0xF1522405     >> Writing: 73.2% [1600000/2184534] Hash: 0xF1522405     >> Writing: 2.3% [50000/2184534] Hash: 0xF1522405     >> Writing: 16.0% [350000/2184534] Hash: 0xF1522405     >> Writing: 50.4% [1100000/2184534] Hash: 0xF1522405     >> Writing: 18.3% [400000/2184534] Hash: 0xF1522405     >> Writing: 20.6% [450000/2184534] Hash: 0xF1522405     >> Writing: 98.4% [2150000/2184534] Hash: 0xF1522405     >> Writing: 11.4% [250000/2184534] Hash: 0xF1522405     >> Writing: 32.0% [700000/2184534] Hash: 0xF1522405     >> Writing: 89.3% [1950000/2184534] Hash: 0xF1522405     >> Writing: 64.1% [1400000/2184534] Hash: 0xF1522405     >> Writing: 77.8% [1700000/2184534] Hash: 0xF1522405     >> Writing: 45.8% [1000000/2184534] Hash: 0xF1522405     >> Writing: 6.9% [150000/2184534] Hash: 0xF1522405     >> Writing: 91.6% [2000000/2184534] Hash: 0xF1522405     >> Writing: 22.9% [500000/2184534] Hash: 0xF1522405     >> Writing: 52.6% [1150000/2184534] Hash: 0xF1522405     >> Writing: 36.6% [800000/2184534] Hash: 0xF1522405     >> Writing: 82.4% [1800000/2184534] Hash: 0xF1522405     >> Writing: 61.8% [1350000/2184534] Hash: 0xF1522405     >> Writing: 27.5% [600000/2184534] Hash: 0xF1522405     >> Writing: 48.1% [1050000/2184534] Hash: 0xF1522405     >> Writing: 66.4% [1450000/2184534] Hash: 0xF1522405     ✅ Write complete: 2300 MB/s | 43ms | 2184534 packets | Hash: 0xF1522405
-Reading test file...
->> Reading: 0.0% [0/2184534] Hash: 0x00001505     >> Reading: 75.5% [1650000/2184534] Hash: 0xD599D374     >> Reading: 29.8% [650000/2184534] Hash: 0xF31C5FF2     >> Reading: 96.1% [2100000/2184534] Hash: 0xEA1CA64E     >> Reading: 38.9% [850000/2184534] Hash: 0x59CFFDC3     >> Reading: 50.4% [1100000/2184534] Hash: 0x8F983049     >> Reading: 4.6% [100000/2184534] Hash: 0xC9D2A94A     >> Reading: 80.1% [1750000/2184534] Hash: 0x68192175     >> Reading: 48.1% [1050000/2184534] Hash: 0xE7F0F8EC     >> Reading: 18.3% [400000/2184534] Hash: 0x54F71303     >> Reading: 22.9% [500000/2184534] Hash: 0x7D1EA434     >> Reading: 43.5% [950000/2184534] Hash: 0x51914DC3     >> Reading: 34.3% [750000/2184534] Hash: 0xA0A64D03     >> Reading: 9.2% [200000/2184534] Hash: 0x05EC816D     >> Reading: 71.0% [1550000/2184534] Hash: 0x5928C990     >> Reading: 84.7% [1850000/2184534] Hash: 0xFA6B0A46     >> Reading: 54.9% [1200000/2184534] Hash: 0x4A7A40BF     >> Reading: 93.8% [2050000/2184534] Hash: 0x8852AEC3     >> Reading: 89.3% [1950000/2184534] Hash: 0xDFD7EDDE     >> Reading: 68.7% [1500000/2184534] Hash: 0xF8AE790B     >> Reading: 25.2% [550000/2184534] Hash: 0x4CD78193     >> Reading: 77.8% [1700000/2184534] Hash: 0x2BBB8D57     >> Reading: 98.4% [2150000/2184534] Hash: 0xAD728CE9     >> Reading: 32.0% [700000/2184534] Hash: 0x2BCED3A5     >> Reading: 59.5% [1300000/2184534] Hash: 0xAF6D15F2     >> Reading: 41.2% [900000/2184534] Hash: 0xFA8622D9     >> Reading: 82.4% [1800000/2184534] Hash: 0x2E7978E3     >> Reading: 64.1% [1400000/2184534] Hash: 0xCF3DE7B7     >> Reading: 87.0% [1900000/2184534] Hash: 0x9359EB3A     >> Reading: 52.6% [1150000/2184534] Hash: 0x986F1130     >> Reading: 45.8% [1000000/2184534] Hash: 0x0F9E5CA5     >> Reading: 91.6% [2000000/2184534] Hash: 0x3BD61887     >> Reading: 36.6% [800000/2184534] Hash: 0xD28A0E5D     >> Reading: 13.7% [300000/2184534] Hash: 0x55203809     >> Reading: 61.8% [1350000/2184534] Hash: 0x9D1563C2     >> Reading: 20.6% [450000/2184534] Hash: 0x342E242E     >> Reading: 6.9% [150000/2184534] Hash: 0xAF8E5D61     >> Reading: 11.4% [250000/2184534] Hash: 0xA6777B40     >> Reading: 27.5% [600000/2184534] Hash: 0xE4F570D4     >> Reading: 66.4% [1450000/2184534] Hash: 0x6DEA5362     >> Reading: 2.3% [50000/2184534] Hash: 0x9F40140B     >> Reading: 16.0% [350000/2184534] Hash: 0xD84F4972     >> Reading: 57.2% [1250000/2184534] Hash: 0x9049AC4E     >> Reading: 73.2% [1600000/2184534] Hash: 0xEEA64A71     ✅ Read complete: 8928 MB/s | 11ms | Hash: 0xF1522405
-
-🏆 FINAL RESULTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total time: 0.1s
-Data integrity: ✅ PERFECT
-Original hash: 0xF1522405
-Read hash:     0xF1522405
-Packets: 2184534
-Performance: 🚀 PacketFS >> Traditional FS
-
-🧹 Cleanup complete - ready for next demo!
-
-[0;36m▶ High speed: 3GB FS + 150MB file[0m
-
-🚀 PacketFS Live Demo - Real-time Performance
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Config: 3GB filesystem | 150MB test | 24 threads
-
-=== PacketFS Live Demo ===
-Creating 3GB filesystem: demo.pfs
-✅ Filesystem ready! 20ms | 47.4M packets | 3.0GB
-📁 File: demo.pfs | Size: 3.00GB
-
-Generating 150MB test pattern...
-✅ Test data ready
-
-Writing 150MB test file...
->> Writing: 79.3% [2600000/3276800] Hash: 0xBEB94265     >> Writing: 62.6% [2050000/3276800] Hash: 0xBEB94265     >> Writing: 0.0% [0/3276800] Hash: 0xBEB94265     >> Writing: 96.1% [3150000/3276800] Hash: 0xBEB94265     >> Writing: 16.8% [550000/3276800] Hash: 0xBEB94265     >> Writing: 9.2% [300000/3276800] Hash: 0xBEB94265     >> Writing: 67.1% [2200000/3276800] Hash: 0xBEB94265     >> Writing: 54.9% [1800000/3276800] Hash: 0xBEB94265     >> Writing: 83.9% [2750000/3276800] Hash: 0xBEB94265     >> Writing: 59.5% [1950000/3276800] Hash: 0xBEB94265     >> Writing: 33.6% [1100000/3276800] Hash: 0xBEB94265     >> Writing: 88.5% [2900000/3276800] Hash: 0xBEB94265     >> Writing: 97.7% [3200000/3276800] Hash: 0xBEB94265     >> Writing: 21.4% [700000/3276800] Hash: 0xBEB94265     >> Writing: 68.7% [2250000/3276800] Hash: 0xBEB94265     >> Writing: 10.7% [350000/3276800] Hash: 0xBEB94265     >> Writing: 30.5% [1000000/3276800] Hash: 0xBEB94265     >> Writing: 80.9% [2650000/3276800] Hash: 0xBEB94265     >> Writing: 64.1% [2100000/3276800] Hash: 0xBEB94265     >> Writing: 38.1% [1250000/3276800] Hash: 0xBEB94265     >> Writing: 93.1% [3050000/3276800] Hash: 0xBEB94265     >> Writing: 32.0% [1050000/3276800] Hash: 0xBEB94265     >> Writing: 18.3% [600000/3276800] Hash: 0xBEB94265     >> Writing: 99.2% [3250000/3276800] Hash: 0xBEB94265     >> Writing: 50.4% [1650000/3276800] Hash: 0xBEB94265     >> Writing: 1.5% [50000/3276800] Hash: 0xBEB94265     >> Writing: 94.6% [3100000/3276800] Hash: 0xBEB94265     >> Writing: 4.6% [150000/3276800] Hash: 0xBEB94265     >> Writing: 25.9% [850000/3276800] Hash: 0xBEB94265     >> Writing: 90.0% [2950000/3276800] Hash: 0xBEB94265     >> Writing: 12.2% [400000/3276800] Hash: 0xBEB94265     >> Writing: 13.7% [450000/3276800] Hash: 0xBEB94265     >> Writing: 22.9% [750000/3276800] Hash: 0xBEB94265     >> Writing: 76.3% [2500000/3276800] Hash: 0xBEB94265     >> Writing: 15.3% [500000/3276800] Hash: 0xBEB94265     >> Writing: 24.4% [800000/3276800] Hash: 0xBEB94265     >> Writing: 70.2% [2300000/3276800] Hash: 0xBEB94265     >> Writing: 47.3% [1550000/3276800] Hash: 0xBEB94265     >> Writing: 42.7% [1400000/3276800] Hash: 0xBEB94265     >> Writing: 35.1% [1150000/3276800] Hash: 0xBEB94265     >> Writing: 56.5% [1850000/3276800] Hash: 0xBEB94265     >> Writing: 85.4% [2800000/3276800] Hash: 0xBEB94265     >> Writing: 51.9% [1700000/3276800] Hash: 0xBEB94265     >> Writing: 61.0% [2000000/3276800] Hash: 0xBEB94265     >> Writing: 3.1% [100000/3276800] Hash: 0xBEB94265     >> Writing: 82.4% [2700000/3276800] Hash: 0xBEB94265     >> Writing: 53.4% [1750000/3276800] Hash: 0xBEB94265     >> Writing: 71.7% [2350000/3276800] Hash: 0xBEB94265     >> Writing: 65.6% [2150000/3276800] Hash: 0xBEB94265     >> Writing: 48.8% [1600000/3276800] Hash: 0xBEB94265     >> Writing: 27.5% [900000/3276800] Hash: 0xBEB94265     >> Writing: 39.7% [1300000/3276800] Hash: 0xBEB94265     >> Writing: 6.1% [200000/3276800] Hash: 0xBEB94265     >> Writing: 58.0% [1900000/3276800] Hash: 0xBEB94265     >> Writing: 87.0% [2850000/3276800] Hash: 0xBEB94265     >> Writing: 91.6% [3000000/3276800] Hash: 0xBEB94265     >> Writing: 36.6% [1200000/3276800] Hash: 0xBEB94265     >> Writing: 73.2% [2400000/3276800] Hash: 0xBEB94265     >> Writing: 77.8% [2550000/3276800] Hash: 0xBEB94265     >> Writing: 29.0% [950000/3276800] Hash: 0xBEB94265     >> Writing: 19.8% [650000/3276800] Hash: 0xBEB94265     >> Writing: 44.3% [1450000/3276800] Hash: 0xBEB94265     >> Writing: 41.2% [1350000/3276800] Hash: 0xBEB94265     >> Writing: 7.6% [250000/3276800] Hash: 0xBEB94265     >> Writing: 74.8% [2450000/3276800] Hash: 0xBEB94265     >> Writing: 45.8% [1500000/3276800] Hash: 0xBEB94265     ✅ Write complete: 2650 MB/s | 57ms | 3276800 packets | Hash: 0xBEB94265
-Reading test file...
->> Reading: 0.0% [0/3276800] Hash: 0x00001505     >> Reading: 62.6% [2050000/3276800] Hash: 0x47ECA771     >> Reading: 50.4% [1650000/3276800] Hash: 0x85C8E081     >> Reading: 4.6% [150000/3276800] Hash: 0x66E8004B     >> Reading: 79.3% [2600000/3276800] Hash: 0xAA4BA6B8     >> Reading: 16.8% [550000/3276800] Hash: 0x8E8D4850     >> Reading: 96.1% [3150000/3276800] Hash: 0x8BAAF99A     >> Reading: 9.2% [300000/3276800] Hash: 0x07F1CD28     >> Reading: 33.6% [1100000/3276800] Hash: 0x1F593294     >> Reading: 54.9% [1800000/3276800] Hash: 0xEE2F5499     >> Reading: 59.5% [1950000/3276800] Hash: 0x9B7EC1EF     >> Reading: 21.4% [700000/3276800] Hash: 0x600D51FE     >> Reading: 38.1% [1250000/3276800] Hash: 0xF215957D     >> Reading: 71.7% [2350000/3276800] Hash: 0x7B416420     >> Reading: 93.1% [3050000/3276800] Hash: 0x210A3391     >> Reading: 88.5% [2900000/3276800] Hash: 0x75FF3194     >> Reading: 30.5% [1000000/3276800] Hash: 0x4CFD396E     >> Reading: 97.7% [3200000/3276800] Hash: 0xCF22E447     >> Reading: 83.9% [2750000/3276800] Hash: 0x6728F412     >> Reading: 51.9% [1700000/3276800] Hash: 0x038C3758     >> Reading: 64.1% [2100000/3276800] Hash: 0x0F74B3B9     >> Reading: 80.9% [2650000/3276800] Hash: 0x76437139     >> Reading: 61.0% [2000000/3276800] Hash: 0x80E4F91E     >> Reading: 56.5% [1850000/3276800] Hash: 0xCDA6178F     >> Reading: 35.1% [1150000/3276800] Hash: 0xDDE3DFE3     >> Reading: 67.1% [2200000/3276800] Hash: 0xC9B0A6E4     >> Reading: 6.1% [200000/3276800] Hash: 0x777684E0     >> Reading: 73.2% [2400000/3276800] Hash: 0xC1EF8D64     >> Reading: 10.7% [350000/3276800] Hash: 0xDABB1D41     >> Reading: 94.6% [3100000/3276800] Hash: 0xAA9EAD7F     >> Reading: 25.9% [850000/3276800] Hash: 0x9ED2BDC0     >> Reading: 99.2% [3250000/3276800] Hash: 0x9D906357     >> Reading: 76.3% [2500000/3276800] Hash: 0xA7F06462     >> Reading: 42.7% [1400000/3276800] Hash: 0x050FFC3F     >> Reading: 90.0% [2950000/3276800] Hash: 0x9E86972C     >> Reading: 53.4% [1750000/3276800] Hash: 0x0B13E733     >> Reading: 65.6% [2150000/3276800] Hash: 0xACD01B6C     >> Reading: 47.3% [1550000/3276800] Hash: 0xBCDDA61D     >> Reading: 32.0% [1050000/3276800] Hash: 0x3C750BFE     >> Reading: 13.7% [450000/3276800] Hash: 0xECEE691E     >> Reading: 18.3% [600000/3276800] Hash: 0xD46C9CBD     >> Reading: 58.0% [1900000/3276800] Hash: 0x57336616     >> Reading: 82.4% [2700000/3276800] Hash: 0x35678816     >> Reading: 74.8% [2450000/3276800] Hash: 0x18D8D510     >> Reading: 36.6% [1200000/3276800] Hash: 0x7AFB6E74     >> Reading: 22.9% [750000/3276800] Hash: 0x50258C60     >> Reading: 1.5% [50000/3276800] Hash: 0x9F40140B     >> Reading: 39.7% [1300000/3276800] Hash: 0x97F07C02     >> Reading: 85.4% [2800000/3276800] Hash: 0x4A9AAE50     >> Reading: 7.6% [250000/3276800] Hash: 0xB6201B35     >> Reading: 77.8% [2550000/3276800] Hash: 0x80830E8A     >> Reading: 12.2% [400000/3276800] Hash: 0xE33433A4     >> Reading: 68.7% [2250000/3276800] Hash: 0x172BDC13     >> Reading: 27.5% [900000/3276800] Hash: 0x0ABFD978     >> Reading: 87.0% [2850000/3276800] Hash: 0x69DAFA3B     >> Reading: 19.8% [650000/3276800] Hash: 0x06634D32     >> Reading: 24.4% [800000/3276800] Hash: 0x617E6A21     >> Reading: 15.3% [500000/3276800] Hash: 0x0855CB2E     >> Reading: 48.8% [1600000/3276800] Hash: 0x64781DEE     >> Reading: 44.3% [1450000/3276800] Hash: 0xD4046E2F     >> Reading: 91.6% [3000000/3276800] Hash: 0xE03377CA     >> Reading: 41.2% [1350000/3276800] Hash: 0xDC31F937     >> Reading: 70.2% [2300000/3276800] Hash: 0xF47934FA     >> Reading: 3.1% [100000/3276800] Hash: 0xEC38A75E     >> Reading: 29.0% [950000/3276800] Hash: 0x0560F12F     >> Reading: 45.8% [1500000/3276800] Hash: 0x1A9E6FD0     ✅ Read complete: 7979 MB/s | 19ms | Hash: 0xBEB94265
-
-🏆 FINAL RESULTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total time: 0.1s
-Data integrity: ✅ PERFECT
-Original hash: 0xBEB94265
-Read hash:     0xBEB94265
-Packets: 3276800
-Performance: 🚀 PacketFS >> Traditional FS
-
-🧹 Cleanup complete - ready for next demo!
-
-
-[0;32m🏁 Recording Complete![0m
-[0;36m════════════════════════════════════════════════[0m
-[0;37mPerformance Summary:[0m
-[0;33m✓ Multi-GB/s throughput demonstrated[0m
-[0;33m✓ Perfect data integrity maintained[0m
-[0;33m✓ Packet-native architecture validated[0m
-[0;33m✓ Ready for GIF/video creation[0m
-
-[0;36m📄 Recording saved to: packetfs_demo_20250831_082910.log[0m
-[0;35m🎬 Perfect for creating epic PacketFS GIFs! 🚀[0m
-
-[0;34m📁 Demo filesystem: 3.0G[0m
-[0;32m✨ Demo complete - PacketFS performance captured![0m

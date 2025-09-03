@@ -45,6 +45,6 @@ def main():
     send_frames(args.iface, payloads)
     print("Sent 100 demo frames.")
 
+
 if __name__ == "__main__":
     main()
-

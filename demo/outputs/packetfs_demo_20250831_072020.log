@@ -1,49 +1,0 @@
-[0;32m🎬 Recording started at Sun Aug 31 07:20:20 AM EDT 2025[0m
-
-[0;34m💻 System: x86_64 | Cores: 24 | RAM: 30Gi[0m
-
-[0;35m🎥 Running Live PacketFS Demo - Perfect for Screen Recording[0m
-[0;33mReal-time performance monitoring enabled[0m
-
-
-🚀 PacketFS Live Demo - Real-time Performance
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Config: 1GB filesystem | 25MB test | 24 threads
-
-=== PacketFS Live Demo ===
-Creating 1GB filesystem: demo.pfs
-✅ Filesystem ready! 0ms | 15.8M packets | 1.0GB
-📁 File: demo.pfs | Size: 1.00GB
-
-Generating 25MB test pattern...
-✅ Test data ready
-
-Writing 25MB test file...
->> Writing: 0.0% [0/546134] Hash: 0x9C3B5245     >> Writing: 18.3% [100000/546134] Hash: 0x9C3B5245     >> Writing: 64.1% [350000/546134] Hash: 0x9C3B5245     >> Writing: 82.4% [450000/546134] Hash: 0x9C3B5245     >> Writing: 73.2% [400000/546134] Hash: 0x9C3B5245     >> Writing: 27.5% [150000/546134] Hash: 0x9C3B5245     >> Writing: 9.2% [50000/546134] Hash: 0x9C3B5245     >> Writing: 36.6% [200000/546134] Hash: 0x9C3B5245     >> Writing: 91.6% [500000/546134] Hash: 0x9C3B5245     >> Writing: 54.9% [300000/546134] Hash: 0x9C3B5245     >> Writing: 45.8% [250000/546134] Hash: 0x9C3B5245     ✅ Write complete: 1795 MB/s | 14ms | 546134 packets | Hash: 0x9C3B5245
-Reading test file...
->> Reading: 0.0% [0/546134] Hash: 0x00001505     >> Reading: 54.9% [300000/546134] Hash: 0xCF8CAFA6     >> Reading: 27.5% [150000/546134] Hash: 0x9445BE90     >> Reading: 91.6% [500000/546134] Hash: 0xC5918131     >> Reading: 18.3% [100000/546134] Hash: 0xFC46179A     >> Reading: 64.1% [350000/546134] Hash: 0xA6E46373     >> Reading: 36.6% [200000/546134] Hash: 0x02A0B2D9     >> Reading: 9.2% [50000/546134] Hash: 0x582331D9     >> Reading: 73.2% [400000/546134] Hash: 0x9ED4F1B3     >> Reading: 45.8% [250000/546134] Hash: 0x3D9212B0     >> Reading: 82.4% [450000/546134] Hash: 0x674D53CA     ✅ Read complete: 5791 MB/s | 4ms | Hash: 0x9C3B5245
-
-🏆 FINAL RESULTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total time: 0.0s
-Data integrity: ✅ PERFECT
-Original hash: 0x9C3B5245
-Read hash:     0x9C3B5245
-Packets: 546134
-Performance: 🚀 PacketFS >> Traditional FS
-
-🧹 Cleanup complete - ready for next demo!
-
-[0;32m🏁 Recording Complete![0m
-[0;36m════════════════════════════════════════════════[0m
-[0;37mPerformance Summary:[0m
-[0;33m✓ Multi-GB/s throughput demonstrated[0m
-[0;33m✓ Perfect data integrity maintained[0m
-[0;33m✓ Packet-native architecture validated[0m
-[0;33m✓ Ready for GIF/video creation[0m
-
-[0;36m📄 Recording saved to: packetfs_demo_20250831_072020.log[0m
-[0;35m🎬 Perfect for creating epic PacketFS GIFs! 🚀[0m
-
-[0;34m📁 Demo filesystem: 1.0G[0m
-[0;32m✨ Demo complete - PacketFS performance captured![0m

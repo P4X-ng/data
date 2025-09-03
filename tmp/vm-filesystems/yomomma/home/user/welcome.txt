@@ -1,8 +1,0 @@
-
-Welcome to yomomma!
-
-You have successfully navigated into the VM's filesystem.
-This directory structure represents what you would see
-if you were inside the VM.
-
-🎯 This is revolutionary - VM filesystems as local directories!
