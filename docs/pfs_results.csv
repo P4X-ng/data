@@ -1,0 +1,5 @@
+label,purpose,bytes_mb,elapsed_s,throughput_mb_s,user_s,sys_s,cpu_total_s,mb_per_cpu_s,integrity,notes
+Conventional (scp,veth,no-compress),Transfer,2147.48,3.69,582.0,2.13,1.26,3.39,633.3,NA,"/dev/shm endpoints; 10.77.0.1->10.77.0.2 over veth; SSH encryption"
+PFS-With-Payload-TCP (Benchmark),Transfer,1073.74,10.66,100.7,3.31,1.98,5.29,202.9,OK,"Loopback; 1 MiB grams; 1024 desc/gram; payload mode (reference only)"
+Native PFS Offset-only Mode - TCP,Transfer|pCPU,549588.92,517.6,1062.3,509.40,1.85,511.25,1075.0,OK,"Loopback; blob=/dev/hugepages; 1 MiB grams; 1024 desc/gram; no payload; pThreads=1"
+

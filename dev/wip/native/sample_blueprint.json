@@ -1,0 +1,13 @@
+{
+  "mode": "formula",
+  "blob": {"name": "pfs_vblob_test", "size": 104857600, "seed": 1337},
+  "segments": {
+    "count": 262144,
+    "seg_len": 384,
+    "start_offset": 0,
+    "stride": 8191,
+    "delta": 0
+  },
+  "file_size": 104857600
+}
+

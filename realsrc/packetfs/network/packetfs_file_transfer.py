@@ -17,6 +17,7 @@ from dataclasses import dataclass
 
 from packetfs.protocol import ProtocolEncoder, ProtocolDecoder, SyncConfig
 from packetfs.rawio import ETH_P_PFS
+from packetfs.filesystem.virtual_blob import VirtualBlob
 
 # PacketFS File Transfer Protocol Constants
 PFS_MAGIC = b"PFS1"
@@ -29,6 +30,7 @@ MSG_SYNC_DATA = 3
 MSG_FILE_REQUEST = 4
 MSG_FILE_DATA = 5
 MSG_FILE_COMPLETE = 6
+MSG_BLUEPRINT_REQUEST = 7
 MSG_ERROR = 255
 
 
@@ -250,6 +252,14 @@ class PacketFSFileTransfer:
                     request = json.loads(data.decode())
                     self.handle_sync_request(client_sock, request)
 
+                elif msg_type == MSG_BLUEPRINT_REQUEST:
+                    request = json.loads(data.decode())
+                    # For blueprint mode, we only acknowledge; reconstruction is client-side using its local blob
+                    ack = {"status": "blueprint-accepted"}
+                    self.send_message(client_sock, MSG_FILE_COMPLETE, json.dumps(ack).encode())
+                    # Close gracefully after ack to avoid logging normal EOF as error
+                    return
+
                 else:
                     print(f"⚠️ Unknown message type: {msg_type}")
 
@@ -412,6 +422,26 @@ class PacketFSFileTransfer:
         finally:
             sock.close()
 
+    def request_blueprint(self, server_host: str, blueprint: dict, local_file_path: str) -> bool:
+        """Request blueprint-only transfer and reconstruct locally using VirtualBlob.
+
+        No file content is sent over the wire; only control messages.
+        """
+        print(f"📐 Blueprint request -> {local_file_path}")
+        sock = self.connect_client(server_host)
+        try:
+            self.send_message(sock, MSG_BLUEPRINT_REQUEST, json.dumps(blueprint).encode())
+            # Await acknowledgment
+            msg_type, data = self.receive_message(sock)
+            if msg_type != MSG_FILE_COMPLETE:
+                print("❌ Blueprint request not acknowledged")
+                return False
+            # Reconstruct locally
+            self.reconstruct_from_blueprint(blueprint, local_file_path)
+            return True
+        finally:
+            sock.close()
+
     def reconstruct_file(self, chunks: List[dict], output_path: str):
         """Reconstruct file from PacketFS chunks"""
         # Sort chunks by offset
@@ -426,6 +456,71 @@ class PacketFSFileTransfer:
                 actual_checksum = hashlib.md5(chunk["data"]).hexdigest()
                 if actual_checksum != chunk["checksum"]:
                     print(f"⚠️ Checksum mismatch in chunk {chunk['chunk_id']}")
+
+    def reconstruct_from_blueprint(self, blueprint: dict, output_path: str) -> None:
+        """Reconstruct a file locally from a blueprint referencing a VirtualBlob.
+
+        Blueprint schema (formula):
+        {
+          "mode": "formula",
+          "blob": {"name": str, "size": int, "seed": int},
+          "segments": {
+              "count": int, "seg_len": int,
+              "start_offset": int, "stride": int, "delta": int
+          },
+          "file_size": int
+        }
+        """
+        if blueprint.get("mode") != "formula":
+            raise ValueError("Unsupported blueprint mode")
+        blob = blueprint.get("blob", {})
+        seg = blueprint.get("segments", {})
+        file_size = int(blueprint.get("file_size", 0))
+        if file_size <= 0:
+            raise ValueError("file_size must be > 0")
+
+        vb = VirtualBlob(name=blob["name"], size_bytes=int(blob["size"]), seed=int(blob["seed"]))
+        vb.create_or_attach(create=True)
+        vb.ensure_filled()
+
+        count = int(seg["count"]) if "count" in seg else 0
+        seg_len = int(seg["seg_len"]) if "seg_len" in seg else 0
+        start_offset = int(seg.get("start_offset", 0))
+        stride = int(seg.get("stride", 0))
+        delta = int(seg.get("delta", 0)) & 0xFF
+
+        written = 0
+        with open(output_path, "wb") as f:
+            off = start_offset
+            for i in range(count):
+                n = seg_len
+                if written + n > file_size:
+                    n = file_size - written
+                if n <= 0:
+                    break
+                # Read from blob with wrap-around support
+                # Fast path: delta == 0
+                if delta == 0:
+                    if (off % vb.size) + n <= vb.size:
+                        # contiguous
+                        mv = vb.buffer[(off % vb.size):(off % vb.size) + n]
+                        f.write(mv)
+                    else:
+                        # wrap
+                        first = vb.size - (off % vb.size)
+                        f.write(vb.buffer[(off % vb.size):vb.size])
+                        if n - first > 0:
+                            f.write(vb.buffer[0:(n - first)])
+                else:
+                    # Apply additive delta modulo 256
+                    chunk = vb.read(off, n)
+                    transformed = bytes(((b + delta) & 0xFF) for b in chunk)
+                    f.write(transformed)
+                written += n
+                off = (off + stride) % vb.size
+            # If file_size not exactly covered, pad zeros (should not happen in well-formed blueprints)
+            if written < file_size:
+                f.write(b"\x00" * (file_size - written))
 
     def print_stats(self):
         """Print transfer statistics"""

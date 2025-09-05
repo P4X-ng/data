@@ -1,0 +1,25 @@
+complete: {"status":"complete","bytes":268435456,"checksum":"0x543e1fa20c34f879"}
+checksum payload=0xc4d3f169ae1d88d8 blob=0xc4d3f169ae1d88d8 (local vs remote unknown) bytes=103735456
+	Command being timed: "dev/wip/native/pfs_gram_udp --mode client --host 127.0.0.1 --port 8534 --blob-size 268435456 --seed 12345678 --desc-per-gram 16 --total-bytes 268435456 --gram-bytes 60000 --align 64"
+	User time (seconds): 0.75
+	System time (seconds): 0.51
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.27
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 263496
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 63583
+	Voluntary context switches: 1
+	Involuntary context switches: 6
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

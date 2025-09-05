@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "packetfs"
+version = "0.1.0"
+description = "PacketFS production package with native bitstream codec"
+requires-python = ">=3.8"
+
+[tool.setuptools]
+package-dir = {"" = "realsrc"}
+
+[tool.setuptools.packages.find]
+where = ["realsrc"]
+exclude = [
+  "dev*",
+  "demo*",
+  "theoretical*",
+  "old_code*",
+  "papers*",
+  "fake_trash*",
+  "ideas*",
+]
+
