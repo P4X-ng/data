@@ -78,3 +78,11 @@ local/
 .realsrc_native_build/
 .realsrc_build/
 build-*/
+
+# Exclude transient junk inside fake_trash
+fake_trash/**/tmp*
+fake_trash/**/build/
+fake_trash/**/.cache/
+
+# Never auto-run or package dangerous testing area
+DANGER_ONLY_FOR_TESTING_PURPOSES/**/.cache/

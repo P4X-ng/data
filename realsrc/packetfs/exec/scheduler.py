@@ -62,8 +62,8 @@ class WindowedScheduler:
                 if _NATIVE is not None:
                     res = _NATIVE.add(lhs_val, rhs_val)
                 else:
-                    # Fallback to IRExecutor's add path
-                    res = self.ir._resolve(lhs) + self.ir._resolve(rhs)
+                    # Fallback simple add
+                    res = (lhs_val + rhs_val) & 0xFFFFFFFF
                 self.ir.env[name] = res
                 self._push_ref(1)
                 continue
@@ -97,6 +97,32 @@ class WindowedScheduler:
             if m_ret_const:
                 return int(m_ret_const.group(1)) & 0xFFFFFFFF, list(self.window_syncs)
         raise RuntimeError("No return encountered in IR")
+
+    def encode_ops_only(self, ll_path: str) -> Tuple[int, List[WindowSync]]:
+        """Scan IR and encode references for recognized ops without executing.
+
+        This is useful for analysis-only flows where SSA resolution isn't needed.
+        Returns a tuple of (op_count, window_syncs).
+        """
+        self.encoder = ProtocolEncoder(self.config)
+        self.ref_bytes.clear()
+        self.window_syncs.clear()
+        op_count = 0
+        with open(ll_path, "r", encoding="utf-8") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith(";"):
+                    continue
+                if self.ir.ADD_RE.match(line):
+                    self._push_ref(1)
+                    op_count += 1
+                elif self.ir.SUB_RE.match(line):
+                    self._push_ref(2)
+                    op_count += 1
+                elif self.ir.MUL_RE.match(line):
+                    self._push_ref(3)
+                    op_count += 1
+        return op_count, list(self.window_syncs)
 
     def _push_ref(self, code: int) -> None:
         # Append a 1-byte ref and feed to encoder for CRC/windowing

@@ -309,6 +309,11 @@ test-ir-exec:
     @echo "Running IR execution pipeline tests"
     PYTHONPATH=realsrc {{VENV_PATH}}/bin/python -m pytest -q dev/working/tests/test_ir_exec_pipeline.py
 
+# Run the production IR executor CLI on a .ll file
+run-ir-exec ll="dev/working/samples/llvm/compute/hello_world.ll" windows="1" mode="both":
+    @echo "Running IR executor on {{ll}} (mode={{mode}}, windows={{windows}})"
+    PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/ir_exec.py {{ll}} --mode {{mode}} {{if windows == '1'}}--windows{{endif}}
+
 # === Whole-program LLVM bitcode pipeline (freestanding, no libc) ===
 # 1) Compile sources to .bc (freestanding, no builtins)
 build-bc:
