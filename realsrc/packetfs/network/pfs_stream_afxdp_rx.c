@@ -88,15 +88,48 @@ int main(int argc, char** argv){
     PfsXdpUmem umem; if(pfs_xdp_umem_create(&umem, 0, 2048, 8192)!=0) die("umem create");
     PfsXdpSocket xsk; if(pfs_xdp_socket_create(&xsk, &umem, cfg.ifname, cfg.queue, 1, 0, cfg.zerocopy)!=0) die("xsk create");
 
-    // Load and attach XDP program; update xsks_map with xsk fd
-    struct bpf_object* obj = bpf_object__open_file(cfg.bpf_obj, NULL); if(!obj) die("bpf_object__open_file %s", cfg.bpf_obj);
+    // Load and attach XDP program (force SKB/generic mode on veth);
+    // update xsks_map with xsk fd before attaching.
+    struct bpf_object* obj = bpf_object__open_file(cfg.bpf_obj, NULL);
+    if(!obj) die("bpf_object__open_file %s", cfg.bpf_obj);
     if(bpf_object__load(obj) != 0) die("bpf_object__load: %s", strerror(errno));
-    struct bpf_map* map = bpf_object__find_map_by_name(obj, "xsks_map"); if(!map) die("xsks_map not found");
-    int map_fd = bpf_map__fd(map); int xsk_fd = xsk_socket__fd(xsk.xsk);
-    __u32 key = cfg.queue; if(bpf_map_update_elem(map_fd, &key, &xsk_fd, 0) != 0) die("bpf_map_update_elem xsks_map: %s", strerror(errno));
-    struct bpf_program* prog = bpf_object__find_program_by_name(obj, "xdp_redirect"); if(!prog) die("xdp_redirect not found");
-    int ifindex = if_nametoindex(cfg.ifname); if(ifindex==0) die("if_nametoindex %s", cfg.ifname);
-    struct bpf_link* link = bpf_program__attach_xdp(prog, ifindex); if(!link) die("attach xdp failed");
+
+    struct bpf_map* map = bpf_object__find_map_by_name(obj, "xsks_map");
+    if(!map) die("xsks_map not found");
+    int map_fd = bpf_map__fd(map);
+    int xsk_fd = xsk_socket__fd(xsk.xsk);
+    __u32 key = cfg.queue;
+    if(bpf_map_update_elem(map_fd, &key, &xsk_fd, 0) != 0)
+        die("bpf_map_update_elem xsks_map: %s", strerror(errno));
+
+    struct bpf_program* prog = bpf_object__find_program_by_name(obj, "xdp_redirect");
+    if(!prog) die("xdp_redirect not found");
+
+    int ifindex = if_nametoindex(cfg.ifname);
+    if(ifindex==0) die("if_nametoindex %s", cfg.ifname);
+
+    // Prefer generic (skb) mode for maximum compatibility on veth
+    int prog_fd = bpf_program__fd(prog);
+    int ret;
+    // Try to attach in driver (native) mode first; if fails, try generic (skb)
+    ret = bpf_xdp_attach(ifindex, prog_fd, XDP_FLAGS_DRV_MODE | XDP_FLAGS_UPDATE_IF_NOEXIST, NULL);
+    if(ret < 0){
+        (void)bpf_xdp_detach(ifindex, XDP_FLAGS_DRV_MODE, NULL);
+        ret = bpf_xdp_attach(ifindex, prog_fd, XDP_FLAGS_DRV_MODE, NULL);
+    }
+    if(ret < 0){
+        // Fallback to SKB mode
+        (void)bpf_xdp_detach(ifindex, XDP_FLAGS_SKB_MODE, NULL);
+        ret = bpf_xdp_attach(ifindex, prog_fd, XDP_FLAGS_SKB_MODE | XDP_FLAGS_UPDATE_IF_NOEXIST, NULL);
+        if(ret < 0){
+            (void)bpf_xdp_detach(ifindex, XDP_FLAGS_SKB_MODE, NULL);
+            ret = bpf_xdp_attach(ifindex, prog_fd, XDP_FLAGS_SKB_MODE, NULL);
+        }
+    }
+    if(ret < 0){
+        int err = -ret;
+        die("attach xdp failed: %s", strerror(err>0?err:errno));
+    }
 
     // Prefill RX FILL ring with all frames
     uint32_t idx; unsigned int n = xsk_ring_prod__reserve(&umem.fq, umem.frame_count, &idx);
@@ -140,8 +173,8 @@ int main(int argc, char** argv){
     fprintf(stderr,"[RX DONE] eff_bytes=%llu (%.1f MB) elapsed=%.3f s avg=%.1f MB/s checksum=0x%016llx frames=%llu\n", (unsigned long long)bytes_eff, mb, (t1-t0), mbps, (unsigned long long)csum, (unsigned long long)frames);
 
     pthread_kill(cs_tid, SIGINT); pthread_join(cs_tid,NULL);
-    // Detach XDP program
-    if(link) bpf_link__destroy(link);
+    // Detach XDP program and cleanup
+    (void)bpf_xdp_detach(ifindex, XDP_FLAGS_SKB_MODE, NULL);
     if(obj) bpf_object__close(obj);
     pfs_xdp_socket_destroy(&xsk); pfs_xdp_umem_destroy(&umem); pfs_hugeblob_unmap(&blob); return 0;
 }

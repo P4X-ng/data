@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "mát"
+   },
+   "desaturated": {
+      "message": "không bão hòa"
+   },
+   "saturated": {
+      "message": "bão hòa"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Một chủ đề tối tăm và tối giản được thiết kế đặc biệt cho những ai yêu thích bóng tối."
+   },
+   "warm": {
+      "message": "ấm"
+   }
+}

@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "malamig"
+   },
+   "desaturated": {
+      "message": "desaturated"
+   },
+   "saturated": {
+      "message": "saturated"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Isang madilim at minimalistikong tema na espesyal na dinisenyo para sa mga mahilig sa dilim."
+   },
+   "warm": {
+      "message": "mainit"
+   }
+}

@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "குளிர்ந்த"
+   },
+   "desaturated": {
+      "message": "சர்க்கரை இல்லாத"
+   },
+   "saturated": {
+      "message": "சர்க்கரை நிறம்"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "கருப்பு நிறத்தில் காதலிக்கும்வர்களுக்கு சிறப்பாக வடிவமைக்கப்பட்ட ஒரு நிழலான மற்றும் குறைந்தபட்ச தீமா."
+   },
+   "warm": {
+      "message": "தீவிரமான"
+   }
+}

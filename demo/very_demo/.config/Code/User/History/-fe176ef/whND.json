@@ -1,0 +1,15 @@
+{
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "chat.mcp.autostart": "newAndOutdated",
+    "makefile.configureOnOpen": true,
+    "amazonQ.suppressPrompts": {
+        "amazonQChatDisclaimer": true
+    },
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "gitlens.ai.model": "gitkraken",
+    "gitlens.ai.gitkraken.model": "gemini:gemini-2.0-flash",
+    "gitlens.graph.minimap.enabled": false,
+    "workbench.iconTheme": "vscode-icons",
+    "diffEditor.renderSideBySide": false
+}

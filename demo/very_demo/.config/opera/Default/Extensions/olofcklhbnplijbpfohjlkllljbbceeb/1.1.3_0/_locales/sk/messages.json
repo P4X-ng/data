@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "chladný"
+   },
+   "desaturated": {
+      "message": "nesýty"
+   },
+   "saturated": {
+      "message": "sýty"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Tématická varianta s tieňmi a minimalistickým dizajnom, špeciálne navrhnutá pre tých, ktorí milujú tmu."
+   },
+   "warm": {
+      "message": "teplý"
+   }
+}

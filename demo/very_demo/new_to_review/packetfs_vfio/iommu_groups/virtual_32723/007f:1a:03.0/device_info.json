@@ -1,0 +1,20 @@
+{
+  "pci_address": "007f:1a:03.0",
+  "iommu_group": "virtual_32723",
+  "device_type": "rtx_4090",
+  "device_index": 12723,
+  "vendor_id": "1337",
+  "device_id": "6ee6",
+  "firmware_original_size": 1610612736,
+  "firmware_compressed_size": 83,
+  "compression_ratio": 19404972.722891565,
+  "virtual_capabilities": {
+    "compute_units": 16384,
+    "memory_gb": 24,
+    "memory_bandwidth_tb_s": 1.0,
+    "fp32_tflops": 83,
+    "tensor_tflops": 165,
+    "pcie_lanes": 16,
+    "power_watts": 450
+  }
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://cashback.opera.com"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "https://cashback.opera.com/api/cashback/*",
+      "resourceTypes": ["xmlhttprequest", "main_frame", "sub_frame"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://cashback.op-test.net"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "https://cashback.op-test.net/api/cashback/*",
+      "resourceTypes": ["xmlhttprequest", "main_frame", "sub_frame"]
+    }
+  }
+]

@@ -1,0 +1,2004 @@
+"""RFKilla CLI - Primary Command Line Interface
+
+Modern Click + Rich powered CLI for RF security operations.
+This is now the primary entrypoint for RFKilla.
+"""
+from __future__ import annotations
+
+import sys
+import time
+import logging
+import threading
+import click
+from . import json_store, whitelist_manager, core_discovery
+from .feature_flags import get_feature_flags, is_feature_enabled
+from .spinning_skull import SpinningSkullContext, spin_skull_for, skull_loader
+
+try:
+    from rich import print as rprint
+    from rich.console import Console
+    from rich.table import Table
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+    from rich.prompt import Prompt, Confirm
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich.live import Live
+    from rich.columns import Columns
+    RICH_AVAILABLE = True
+except ImportError:  # graceful degradation
+    def rprint(*a, **k):
+        print(*a, **k)
+    Console = Table = Progress = SpinnerColumn = TextColumn = BarColumn = None
+    TaskProgressColumn = Prompt = Confirm = Panel = Text = Live = Columns = None
+    RICH_AVAILABLE = False
+
+console = Console() if RICH_AVAILABLE else None
+
+def setup_logging(verbose: bool = False):
+    """Setup logging configuration with Rich integration."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler('rfkilla.log')
+        ]
+    )
+
+def display_banner():
+    """Display RFKilla banner with Rich styling."""
+    if not RICH_AVAILABLE:
+        print("\n" + "="*60)
+        print("   _____ ______ _  _____ _ _       ")
+        print("  |  __ \\|  ____| |/ /__ (_) |      ")
+        print("  | |__) | |__  | ' /   _| | | __ _ ")
+        print("  |  _  /|  __| |  <   | | | |/ _` |")
+        print("  | | \\ \\| |    | . \\  | | | | (_| |")
+        print("  |_|  \\_\\_|    |_|\\_\\ |_|_|_|\\__,_|")
+        print("                                    ")
+        print("  ☠ ☠ ☠  RF WARFARE TOOLKIT  ☠ ☠ ☠")
+        print("="*60)
+        print("[!] Everything is MALICIOUS unless explicitly whitelisted!")
+        print("[+] Fresh start: Auto-discovered data automatically reset")
+        return
+    
+    ascii_art = Text("   _____ ______ _  _____ _ _       \n" +
+                     "  |  __ \\|  ____| |/ /__ (_) |      \n" +
+                     "  | |__) | |__  | ' /   _| | | __ _ \n" +
+                     "  |  _  /|  __| |  <   | | | |/ _` |\n" +
+                     "  | | \\ \\| |    | . \\  | | | | (_| |\n" +
+                     "  |_|  \\_\\_|    |_|\\_\\ |_|_|_|\\__,_|", style="bold red")
+    subtitle = Text("☠ ☠ ☠  RF WARFARE TOOLKIT  ☠ ☠ ☠", style="bold yellow")
+    warning = Text("[!] Everything is MALICIOUS unless whitelisted!", style="bold yellow on red")
+    fresh_start = Text("[+] Fresh start: Auto-discovered data automatically reset", style="dim green")
+    
+    banner_panel = Panel(
+        f"{ascii_art}\n\n{subtitle}\n\n{warning}\n{fresh_start}",
+        title="[SKULL] RF Security [SKULL]",
+        border_style="red",
+        padding=(1, 2)
+    )
+    console.print(banner_panel)
+
+@click.group(help="🛡️ RFKilla - Full Spectrum RF Defense Toolkit", invoke_without_command=True)
+@click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
+@click.option('--no-banner', is_flag=True, help='Skip banner display')
+@click.option('--keep-data', is_flag=True, help='Preserve existing auto-discovered data (no auto-reset)')
+@click.pass_context
+def cli(ctx, verbose: bool, no_banner: bool, keep_data: bool):
+    """RFKilla - Modern RF Security Toolkit
+    
+    Everything is considered MALICIOUS unless explicitly whitelisted!
+    Use subcommands to discover, analyze, block, and attack RF networks.
+    """
+    setup_logging(verbose)
+    json_store.init()
+    
+    # Auto-reset data by default unless --keep-data is specified
+    # This prevents test data contamination
+    if not keep_data:
+        try:
+            import importlib.util
+            import os
+            
+            # Dynamic import of reset_auto_data module
+            reset_module_path = os.path.join(os.path.dirname(__file__), "reset_auto_data.py")
+            if os.path.exists(reset_module_path):
+                spec = importlib.util.spec_from_file_location("reset_auto_data", reset_module_path)
+                reset_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(reset_module)
+                
+                # Silent reset with dramatic spinning skull effect!
+                with SpinningSkullContext("☠ PURGING CONTAMINATED DATA ☠"):
+                    time.sleep(0.8)  # Dramatic pause
+                    reset_module.silent_reset()
+                    time.sleep(0.5)  # Brief completion pause
+                
+                if verbose:
+                    logging.info("✨ Fresh start: Auto-discovered data has been reset")
+        except Exception as e:
+            logging.warning(f"Could not auto-reset data: {e}")
+    
+    if not no_banner:
+        display_banner()
+    
+    # Show help if no subcommand provided
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
+
+# ============================================================================
+# DISCOVERY COMMANDS
+# ============================================================================
+
+@cli.command(help='🔍 Discover RF networks and devices')
+@click.option('--wifi/--no-wifi', default=True, help='Include WiFi discovery')
+@click.option('--bluetooth/--no-bluetooth', default=True, help='Include Bluetooth discovery')
+@click.option('--time', 'discovery_time', default=60, show_default=True, help='Discovery duration (seconds)')
+@click.option('--interval', default=10, show_default=True, help='Scan interval (seconds)')
+@click.option('--advanced', is_flag=True, help='Enable advanced packet analysis')
+@click.option('--live', is_flag=True, help='Live updating display')
+def discover(wifi: bool, bluetooth: bool, discovery_time: int, interval: int, advanced: bool, live: bool):
+    """Discovery phase - scan and catalog all RF networks.
+    
+    This is typically the first step in any RF security assessment.
+    Results are stored for use by other commands.
+    """
+    if not wifi and not bluetooth:
+        rprint("[red]Error: Must enable at least WiFi or Bluetooth discovery[/red]")
+        sys.exit(1)
+    
+    if RICH_AVAILABLE and live:
+        _discover_live(wifi, bluetooth, discovery_time, interval, advanced)
+    else:
+        # Add spinning skull for dramatic effect during discovery
+        with SpinningSkullContext("☠ HUNTING RF TARGETS ☠"):
+            time.sleep(1.0)  # Dramatic startup
+        core_discovery.discovery_phase(wifi, bluetooth, discovery_time, interval, advanced)
+
+def _discover_live(wifi: bool, bluetooth: bool, discovery_time: int, interval: int, advanced: bool):
+    """Live updating discovery display."""
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        console=console
+    ) as progress:
+        task = progress.add_task(
+            f"Discovering {'WiFi+BT' if wifi and bluetooth else 'WiFi' if wifi else 'Bluetooth'}",
+            total=discovery_time
+        )
+        
+        # Run discovery in background thread
+        import threading
+        def run_discovery():
+            core_discovery.discovery_phase(wifi, bluetooth, discovery_time, interval, advanced)
+        
+        discovery_thread = threading.Thread(target=run_discovery)
+        discovery_thread.daemon = True
+        discovery_thread.start()
+        
+        # Update progress
+        elapsed = 0
+        while elapsed < discovery_time and discovery_thread.is_alive():
+            time.sleep(1)
+            elapsed += 1
+            progress.update(task, advance=1)
+        
+        progress.update(task, description="Discovery complete!", completed=discovery_time)
+
+# ============================================================================
+# ATTACK COMMANDS
+# ============================================================================
+
+@cli.command(help='⚔️  Launch active RF attacks')
+@click.option('--wifi/--no-wifi', default=True, help='Enable WiFi attacks')
+@click.option('--bluetooth/--no-bluetooth', default=False, help='Enable Bluetooth attacks')
+@click.option('--time', 'attack_time', default=120, show_default=True, help='Attack duration (seconds, -1=infinite)')
+@click.option('--interval', default=10, show_default=True, help='Attack interval (seconds)')
+@click.option('--confuse', is_flag=True, help='Include confusion/deception attacks')
+@click.option('--aggressive', is_flag=True, help='Maximum aggression mode')
+@click.option('--dry-run', is_flag=True, help='Show what would be attacked without actually attacking')
+def attack(wifi: bool, bluetooth: bool, attack_time: int, interval: int, confuse: bool, aggressive: bool, dry_run: bool):
+    """Active RF attacks against malicious targets.
+    
+    Requires discovery phase to be run first to identify targets.
+    Only attacks devices/networks marked as malicious.
+    """
+    if dry_run:
+        _show_attack_plan(wifi, bluetooth, confuse, aggressive)
+        return
+    
+    if not _confirm_attack(wifi, bluetooth, aggressive):
+        rprint("[yellow]Attack cancelled by user[/yellow]")
+        return
+    
+    # Show attack progress with Rich or spinning skull
+    if RICH_AVAILABLE:
+        with console.status("[bold red]Launching RF attacks...", spinner="dots"):
+            time.sleep(2)  # Brief pause for dramatic effect
+        
+        _attack_with_progress(wifi, bluetooth, attack_time, interval, confuse, aggressive)
+    else:
+        # Epic spinning skull attack sequence!
+        with SpinningSkullContext("☠ ANNIHILATING RF TARGETS ☠"):
+            time.sleep(2.0)  # Extended dramatic pause
+        core_discovery.attack_phase(wifi, bluetooth, attack_time, confuse, aggressive_mode=aggressive)
+
+def _confirm_attack(wifi: bool, bluetooth: bool, aggressive: bool) -> bool:
+    """Confirm attack with user."""
+    if not RICH_AVAILABLE:
+        response = input("Are you sure you want to launch RF attacks? (yes/no): ")
+        return response.lower() in ['y', 'yes']
+    
+    targets = []
+    if wifi:
+        targets.append("WiFi")
+    if bluetooth:
+        targets.append("Bluetooth")
+    
+    mode = "🔥 AGGRESSIVE" if aggressive else "Standard"
+    
+    warning_panel = Panel(
+        f"Target Types: {', '.join(targets)}\n"
+        f"Attack Mode: {mode}\n\n"
+        f"⚠️  This will launch active attacks against malicious targets.\n"
+        f"⚠️  Only use in authorized environments!",
+        title="[bold red]RF Attack Confirmation[/bold red]",
+        border_style="red"
+    )
+    console.print(warning_panel)
+    
+    return Confirm.ask("[bold red]Proceed with RF attacks?[/bold red]", default=False)
+
+def _attack_with_progress(wifi: bool, bluetooth: bool, attack_time: int, interval: int, confuse: bool, aggressive: bool):
+    """Run attacks with progress display."""
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        console=console
+    ) as progress:
+        if attack_time > 0:
+            task = progress.add_task("[red]RF Attacks Active", total=attack_time)
+        else:
+            task = progress.add_task("[red]RF Attacks Active (Infinite)", total=None)
+        
+        import threading
+        def run_attacks():
+            core_discovery.attack_phase(wifi, bluetooth, attack_time, confuse, aggressive_mode=aggressive)
+        
+        attack_thread = threading.Thread(target=run_attacks)
+        attack_thread.daemon = True
+        attack_thread.start()
+        
+        if attack_time > 0:
+            elapsed = 0
+            while elapsed < attack_time and attack_thread.is_alive():
+                time.sleep(1)
+                elapsed += 1
+                progress.update(task, advance=1)
+        else:
+            # Infinite mode
+            while attack_thread.is_alive():
+                time.sleep(1)
+                progress.update(task, description="[red]RF Attacks Active (Press Ctrl+C to stop)")
+
+def _show_attack_plan(wifi: bool, bluetooth: bool, confuse: bool, aggressive: bool):
+    """Show what would be attacked in dry-run mode."""
+    if not RICH_AVAILABLE:
+        print("\n=== ATTACK PLAN (DRY RUN) ===")
+        print(f"WiFi: {'Enabled' if wifi else 'Disabled'}")
+        print(f"Bluetooth: {'Enabled' if bluetooth else 'Disabled'}")
+        print(f"Confusion: {'Enabled' if confuse else 'Disabled'}")
+        print(f"Aggressive: {'Enabled' if aggressive else 'Disabled'}")
+        return
+    
+    # Get malicious entries for display
+    wifi_malicious = json_store.list_malicious('wifi') if wifi else {}
+    bt_malicious = json_store.list_malicious('bluetooth') if bluetooth else {}
+    
+    table = Table(title="🎯 Attack Plan (Dry Run)")
+    table.add_column("Target Type", style="cyan")
+    table.add_column("Identifier", style="yellow")
+    table.add_column("Name", style="green")
+    table.add_column("Attack Method", style="red")
+    
+    for bssid, meta in wifi_malicious.items():
+        method = "Deauth + Fake AP" if confuse else "Deauth"
+        if aggressive:
+            method += " (Aggressive)"
+        table.add_row("WiFi", bssid, meta.get('name', 'Unknown'), method)
+    
+    for device_id, meta in bt_malicious.items():
+        method = "Jamming" if aggressive else "Disconnect"
+        table.add_row("Bluetooth", device_id[:20] + "...", meta.get('name', 'Unknown'), method)
+    
+    if not wifi_malicious and not bt_malicious:
+        table.add_row("[yellow]No malicious targets found[/yellow]", "", "", "")
+    
+    console.print(table)
+
+# ============================================================================
+# BLOCKING COMMANDS
+# ============================================================================
+
+@cli.command(help='🚫 Block RF connections locally')
+@click.option('--wifi/--no-wifi', default=True, help='Block WiFi connections')
+@click.option('--bluetooth/--no-bluetooth', default=True, help='Block Bluetooth connections')
+@click.option('--whitelist-only', is_flag=True, help='Only allow whitelisted connections')
+def block(wifi: bool, bluetooth: bool, whitelist_only: bool):
+    """Block RF connections on local system.
+    
+    This is a defensive measure that disables RF connections
+    to prevent unauthorized access.
+    """
+    if not wifi and not bluetooth:
+        rprint("[red]Error: Must specify --wifi or --bluetooth[/red]")
+        sys.exit(1)
+    
+    operations = []
+    if wifi:
+        operations.append(("WiFi Auto-Connect", core_discovery.disable_wifi_autoconnect))
+    if bluetooth:
+        operations.append(("Bluetooth Services", core_discovery.aggressive_bluetooth_block))
+    
+    if RICH_AVAILABLE:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console
+        ) as progress:
+            for desc, func in operations:
+                task = progress.add_task(f"Blocking {desc}", total=None)
+                try:
+                    func()
+                    progress.update(task, description=f"[green]✓[/green] Blocked {desc}")
+                except Exception as e:
+                    progress.update(task, description=f"[red]✗[/red] Failed to block {desc}: {e}")
+                time.sleep(0.5)
+    else:
+        for desc, func in operations:
+            print(f"Blocking {desc}...")
+            try:
+                func()
+                print(f"✓ Blocked {desc}")
+            except Exception as e:
+                print(f"✗ Failed to block {desc}: {e}")
+
+# ============================================================================
+# WHITELIST COMMANDS
+# ============================================================================
+
+@cli.group(help="📝 Manage whitelist (trusted devices)")
+def whitelist():
+    """Manage the whitelist of trusted RF devices.
+    
+    Only whitelisted devices are considered safe.
+    Everything else is treated as malicious.
+    """
+    pass
+
+@whitelist.command('add')
+@click.argument('rf_type', type=click.Choice(['wifi','bluetooth']))
+@click.argument('identifier')
+@click.option('--name', default='', help='Friendly name for the device')
+def whitelist_add(rf_type: str, identifier: str, name: str):
+    """Add device to whitelist.
+    
+    RF_TYPE: wifi or bluetooth
+    IDENTIFIER: SSID/BSSID for WiFi, device ID for Bluetooth
+    """
+    if whitelist_manager.add_to_whitelist(rf_type, identifier, name):
+        if RICH_AVAILABLE:
+            console.print(f"[green]✓[/green] Added {rf_type} device to whitelist: [yellow]{identifier}[/yellow]")
+            if name:
+                console.print(f"  Name: [cyan]{name}[/cyan]")
+        else:
+            click.echo('✓ Added to whitelist')
+    else:
+        if RICH_AVAILABLE:
+            console.print(f"[red]✗[/red] Failed to add to whitelist")
+        else:
+            click.echo('✗ Failed to add')
+        sys.exit(1)
+
+@whitelist.command('list')
+@click.argument('rf_type', type=click.Choice(['wifi','bluetooth']), required=False)
+def whitelist_list(rf_type):
+    """List whitelist entries.
+    
+    RF_TYPE: wifi, bluetooth, or omit for both
+    """
+    if rf_type:
+        _show_whitelist_table(rf_type)
+    else:
+        _show_whitelist_table('wifi')
+        _show_whitelist_table('bluetooth')
+
+def _show_whitelist_table(rf_type: str):
+    """Show whitelist table for a specific RF type."""
+    entries = json_store.list_whitelist(rf_type)
+    
+    if not entries:
+        if RICH_AVAILABLE:
+            console.print(f"[yellow]No {rf_type} whitelist entries found[/yellow]")
+        else:
+            print(f"No {rf_type} whitelist entries found")
+        return
+    
+    if RICH_AVAILABLE:
+        table = Table(title=f"📝 {rf_type.title()} Whitelist")
+        table.add_column("#", style="dim")
+        table.add_column("Identifier", style="yellow")
+        table.add_column("Name", style="cyan")
+        table.add_column("Added", style="dim")
+        
+        for idx, (identifier, meta) in enumerate(entries.items(), 1):
+            name = meta.get('name', 'Unknown')
+            added_ts = meta.get('added_ts', 0)
+            added_time = time.strftime('%Y-%m-%d %H:%M', time.localtime(added_ts))
+            table.add_row(str(idx), identifier, name, added_time)
+        
+        console.print(table)
+    else:
+        print(f"\n=== {rf_type.upper()} WHITELIST ===")
+        for idx, (identifier, meta) in enumerate(entries.items(), 1):
+            name = meta.get('name', 'Unknown')
+            print(f"{idx}. {name} - {identifier}")
+
+@whitelist.command('remove')
+@click.argument('rf_type', type=click.Choice(['wifi','bluetooth']))
+@click.argument('identifier')
+def whitelist_remove(rf_type: str, identifier: str):
+    """Remove device from whitelist.
+    
+    RF_TYPE: wifi or bluetooth
+    IDENTIFIER: Device identifier to remove
+    """
+    if whitelist_manager.remove_from_whitelist(rf_type, identifier):
+        if RICH_AVAILABLE:
+            console.print(f"[green]✓[/green] Removed from {rf_type} whitelist: [yellow]{identifier}[/yellow]")
+        else:
+            click.echo('✓ Removed from whitelist')
+    else:
+        if RICH_AVAILABLE:
+            console.print(f"[red]✗[/red] Entry not found in {rf_type} whitelist: [yellow]{identifier}[/yellow]")
+        else:
+            click.echo('✗ Not found')
+        sys.exit(1)
+
+# ============================================================================
+# OBSERVATION COMMANDS
+# ============================================================================
+
+@cli.command(help='📊 Show recent RF observations')
+@click.option('--limit', default=20, show_default=True, help='Maximum number of observations to show')
+@click.option('--rf-type', type=click.Choice(['wifi', 'bluetooth']), help='Filter by RF type')
+@click.option('--live', is_flag=True, help='Live updating display')
+def observations(limit: int, rf_type: str, live: bool):
+    """Display recent RF network observations.
+    
+    Shows networks discovered during scanning phases with metadata
+    like signal strength, channel, and time since last seen.
+    """
+    if live and RICH_AVAILABLE:
+        _observations_live(limit, rf_type)
+    else:
+        _show_observations_table(limit, rf_type)
+
+def _show_observations_table(limit: int, rf_type: str):
+    """Show observations in a table format."""
+    rows = json_store.get_latest_observations(limit=limit)
+    
+    if not rows:
+        if RICH_AVAILABLE:
+            console.print("[yellow]No observations found[/yellow]")
+        else:
+            print("No observations found")
+        return
+    
+    if RICH_AVAILABLE:
+        table = Table(title=f"📊 Latest RF Observations (limit {limit})")
+        table.add_column("BSSID/ID", style="yellow")
+        table.add_column("SSID/Name", style="cyan")
+        table.add_column("Channel", style="green")
+        table.add_column("Signal", style="blue")
+        table.add_column("Age (s)", style="dim")
+        table.add_column("Type", style="magenta")
+        
+        now = time.time()
+        for rec in rows:
+            age = f"{int(now-rec['ts'])}"
+            rf_type_display = "WiFi"  # Default, could be extended for BT
+            table.add_row(
+                rec['bssid'], 
+                rec.get('ssid', 'Hidden'), 
+                str(rec.get('channel', '?')), 
+                str(rec.get('signal', '?')), 
+                age,
+                rf_type_display
+            )
+        
+        console.print(table)
+    else:
+        print(f"\n=== RF OBSERVATIONS (Latest {limit}) ===")
+        for rec in rows:
+            age = int(time.time() - rec['ts'])
+            print(f"{rec['bssid']} {rec.get('ssid','')} ch={rec.get('channel')} sig={rec.get('signal')} age={age}s")
+
+def _observations_live(limit: int, rf_type: str):
+    """Live updating observations display."""
+    try:
+        with Live(_show_observations_table(limit, rf_type), refresh_per_second=2, console=console):
+            while True:
+                time.sleep(0.5)
+                # Update display by returning new table
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Live observations stopped[/yellow]")
+
+# ============================================================================
+# MALICIOUS COMMANDS
+# ============================================================================
+
+@cli.group(help='🚨 Manage malicious devices list')
+def malicious():
+    """Manage the list of malicious RF devices.
+    
+    Devices on the malicious list are actively targeted
+    during attack operations.
+    """
+    pass
+
+@malicious.command('list')
+@click.argument('rf_type', type=click.Choice(['wifi','bluetooth']), required=False)
+def malicious_list(rf_type):
+    """List malicious entries.
+    
+    RF_TYPE: wifi, bluetooth, or omit for both
+    """
+    if rf_type:
+        _show_malicious_table(rf_type)
+    else:
+        _show_malicious_table('wifi')
+        _show_malicious_table('bluetooth')
+
+def _show_malicious_table(rf_type: str):
+    """Show malicious entries table for a specific RF type."""
+    items = json_store.list_malicious(rf_type)
+    
+    if not items:
+        if RICH_AVAILABLE:
+            console.print(f"[yellow]No {rf_type} malicious entries found[/yellow]")
+        else:
+            print(f"No {rf_type} malicious entries found")
+        return
+    
+    if RICH_AVAILABLE:
+        table = Table(title=f"🚨 {rf_type.title()} Malicious List")
+        table.add_column("#", style="dim")
+        table.add_column("Identifier", style="red")
+        table.add_column("Name", style="yellow")
+        table.add_column("Reason", style="cyan")
+        table.add_column("First Seen", style="dim")
+        
+        for idx, (identifier, meta) in enumerate(items.items(), 1):
+            name = meta.get('name', 'Unknown')
+            reason = meta.get('reason', 'Unknown')
+            first_seen = meta.get('first_seen', 0)
+            seen_time = time.strftime('%Y-%m-%d %H:%M', time.localtime(first_seen))
+            table.add_row(str(idx), identifier, name, reason, seen_time)
+        
+        console.print(table)
+    else:
+        print(f"\n=== {rf_type.upper()} MALICIOUS LIST ===")
+        for idx, (identifier, meta) in enumerate(items.items(), 1):
+            name = meta.get('name', 'Unknown')
+            reason = meta.get('reason', 'Unknown')
+            print(f"{idx}. {identifier} ({name}) - {reason}")
+
+@malicious.command('add')
+@click.argument('rf_type', type=click.Choice(['wifi','bluetooth']))
+@click.argument('identifier')
+@click.option('--name', default='', help='Friendly name for the device')
+@click.option('--reason', default='manual', help='Reason for marking as malicious')
+def malicious_add(rf_type: str, identifier: str, name: str, reason: str):
+    """Add device to malicious list.
+    
+    RF_TYPE: wifi or bluetooth
+    IDENTIFIER: SSID/BSSID for WiFi, device ID for Bluetooth
+    """
+    json_store.add_malicious(rf_type, identifier, name, reason)
+    
+    if RICH_AVAILABLE:
+        console.print(f"[red]🚨[/red] Added {rf_type} device to malicious list: [yellow]{identifier}[/yellow]")
+        if name:
+            console.print(f"  Name: [cyan]{name}[/cyan]")
+        if reason != 'manual':
+            console.print(f"  Reason: [dim]{reason}[/dim]")
+    else:
+        click.echo('🚨 Added to malicious list')
+
+@malicious.command('remove')
+@click.argument('rf_type', type=click.Choice(['wifi','bluetooth']))
+@click.argument('identifier')
+def malicious_remove(rf_type: str, identifier: str):
+    """Remove device from malicious list.
+    
+    RF_TYPE: wifi or bluetooth
+    IDENTIFIER: Device identifier to remove
+    """
+    if json_store.remove_malicious(rf_type, identifier):
+        if RICH_AVAILABLE:
+            console.print(f"[green]✓[/green] Removed from {rf_type} malicious list: [yellow]{identifier}[/yellow]")
+        else:
+            click.echo('✓ Removed from malicious list')
+    else:
+        if RICH_AVAILABLE:
+            console.print(f"[red]✗[/red] Entry not found in {rf_type} malicious list: [yellow]{identifier}[/yellow]")
+        else:
+            click.echo('✗ Not found')
+        sys.exit(1)
+
+@malicious.command('clear')
+@click.argument('rf_type', type=click.Choice(['wifi','bluetooth']))
+@click.option('--force', is_flag=True, help='Skip confirmation prompt')
+def malicious_clear(rf_type: str, force: bool):
+    """Clear all malicious entries for RF type.
+    
+    RF_TYPE: wifi or bluetooth
+    """
+    items = json_store.list_malicious(rf_type)
+    if not items:
+        if RICH_AVAILABLE:
+            console.print(f"[yellow]No {rf_type} malicious entries to clear[/yellow]")
+        else:
+            print(f"No {rf_type} malicious entries to clear")
+        return
+    
+    if not force:
+        count = len(items)
+        if RICH_AVAILABLE:
+            if not Confirm.ask(f"[bold red]Clear {count} {rf_type} malicious entries?[/bold red]", default=False):
+                console.print("[yellow]Cancelled[/yellow]")
+                return
+        else:
+            response = input(f"Clear {count} {rf_type} malicious entries? (yes/no): ")
+            if response.lower() not in ['y', 'yes']:
+                print("Cancelled")
+                return
+    
+    # Clear entries one by one
+    cleared = 0
+    for identifier in list(items.keys()):
+        if json_store.remove_malicious(rf_type, identifier):
+            cleared += 1
+    
+    if RICH_AVAILABLE:
+        console.print(f"[green]✓[/green] Cleared {cleared} {rf_type} malicious entries")
+    else:
+        print(f"✓ Cleared {cleared} {rf_type} malicious entries")
+
+# ============================================================================
+# FEATURES COMMAND
+# ============================================================================
+
+@cli.command(help='🏳️ Show advanced feature status and dependencies')
+def features():
+    """Display status of advanced features and their dependencies.
+    
+    Shows which advanced features are enabled, which are missing dependencies,
+    and provides installation instructions for missing components.
+    """
+    feature_flags = get_feature_flags()
+    
+    if RICH_AVAILABLE:
+        # Create main feature table
+        table = Table(title="🏳️ RFKilla Advanced Features")
+        table.add_column("Feature", style="cyan")
+        table.add_column("Status", style="")
+        table.add_column("Dependencies", style="dim")
+        table.add_column("Description", style="white")
+        
+        features = [
+            ("Advanced Discovery", "advanced_discovery", "scapy", "Deep packet analysis and capture"),
+            ("Intelligent Attacks", "intelligent_attacks", "scapy", "AI-powered adaptive attack strategies"),
+            ("Packet Capture", "packet_capture", "scapy", "Real-time 802.11 packet capture"),
+            ("LLM Intelligence", "llm_intelligence", "requests, ollama", "Local AI threat analysis"),
+            ("LLM Threat Analysis", "llm_threat_analysis", "requests, ollama", "AI-powered threat assessment"),
+            ("LLM Attack Optimization", "llm_attack_optimization", "requests, ollama", "AI-guided attack optimization"),
+        ]
+        
+        for name, feature_key, deps, description in features:
+            if feature_flags.is_enabled(feature_key):
+                status = "[green]✅ Enabled[/green]"
+            else:
+                status = "[red]❌ Disabled[/red]"
+            
+            table.add_row(name, status, deps, description)
+        
+        console.print(table)
+        console.print()
+        
+        # Show environment variables
+        env_panel = Panel(
+            "Environment Variables:\n"
+            "• RFKILLA_DISABLE_ADVANCED=true  - Force disable advanced features\n"
+            "• RFKILLA_DISABLE_LLM=true       - Force disable LLM features\n"
+            "• RFKILLA_VERBOSE_WARNINGS=false - Reduce startup warnings",
+            title="[yellow]Configuration[/yellow]",
+            border_style="yellow"
+        )
+        console.print(env_panel)
+        
+        # Show installation instructions for missing features
+        missing_features = []
+        for name, feature_key, deps, description in features:
+            if not feature_flags.is_enabled(feature_key):
+                missing_deps = feature_flags.get_missing_dependencies(feature_key)
+                if missing_deps:
+                    missing_features.append((name, feature_key, missing_deps))
+        
+        if missing_features:
+            console.print()
+            install_panel = Panel(
+                "\n".join([
+                    f"[yellow]{name}[/yellow]: {', '.join(feature_flags.get_installation_instructions(feature_key))}"
+                    for name, feature_key, _ in missing_features
+                ]),
+                title="[cyan]📦 Installation Instructions[/cyan]",
+                border_style="cyan"
+            )
+            console.print(install_panel)
+    else:
+        print("\n=== RFKILLA ADVANCED FEATURES ===")
+        
+        features = [
+            ("Advanced Discovery", "advanced_discovery"),
+            ("Intelligent Attacks", "intelligent_attacks"), 
+            ("LLM Intelligence", "llm_intelligence"),
+            ("LLM Threat Analysis", "llm_threat_analysis"),
+            ("LLM Attack Optimization", "llm_attack_optimization"),
+        ]
+        
+        for name, feature_key in features:
+            status = "ENABLED" if feature_flags.is_enabled(feature_key) else "DISABLED"
+            print(f"{name}: {status}")
+            
+            if not feature_flags.is_enabled(feature_key):
+                missing = feature_flags.get_missing_dependencies(feature_key)
+                if missing:
+                    instructions = feature_flags.get_installation_instructions(feature_key)
+                    print(f"  Missing: {', '.join(missing)}")
+                    for instruction in instructions:
+                        print(f"  -> {instruction}")
+        
+        print("\n=== ENVIRONMENT VARIABLES ===")
+        print("RFKILLA_DISABLE_ADVANCED=true   - Force disable advanced features")
+        print("RFKILLA_DISABLE_LLM=true        - Force disable LLM features")
+        print("RFKILLA_VERBOSE_WARNINGS=false  - Reduce startup warnings")
+
+# ============================================================================
+# CONFUSION COMMANDS
+# ============================================================================
+
+@cli.group(help='🎭 Confusion & deception attacks (experimental)')
+def confusion():
+    """RF confusion and deception utilities.
+    
+    These are advanced attack techniques designed to confuse
+    and overwhelm RF scanners and security systems.
+    
+    ⚠️  FOR AUTHORIZED TESTING ONLY!
+    """
+    pass
+
+@confusion.command('fake-aps')
+@click.option('--band', type=click.Choice(['2.4ghz','5ghz','6ghz']), default='2.4ghz', show_default=True, help='WiFi band to use')
+@click.option('--count', default=5, show_default=True, help='Number of fake APs to create')
+@click.option('--duration', default=300, show_default=True, help='Duration to run fake APs (seconds)')
+@click.option('--ssid-prefix', default='FreeWiFi', show_default=True, help='SSID prefix for fake APs')
+@click.option('--dry-run', is_flag=True, help='Show what would be created without actually doing it')
+def confusion_fake_aps(band: str, count: int, duration: int, ssid_prefix: str, dry_run: bool):
+    """Launch fake WiFi Access Points for confusion.
+    
+    Creates multiple fake APs across different channels to overwhelm
+    RF scanners and hide legitimate networks in the noise.
+    
+    ⚠️  This is an active attack technique - use only in authorized environments!
+    """
+    if dry_run:
+        _show_fake_ap_plan(band, count, ssid_prefix)
+        return
+    
+    if not _confirm_confusion_attack("Fake AP", count):
+        rprint("[yellow]Fake AP attack cancelled[/yellow]")
+        return
+    
+    if RICH_AVAILABLE:
+        with console.status("[bold yellow]Launching fake APs...", spinner="dots"):
+            time.sleep(1)
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console
+        ) as progress:
+            task = progress.add_task(f"[yellow]Fake APs Active ({count} APs)", total=duration)
+            
+            import threading
+            def run_fake_aps():
+                from . import advanced_confusion
+                advanced_confusion.clone_nearby_aps(duration)
+            
+            fake_ap_thread = threading.Thread(target=run_fake_aps)
+            fake_ap_thread.daemon = True
+            fake_ap_thread.start()
+            
+            elapsed = 0
+            while elapsed < duration:
+                time.sleep(1)
+                elapsed += 1
+                progress.update(task, advance=1)
+            
+            progress.update(task, description="[green]Fake AP attack complete")
+    else:
+        print(f"Launching {count} fake APs on {band} band...")
+        from . import advanced_confusion
+        advanced_confusion.clone_nearby_aps(duration)
+
+def _show_fake_ap_plan(band: str, count: int, ssid_prefix: str):
+    """Show fake AP plan in dry-run mode."""
+    if RICH_AVAILABLE:
+        table = Table(title="🎭 Fake AP Plan (Dry Run)")
+        table.add_column("#", style="dim")
+        table.add_column("SSID", style="yellow")
+        table.add_column("Band", style="cyan")
+        table.add_column("Channel Range", style="green")
+        
+        channel_ranges = {
+            '2.4ghz': '1-14',
+            '5ghz': '36-165', 
+            '6ghz': '1-233'
+        }
+        
+        for i in range(count):
+            table.add_row(
+                str(i+1), 
+                f"{ssid_prefix}_{i}", 
+                band.upper(), 
+                channel_ranges.get(band, "Unknown")
+            )
+        
+        console.print(table)
+    else:
+        print(f"\n=== FAKE AP PLAN (DRY RUN) ===")
+        print(f"Band: {band}")
+        print(f"Count: {count}")
+        for i in range(count):
+            print(f"{i+1}. {ssid_prefix}_{i}")
+
+@confusion.command('tag')
+@click.option('--interval', default=5, show_default=True, help='Polling interval (seconds)')
+@click.option('--auto-timeout', default=300, show_default=True, help='Auto-stop after N seconds (0=disabled)')
+def confusion_tag(interval: int, auto_timeout: int):
+    """Interactive malicious device tagging.
+    
+    Continuously scans for RF devices and prompts user to mark
+    suspicious ones as malicious. Tagged devices are added to
+    the malicious list for targeting in attack operations.
+    """
+    if RICH_AVAILABLE:
+        panel = Panel(
+            "🏷️  Interactive Malicious Tagging\n\n"
+            "This will continuously scan for RF devices and prompt\n"
+            "you to mark suspicious ones as malicious.\n\n"
+            "Tagged devices will be targeted in attack operations.\n\n"
+            "Press Ctrl+C to stop at any time.",
+            title="[yellow]Confusion Tagging[/yellow]",
+            border_style="yellow"
+        )
+        console.print(panel)
+        
+        if not Confirm.ask("[yellow]Start interactive tagging?[/yellow]", default=True):
+            console.print("[yellow]Tagging cancelled[/yellow]")
+            return
+    
+    if auto_timeout > 0:
+        if RICH_AVAILABLE:
+            console.print(f"[dim]Auto-stopping after {auto_timeout} seconds[/dim]")
+        else:
+            print(f"Auto-stopping after {auto_timeout} seconds")
+    
+    # Start tagging with timeout support
+    import threading
+    import signal
+    
+    stop_event = threading.Event()
+    
+    def timeout_handler():
+        if auto_timeout > 0:
+            time.sleep(auto_timeout)
+            stop_event.set()
+    
+    if auto_timeout > 0:
+        timeout_thread = threading.Thread(target=timeout_handler)
+        timeout_thread.daemon = True
+        timeout_thread.start()
+    
+    try:
+        # Call the interactive tagging function with our stop event
+        _interactive_tag_with_timeout(interval, stop_event)
+    except KeyboardInterrupt:
+        if RICH_AVAILABLE:
+            console.print("\n[yellow]Tagging stopped by user[/yellow]")
+        else:
+            print("\nTagging stopped by user")
+
+def _interactive_tag_with_timeout(interval: int, stop_event: threading.Event):
+    """Interactive tagging with timeout support."""
+    # This would ideally integrate with the existing rogue_confuser.interactive_tag
+    # but with timeout support and Rich integration
+    # Interactive tagging functionality would be implemented here
+    rprint("[yellow]Interactive tagging not yet implemented[/yellow]")
+
+@confusion.command('deauth')
+@click.option('--interval', default=10, show_default=True, help='Attack interval (seconds)')
+@click.option('--duration', default=300, show_default=True, help='Attack duration (seconds, -1=infinite)')
+@click.option('--target', help='Specific BSSID to target (optional)')
+@click.option('--dry-run', is_flag=True, help='Show targets without attacking')
+def confusion_deauth(interval: int, duration: int, target: str, dry_run: bool):
+    """Continuous deauthentication attacks.
+    
+    Sends deauthentication packets to disconnect clients from
+    malicious WiFi networks. Only targets networks marked as malicious.
+    
+    ⚠️  This is an active attack technique - use only in authorized environments!
+    """
+    if dry_run:
+        _show_deauth_targets(target)
+        return
+    
+    if not _confirm_confusion_attack("Deauthentication", 1):
+        rprint("[yellow]Deauth attack cancelled[/yellow]")
+        return
+    
+    if RICH_AVAILABLE:
+        with console.status("[bold red]Preparing deauth attacks...", spinner="dots"):
+            time.sleep(1)
+        
+        if duration > 0:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                console=console
+            ) as progress:
+                task = progress.add_task("[red]Deauth Attacks Active", total=duration)
+                
+                import threading
+                def run_deauth():
+                    # Get malicious networks and run deauth storm
+                    wifi_malicious = json_store.list_malicious('wifi')
+                    malicious_networks = [{'bssid': bssid, 'ssid': meta.get('name', '')} 
+                                        for bssid, meta in wifi_malicious.items()]
+                    if malicious_networks:
+                        from . import advanced_confusion
+                        advanced_confusion.deauth_storm(malicious_networks, duration)
+                
+                deauth_thread = threading.Thread(target=run_deauth)
+                deauth_thread.daemon = True
+                deauth_thread.start()
+                
+                elapsed = 0
+                while elapsed < duration and deauth_thread.is_alive():
+                    time.sleep(1)
+                    elapsed += 1
+                    progress.update(task, advance=1)
+                
+                progress.update(task, description="[green]Deauth attacks complete")
+        else:
+            # Infinite duration
+            with console.status("[bold red]Deauth attacks active (Press Ctrl+C to stop)...", spinner="dots12"):
+                # Continuous deauth loop
+                wifi_malicious = json_store.list_malicious('wifi')
+                malicious_networks = [{'bssid': bssid, 'ssid': meta.get('name', '')} 
+                                    for bssid, meta in wifi_malicious.items()]
+                if malicious_networks:
+                    from . import advanced_confusion
+                    advanced_confusion.deauth_storm(malicious_networks, 9999)
+    else:
+        print(f"Starting deauth attacks (interval: {interval}s)...")
+        # Get malicious networks and run deauth storm  
+        wifi_malicious = json_store.list_malicious('wifi')
+        malicious_networks = [{'bssid': bssid, 'ssid': meta.get('name', '')} 
+                            for bssid, meta in wifi_malicious.items()]
+        if malicious_networks:
+            from . import advanced_confusion
+            advanced_confusion.deauth_storm(malicious_networks, duration if duration > 0 else 9999)
+
+def _show_deauth_targets(target: str):
+    """Show deauth targets in dry-run mode."""
+    wifi_malicious = json_store.list_malicious('wifi')
+    
+    if not wifi_malicious:
+        if RICH_AVAILABLE:
+            console.print("[yellow]No WiFi malicious targets found[/yellow]")
+        else:
+            print("No WiFi malicious targets found")
+        return
+    
+    if RICH_AVAILABLE:
+        table = Table(title="🎯 Deauth Targets (Dry Run)")
+        table.add_column("BSSID", style="red")
+        table.add_column("SSID", style="yellow")
+        table.add_column("Reason", style="cyan")
+        table.add_column("Will Attack", style="green")
+        
+        for bssid, meta in wifi_malicious.items():
+            will_attack = "Yes" if not target or bssid == target else "No (filtered)"
+            table.add_row(
+                bssid, 
+                meta.get('name', 'Unknown'), 
+                meta.get('reason', 'Unknown'),
+                will_attack
+            )
+        
+        console.print(table)
+    else:
+        print("\n=== DEAUTH TARGETS (DRY RUN) ===")
+        for bssid, meta in wifi_malicious.items():
+            will_attack = "YES" if not target or bssid == target else "NO"
+            print(f"{bssid} ({meta.get('name', 'Unknown')}) - {will_attack}")
+
+def _confirm_confusion_attack(attack_type: str, count: int) -> bool:
+    """Confirm confusion attack with user."""
+    if not RICH_AVAILABLE:
+        response = input(f"Launch {attack_type} attack? (yes/no): ")
+        return response.lower() in ['y', 'yes']
+    
+    warning_panel = Panel(
+        f"Attack Type: {attack_type}\n"
+        f"Scale: {count} instance{'s' if count != 1 else ''}\n\n"
+        f"⚠️  This is an active RF attack technique.\n"
+        f"⚠️  Only use in authorized lab environments!\n"
+        f"⚠️  May violate local regulations in production!",
+        title="[bold red]Confusion Attack Confirmation[/bold red]",
+        border_style="red"
+    )
+    console.print(warning_panel)
+    
+    return Confirm.ask(f"[bold red]Proceed with {attack_type} attack?[/bold red]", default=False)
+
+# ============================================================================
+# MONITORING COMMANDS
+# ============================================================================
+
+@cli.group(help='📊 Interface monitoring and health checks')
+def monitor():
+    """Interface monitoring and adaptive health management.
+    
+    Provides continuous monitoring and health checking of RF interfaces
+    with adaptive failure handling and smart recovery.
+    """
+    pass
+
+@monitor.command('adaptive')
+@click.option('--check-interval', default=30, show_default=True, help='Health check interval (seconds)')
+@click.option('--discovery-interval', default=120, show_default=True, help='Interface discovery interval (seconds)')
+@click.option('--max-failures', default=5, show_default=True, help='Max failures before forgetting interface')
+@click.option('--auto-recovery/--no-auto-recovery', default=True, help='Enable automatic interface recovery')
+@click.option('--comprehensive/--quick', default=False, help='Run comprehensive vs quick health checks')
+def monitor_adaptive(check_interval: int, discovery_interval: int, max_failures: int, auto_recovery: bool, comprehensive: bool):
+    """Start adaptive interface monitoring.
+    
+    Continuously monitors RF interfaces with smart failure handling.
+    Adapts to interface changes and reduces noise from repeated failures.
+    
+    Features:
+    • Smart interface discovery and tracking
+    • Adaptive failure handling with memory
+    • Noise reduction for repeated warnings
+    • Automatic recovery attempts with backoff
+    • Comprehensive health reporting
+    """
+    if RICH_AVAILABLE:
+        panel = Panel(
+            f"🧠 Adaptive Interface Monitor\n\n"
+            f"Check Interval: {check_interval}s\n"
+            f"Discovery Interval: {discovery_interval}s\n"
+            f"Max Failures: {max_failures}\n"
+            f"Auto Recovery: {'Enabled' if auto_recovery else 'Disabled'}\n"
+            f"Check Mode: {'Comprehensive' if comprehensive else 'Quick'}\n\n"
+            f"This monitor adapts to your RF environment and learns\n"
+            f"from interface failures to reduce noise and improve reliability.\n\n"
+            f"Press Ctrl+C to stop monitoring.",
+            title="[cyan]🧠 Adaptive Monitor[/cyan]",
+            border_style="cyan"
+        )
+        console.print(panel)
+        
+        if not Confirm.ask("[cyan]Start adaptive monitoring?[/cyan]", default=True):
+            console.print("[yellow]Monitoring cancelled[/yellow]")
+            return
+    
+    # Import and run adaptive monitor
+    try:
+        from .adaptive_interface_monitor import AdaptiveInterfaceMonitor
+        
+        # Create custom config for this session
+        import tempfile
+        import json
+        
+        custom_config = {
+            "check_interval": check_interval,
+            "discovery_interval": discovery_interval,
+            "max_failures_before_forget": max_failures,
+            "auto_recovery": auto_recovery,
+            "comprehensive_check_interval": 600 if comprehensive else 30,
+            "log_level": "INFO"
+        }
+        
+        # Create temporary config file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(custom_config, f, indent=2)
+            config_file = f.name
+        
+        monitor_instance = AdaptiveInterfaceMonitor(config_file=config_file)
+        
+        if RICH_AVAILABLE:
+            console.print("[green]🚀 Starting adaptive interface monitor...[/green]")
+            console.print("[dim]Press Ctrl+C to stop[/dim]")
+        
+        monitor_instance.start_monitoring()
+        
+    except KeyboardInterrupt:
+        if RICH_AVAILABLE:
+            console.print("\n[yellow]Adaptive monitoring stopped by user[/yellow]")
+        else:
+            print("\nAdaptive monitoring stopped by user")
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]Error starting adaptive monitor: {e}[/red]")
+        else:
+            print(f"Error starting adaptive monitor: {e}")
+        sys.exit(1)
+
+@monitor.command('health')
+def monitor_health():
+    """Run one-time interface health check.
+    
+    Performs immediate health assessment of RF interfaces
+    without continuous monitoring.
+    """
+    try:
+        from .adaptive_interface_monitor import AdaptiveInterfaceMonitor
+        
+        monitor_instance = AdaptiveInterfaceMonitor()
+        
+        if RICH_AVAILABLE:
+            console.print("[cyan]Running interface health check...[/cyan]")
+        
+        # Run a single discovery to get interface health
+        monitor_instance._adaptive_discovery()
+        
+        # Display interface status
+        if monitor_instance.active_wifi_interfaces:
+            if RICH_AVAILABLE:
+                console.print(f"[green]📡 WiFi Interfaces ({len(monitor_instance.active_wifi_interfaces)}): {', '.join(monitor_instance.active_wifi_interfaces)}[/green]")
+            else:
+                print(f"📡 WiFi Interfaces ({len(monitor_instance.active_wifi_interfaces)}): {', '.join(monitor_instance.active_wifi_interfaces)}")
+        else:
+            if RICH_AVAILABLE:
+                console.print("[yellow]📡 No WiFi interfaces found[/yellow]")
+            else:
+                print("📡 No WiFi interfaces found")
+        
+        if monitor_instance.active_bluetooth_interfaces:
+            if RICH_AVAILABLE:
+                console.print(f"[green]📱 Bluetooth Interfaces ({len(monitor_instance.active_bluetooth_interfaces)}): {', '.join(monitor_instance.active_bluetooth_interfaces)}[/green]")
+            else:
+                print(f"📱 Bluetooth Interfaces ({len(monitor_instance.active_bluetooth_interfaces)}): {', '.join(monitor_instance.active_bluetooth_interfaces)}")
+        else:
+            if RICH_AVAILABLE:
+                console.print("[yellow]📱 No Bluetooth interfaces found[/yellow]")
+            else:
+                print("📱 No Bluetooth interfaces found")
+        
+        if RICH_AVAILABLE:
+            console.print("[green]✅ Health check complete[/green]")
+        else:
+            print("✅ Health check complete")
+            
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]Health check failed: {e}[/red]")
+        else:
+            print(f"Health check failed: {e}")
+        sys.exit(1)
+
+# ============================================================================
+# AUTO-PROTECT COMMAND - ONE-CLICK RF SECURITY
+# ============================================================================
+
+@cli.command(help='🛡️ One-click automatic RF protection')
+@click.option('--strategy', type=click.Choice(['offensive', 'defensive']), 
+              default=None, help='Protection strategy (will prompt if not specified)')
+@click.option('--duration', default=3600, show_default=True, help='Protection duration in seconds (1 hour default)')
+@click.option('--intensity', type=click.Choice(['standard', 'aggressive', 'maximum']), 
+              default='aggressive', show_default=True, help='Attack/defense intensity level')
+@click.option('--auto-confirm', is_flag=True, help='Skip confirmation prompts for fully automated mode')
+def auto_protect(strategy: str, duration: int, intensity: str, auto_confirm: bool):
+    """🛡️ ONE-CLICK RF SECURITY - AUTOMATIC PROTECTION MODE
+    
+    This is RFKilla's crown jewel - fully automated RF security that adapts
+    to your environment and neutralizes threats without manual intervention.
+    
+    Two Protection Strategies:
+    
+    🗡️  OFFENSIVE STRATEGY:
+    • Continuous threat hunting and elimination
+    • Active jamming and deauth attacks on rogue devices
+    • Advanced confusion tactics and fake AP deployment
+    • Multi-interface coordinated assault campaigns
+    
+    🏰 DEFENSIVE STRATEGY:
+    • Fortress mode - complete RF isolation and blocking
+    • Continuous monitoring with adaptive interface health
+    • Whitelisted-only connectivity with strict enforcement
+    • Shelter-in-place security with minimal RF emissions
+    
+    Perfect for: "I want my RFs secure, just handle it!"
+    """
+    if not auto_confirm:
+        if not _show_auto_protect_banner():
+            rprint("[yellow]Auto-protect cancelled by user[/yellow]")
+            return
+    
+    # Determine strategy if not specified
+    if not strategy:
+        strategy = _prompt_protection_strategy(auto_confirm)
+    
+    if strategy == 'offensive':
+        _run_offensive_strategy(duration, intensity, auto_confirm)
+    elif strategy == 'defensive':
+        _run_defensive_strategy(duration, intensity, auto_confirm)
+    else:
+        rprint("[red]Invalid strategy selected[/red]")
+        sys.exit(1)
+
+def _show_auto_protect_banner() -> bool:
+    """Show auto-protect banner and get user confirmation."""
+    if not RICH_AVAILABLE:
+        print("\n=== RFKilla AUTO-PROTECT MODE ===")
+        print("One-click RF security - automated threat hunting and elimination")
+        response = input("Continue? (yes/no): ")
+        return response.lower().startswith('y')
+    
+    banner = Panel(
+        "🛡️ RFKilla AUTO-PROTECT MODE 🛡️\n\n"
+        "🚀 FULLY AUTOMATED RF SECURITY SYSTEM\n"
+        "🎯 Continuous threat hunting and neutralization\n"
+        "🧠 Adaptive intelligence with multi-interface coordination\n"
+        "⚔️ Advanced attack techniques and confusion tactics\n\n"
+        "Perfect for: 'I want my RFs secure, just handle it!'\n\n"
+        "⚠️ This will actively scan, analyze, and attack malicious RF devices\n"
+        "⚠️ Only use on networks you own or have explicit permission to defend\n"
+        "⚠️ Some attack techniques may violate local regulations",
+        title="[bold red]🛡️ ULTIMATE RF PROTECTION[/bold red]",
+        border_style="red",
+        padding=(1, 2)
+    )
+    console.print(banner)
+    
+    return Confirm.ask("[bold red]Deploy RFKilla Auto-Protection?[/bold red]", default=False)
+
+def _prompt_protection_strategy(auto_confirm: bool) -> str:
+    """Prompt user to select protection strategy."""
+    if auto_confirm:
+        return 'offensive'  # Default to offensive for auto mode
+    
+    if RICH_AVAILABLE:
+        console.print("\n[cyan]🤔 Choose your RF protection strategy:[/cyan]\n")
+        
+        offensive_panel = Panel(
+            "🗡️ OFFENSIVE STRATEGY - Active Threat Elimination\n\n"
+            "• Hunt and destroy rogue APs and malicious devices\n"
+            "• Deauth attacks, RF jamming, and signal disruption\n"
+            "• Deploy confusion tactics and fake networks\n"
+            "• Multi-interface coordinated assault campaigns\n"
+            "• Maximum aggression against detected threats\n\n"
+            "Best for: Hostile environments with many attackers",
+            title="[red]⚔️ OFFENSIVE PROTECTION[/red]",
+            border_style="red"
+        )
+        
+        defensive_panel = Panel(
+            "🏰 DEFENSIVE STRATEGY - Fortress Mode\n\n"
+            "• Complete RF isolation and connection blocking\n"
+            "• Whitelist-only connectivity enforcement\n"
+            "• Continuous monitoring and interface health checks\n"
+            "• Minimal RF emissions for stealth operation\n"
+            "• Shelter-in-place security posture\n\n"
+            "Best for: Sensitive environments requiring isolation",
+            title="[blue]🛡️ DEFENSIVE PROTECTION[/blue]",
+            border_style="blue"
+        )
+        
+        console.print(offensive_panel)
+        console.print("")
+        console.print(defensive_panel)
+        console.print("")
+        
+        choice = Prompt.ask(
+            "Select strategy",
+            choices=["offensive", "defensive", "o", "d"],
+            default="offensive"
+        )
+        
+        return "offensive" if choice in ["offensive", "o"] else "defensive"
+    else:
+        print("\n=== PROTECTION STRATEGY SELECTION ===")
+        print("1. OFFENSIVE - Hunt and destroy threats (active attacks)")
+        print("2. DEFENSIVE - Fortress mode (complete isolation)")
+        choice = input("Select strategy (1-2, default=1): ").strip()
+        return "offensive" if choice != "2" else "defensive"
+
+def _run_offensive_strategy(duration: int, intensity: str, auto_confirm: bool):
+    """🗡️ Run the offensive protection strategy - active threat hunting."""
+    if RICH_AVAILABLE:
+        strategy_banner = Panel(
+            f"⚔️ OFFENSIVE STRATEGY ACTIVATED ⚔️\n\n"
+            f"Duration: {duration}s ({duration//60} minutes)\n"
+            f"Intensity: {intensity.upper()}\n\n"
+            f"🎯 Multi-phase assault plan:\n"
+            f"• Phase 1: Threat discovery and intelligence gathering\n"
+            f"• Phase 2: Target classification and attack planning\n"
+            f"• Phase 3: Coordinated assault and confusion deployment\n"
+            f"• Phase 4: Continuous hunting and adaptive attacks\n\n"
+            f"🧠 Advanced features active:\n"
+            f"• Scapy packet manipulation\n"
+            f"• Multi-interface coordination\n"
+            f"• Intelligent attack adaptation\n"
+            f"• Psychological warfare tactics",
+            title="[red]🗡️ OFFENSIVE PROTECTION DEPLOYMENT[/red]",
+            border_style="red",
+            padding=(1, 2)
+        )
+        console.print(strategy_banner)
+        
+        if not auto_confirm and not Confirm.ask("[bold red]Launch offensive operations?[/bold red]", default=True):
+            console.print("[yellow]Offensive strategy cancelled[/yellow]")
+            return
+        
+        console.print("[red]🚀 LAUNCHING OFFENSIVE OPERATIONS...[/red]")
+        
+        # Auto-whitelist own devices before starting attacks
+        try:
+            from .auto_whitelist import auto_whitelist_own_devices
+            console.print("[cyan]🛡️ Auto-whitelisting own system devices...[/cyan]")
+            results = auto_whitelist_own_devices()
+            if results['wifi'] + results['bluetooth'] > 0:
+                console.print(f"[green]✅ Protected {results['wifi'] + results['bluetooth']} own devices from attack[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Auto-whitelist warning: {e}[/yellow]")
+    
+    try:
+        # Import required modules
+        from . import core_discovery, json_store, adaptive_interface_monitor
+        
+        # Initialize storage
+        json_store.init()
+        
+        # Start adaptive interface monitoring in background
+        if RICH_AVAILABLE:
+            console.print("[cyan]🧠 Starting adaptive interface monitoring...[/cyan]")
+        
+        import tempfile
+        import json
+        monitor_config = {
+            "check_interval": 15,  # Fast monitoring
+            "discovery_interval": 60,
+            "max_failures_before_forget": 3,
+            "auto_recovery": True,
+            "comprehensive_check_interval": 180,
+            "log_level": "WARNING"  # Reduce noise
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(monitor_config, f, indent=2)
+            config_file = f.name
+        
+        monitor_instance = adaptive_interface_monitor.AdaptiveInterfaceMonitor(config_file=config_file)
+        monitor_thread = threading.Thread(target=monitor_instance.start_monitoring, daemon=True)
+        monitor_thread.start()
+        
+        # PHASE 1: DISCOVERY AND INTELLIGENCE (25% of time)
+        discovery_time = max(60, duration // 4)
+        if RICH_AVAILABLE:
+            console.print(f"[yellow]🔍 PHASE 1: Discovery and Intelligence ({discovery_time}s)[/yellow]")
+        
+        # Enhanced discovery with advanced features
+        aggressive_mode = intensity in ['aggressive', 'maximum']
+        advanced_mode = intensity == 'maximum'
+        
+        core_discovery.discovery_phase(
+            wifi_enabled=True,
+            bt_enabled=True, 
+            discovery_time=discovery_time,
+            interval=5,  # Fast scanning
+            advanced_mode=advanced_mode
+        )
+        
+        # PHASE 2: CLASSIFICATION AND ATTACK PLANNING (10% of time)
+        planning_time = max(30, duration // 10)
+        if RICH_AVAILABLE:
+            console.print(f"[yellow]🎯 PHASE 2: Target Classification and Attack Planning ({planning_time}s)[/yellow]")
+        
+        # Get discovered threats
+        malicious_wifi = json_store.list_malicious('wifi')
+        malicious_bt = json_store.list_malicious('bluetooth')
+        
+        total_targets = len(malicious_wifi) + len(malicious_bt)
+        if RICH_AVAILABLE:
+            console.print(f"[red]🚨 Identified {total_targets} malicious targets for elimination[/red]")
+            if malicious_wifi:
+                console.print(f"  • WiFi targets: {len(malicious_wifi)}")
+            if malicious_bt:
+                console.print(f"  • Bluetooth targets: {len(malicious_bt)}")
+        
+        # Brief planning phase
+        time.sleep(min(planning_time, 30))
+        
+        # PHASE 3: COORDINATED ASSAULT (30% of time)
+        assault_time = max(120, duration // 3)
+        if RICH_AVAILABLE:
+            console.print(f"[red]⚔️ PHASE 3: Coordinated Assault Campaign ({assault_time}s)[/red]")
+            console.print("[red]🌊 Launching multi-vector attack waves...[/red]")
+        
+        # Initial assault wave
+        core_discovery.attack_phase(
+            wifi_enabled=True,
+            bt_enabled=True,
+            attack_time=assault_time,
+            confuse_enabled=True,
+            aggressive_mode=aggressive_mode
+        )
+        
+        # PHASE 4: CONTINUOUS HUNTING (Remaining time)
+        remaining_time = duration - discovery_time - planning_time - assault_time
+        if remaining_time > 60:
+            if RICH_AVAILABLE:
+                console.print(f"[red]🏹 PHASE 4: Continuous Threat Hunting ({remaining_time}s)[/red]")
+                console.print("[red]🔄 Adaptive assault loops - eliminating persistent threats[/red]")
+            
+            # Continuous hunting loop
+            hunting_start = time.time()
+            cycle = 1
+            
+            while time.time() - hunting_start < remaining_time:
+                if RICH_AVAILABLE:
+                    console.print(f"[cyan]🔄 Hunting Cycle #{cycle}[/cyan]")
+                
+                # Quick discovery scan
+                core_discovery.discovery_phase(
+                    wifi_enabled=True,
+                    bt_enabled=True,
+                    discovery_time=30,  # Quick scan
+                    interval=3,
+                    advanced_mode=advanced_mode
+                )
+                
+                # Quick assault on any new threats
+                core_discovery.attack_phase(
+                    wifi_enabled=True,
+                    bt_enabled=True,
+                    attack_time=60,  # Short bursts
+                    confuse_enabled=True,
+                    aggressive_mode=aggressive_mode
+                )
+                
+                cycle += 1
+                time.sleep(10)  # Brief pause between cycles
+        
+        if RICH_AVAILABLE:
+            console.print("[green]✅ OFFENSIVE STRATEGY COMPLETE - THREATS ELIMINATED[/green]")
+            console.print("[green]🏆 RF environment secured through superior firepower[/green]")
+        
+    except KeyboardInterrupt:
+        if RICH_AVAILABLE:
+            console.print("\n[yellow]Offensive operations interrupted by user[/yellow]")
+        else:
+            print("\nOffensive operations interrupted")
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]Offensive strategy error: {e}[/red]")
+        else:
+            print(f"Offensive strategy error: {e}")
+        sys.exit(1)
+
+def _run_defensive_strategy(duration: int, intensity: str, auto_confirm: bool):
+    """🏰 Run the defensive protection strategy - fortress mode."""
+    if RICH_AVAILABLE:
+        strategy_banner = Panel(
+            f"🏰 DEFENSIVE STRATEGY ACTIVATED 🏰\n\n"
+            f"Duration: {duration}s ({duration//60} minutes)\n"
+            f"Intensity: {intensity.upper()}\n\n"
+            f"🛡️ Multi-layer defense plan:\n"
+            f"• Layer 1: Complete RF interface isolation\n"
+            f"• Layer 2: Whitelist-only connectivity enforcement\n"
+            f"• Layer 3: Continuous monitoring and health checks\n"
+            f"• Layer 4: Adaptive threat detection with auto-blocking\n\n"
+            f"🔒 Security features active:\n"
+            f"• WiFi auto-connect disabled\n"
+            f"• Bluetooth completely blocked\n"
+            f"• Continuous interface monitoring\n"
+            f"• Minimal RF signature emissions",
+            title="[blue]🏰 DEFENSIVE FORTRESS DEPLOYMENT[/blue]",
+            border_style="blue",
+            padding=(1, 2)
+        )
+        console.print(strategy_banner)
+        
+        if not auto_confirm and not Confirm.ask("[bold blue]Deploy fortress mode?[/bold blue]", default=True):
+            console.print("[yellow]Defensive strategy cancelled[/yellow]")
+            return
+        
+        console.print("[blue]🏰 DEPLOYING DEFENSIVE FORTRESS...[/blue]")
+    
+    try:
+        # Import required modules
+        from . import core_discovery, json_store, adaptive_interface_monitor
+        
+        # Initialize storage
+        json_store.init()
+        
+        # LAYER 1: COMPLETE RF ISOLATION
+        if RICH_AVAILABLE:
+            console.print("[blue]🔒 LAYER 1: Complete RF Interface Isolation[/blue]")
+        
+        # Disable WiFi auto-connect
+        core_discovery.disable_wifi_autoconnect()
+        
+        # Block all Bluetooth activity
+        core_discovery.aggressive_bluetooth_block()
+        
+        # LAYER 2: WHITELIST ENFORCEMENT SETUP
+        if RICH_AVAILABLE:
+            console.print("[blue]📝 LAYER 2: Whitelist-Only Connectivity Enforcement[/blue]")
+        
+        whitelist_count = len(json_store.list_whitelist('wifi')) + len(json_store.list_whitelist('bluetooth'))
+        if RICH_AVAILABLE:
+            console.print(f"[cyan]✅ {whitelist_count} trusted devices in whitelist[/cyan]")
+        
+        # LAYER 3: CONTINUOUS MONITORING
+        if RICH_AVAILABLE:
+            console.print("[blue]📊 LAYER 3: Continuous Monitoring and Health Checks[/blue]")
+        
+        # Enhanced monitoring configuration for defensive mode
+        import tempfile
+        import json
+        monitor_config = {
+            "check_interval": 10,  # Very frequent checks
+            "discovery_interval": 30,  # Frequent rediscovery
+            "max_failures_before_forget": 5,
+            "auto_recovery": True,
+            "comprehensive_check_interval": 60,  # Comprehensive checks
+            "log_level": "INFO"
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(monitor_config, f, indent=2)
+            config_file = f.name
+        
+        monitor_instance = adaptive_interface_monitor.AdaptiveInterfaceMonitor(config_file=config_file)
+        
+        # LAYER 4: ADAPTIVE THREAT DETECTION
+        if RICH_AVAILABLE:
+            console.print("[blue]🧠 LAYER 4: Adaptive Threat Detection with Auto-Blocking[/blue]")
+        
+        # Fortress mode - continuous monitoring with periodic threat sweeps
+        fortress_start = time.time()
+        sweep_interval = 300 if intensity == 'standard' else 180 if intensity == 'aggressive' else 60  # Maximum intensity = 1 minute sweeps
+        last_sweep = 0
+        status_update_interval = 60
+        last_status = 0
+        
+        if RICH_AVAILABLE:
+            console.print(f"[green]🏰 FORTRESS MODE ACTIVE[/green]")
+            console.print(f"[cyan]🔄 Threat sweep interval: {sweep_interval}s[/cyan]")
+            console.print(f"[cyan]📊 Status update interval: {status_update_interval}s[/cyan]")
+            console.print("[dim]Press Ctrl+C to stop fortress mode[/dim]")
+        
+        # Start monitoring in background
+        monitor_thread = threading.Thread(target=monitor_instance.start_monitoring, daemon=True)
+        monitor_thread.start()
+        
+        # Main fortress loop
+        while time.time() - fortress_start < duration:
+            current_time = time.time()
+            
+            # Periodic threat sweep
+            if current_time - last_sweep >= sweep_interval:
+                if RICH_AVAILABLE:
+                    console.print("[yellow]🔍 Executing threat sweep...[/yellow]")
+                
+                # Quick discovery scan to detect new threats
+                core_discovery.discovery_phase(
+                    wifi_enabled=False,  # Minimal WiFi activity in fortress mode
+                    bt_enabled=True,     # Still monitor Bluetooth threats
+                    discovery_time=30,   # Quick scan
+                    interval=5,
+                    advanced_mode=False  # Conservative in fortress mode
+                )
+                
+                # Re-enforce isolation after scan
+                core_discovery.disable_wifi_autoconnect()
+                core_discovery.aggressive_bluetooth_block()
+                
+                last_sweep = current_time
+                
+                if RICH_AVAILABLE:
+                    console.print("[green]✅ Threat sweep complete - fortress secured[/green]")
+            
+            # Status updates
+            if current_time - last_status >= status_update_interval:
+                fortress_uptime = int(current_time - fortress_start)
+                remaining_time = max(0, duration - fortress_uptime)
+                
+                if RICH_AVAILABLE:
+                    status_panel = Panel(
+                        f"🏰 FORTRESS STATUS\n\n"
+                        f"⏱️ Uptime: {fortress_uptime//60}m {fortress_uptime%60}s\n"
+                        f"⏳ Remaining: {remaining_time//60}m {remaining_time%60}s\n"
+                        f"🔒 WiFi: ISOLATED\n"
+                        f"🚫 Bluetooth: BLOCKED\n"
+                        f"📊 Monitoring: ACTIVE\n"
+                        f"🛡️ Status: FORTRESS SECURE",
+                        title="[blue]🏰 DEFENSIVE STATUS[/blue]",
+                        border_style="blue"
+                    )
+                    console.print(status_panel)
+                else:
+                    print(f"Fortress uptime: {fortress_uptime}s, remaining: {remaining_time}s")
+                
+                last_status = current_time
+            
+            # Brief sleep to prevent busy waiting
+            time.sleep(5)
+        
+        if RICH_AVAILABLE:
+            console.print("[green]✅ DEFENSIVE STRATEGY COMPLETE - FORTRESS SECURED[/green]")
+            console.print("[green]🏰 RF environment protected through superior defense[/green]")
+        
+    except KeyboardInterrupt:
+        if RICH_AVAILABLE:
+            console.print("\n[yellow]Fortress mode interrupted by user[/yellow]")
+        else:
+            print("\nFortress mode interrupted")
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]Defensive strategy error: {e}[/red]")
+        else:
+            print(f"Defensive strategy error: {e}")
+        sys.exit(1)
+    finally:
+        # Ensure cleanup
+        try:
+            from . import core_discovery
+            core_discovery.aggressive_bluetooth_block()
+            core_discovery.disable_wifi_autoconnect()
+        except:
+            pass
+
+# ============================================================================
+# ENHANCED ATTACK MODES - Using the Integrated Powerful Modules
+# ============================================================================
+
+@cli.group(help="🚀 Enhanced Attack Modes")
+def enhanced():
+    """Enhanced attack modes using integrated advanced modules.
+    
+    These modes leverage the powerful modules from the dev directory
+    for professional-grade RF security operations.
+    """
+    pass
+
+@enhanced.command('tooling')
+@click.option('--wifi/--no-wifi', default=True, help='Include WiFi attacks')
+@click.option('--bluetooth/--no-bluetooth', default=True, help='Include Bluetooth attacks')
+@click.option('--duration', default=600, show_default=True, help='Attack duration (seconds)')
+def enhanced_tooling(wifi: bool, bluetooth: bool, duration: int):
+    """🔧 Professional tooling attack using aircrack-ng suite and advanced integration.
+    
+    Uses enhanced tooling integration with professional RF security tools:
+    - Aircrack-ng suite for monitor mode and professional deauth
+    - WPS vulnerability assessment and attacks
+    - Comprehensive BLE service enumeration
+    - Coordinated multi-spectrum assault
+    """
+    if not _confirm_enhanced_attack("Professional Tooling", duration):
+        return
+    
+    if RICH_AVAILABLE:
+        with console.status("[bold blue]Initializing enhanced tooling...", spinner="dots"):
+            time.sleep(1)
+    
+    try:
+        from . import core_discovery
+        core_discovery.enhanced_tooling_attack_phase(wifi, bluetooth, duration)
+        
+        if RICH_AVAILABLE:
+            console.print("[green]✅ Enhanced tooling attack completed successfully[/green]")
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]Enhanced tooling attack failed: {e}[/red]")
+        else:
+            print(f"Enhanced tooling attack failed: {e}")
+
+@enhanced.command('bluetooth')
+@click.option('--duration', default=1200, show_default=True, help='Attack duration (seconds)')
+def ultra_bluetooth(duration: int):
+    """📱 Ultra-aggressive Bluetooth auto-annihilation mode.
+    
+    Production-ready zero-trust Bluetooth security system:
+    - Intelligent threat scoring and classification
+    - Coordinated multi-method attacks
+    - Interface monitoring and recovery
+    - Comprehensive attack logging and reporting
+    """
+    if not _confirm_enhanced_attack("Ultra-Aggressive Bluetooth", duration):
+        return
+    
+    if RICH_AVAILABLE:
+        attack_panel = Panel(
+            f"🔥 MAXIMUM Bluetooth threat annihilation\n"
+            f"🚀 Production-ready zero-trust security system\n\n"
+            f"⚠️  This mode will AGGRESSIVELY attack all Bluetooth threats\n"
+            f"⚠️  Uses advanced threat scoring and coordinated attacks\n"
+            f"📱 Duration: {duration}s",
+            title="[bold red]📱 ULTRA-AGGRESSIVE BLUETOOTH MODE[/bold red]",
+            border_style="red"
+        )
+        console.print(attack_panel)
+    
+    try:
+        from . import core_discovery
+        core_discovery.ultra_aggressive_bluetooth_mode(duration)
+        
+        if RICH_AVAILABLE:
+            console.print("[green]✅ Ultra-aggressive Bluetooth mode completed[/green]")
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]Ultra-aggressive Bluetooth mode failed: {e}[/red]")
+        else:
+            print(f"Ultra-aggressive Bluetooth mode failed: {e}")
+
+@enhanced.command('monitor')
+@click.option('--duration', default=600, show_default=True, help='Monitoring duration (seconds)')
+def interface_monitor(duration: int):
+    """🔍 Continuous interface health monitoring mode.
+    
+    Comprehensive RF interface health monitoring:
+    - Auto-recovery and sanity verification
+    - Interface status checks and health reports
+    - Essential tools availability verification
+    - Automatic problem detection and fixes
+    """
+    if RICH_AVAILABLE:
+        monitor_panel = Panel(
+            f"🚪 Continuous RF interface health monitoring\n"
+            f"🔧 Auto-recovery and sanity verification active\n\n"
+            f"📊 Duration: {duration}s\n"
+            f"⚡ Checks interfaces, tools, and recovers failures",
+            title="[bold blue]🔍 INTERFACE MONITORING MODE[/bold blue]",
+            border_style="blue"
+        )
+        console.print(monitor_panel)
+    
+    try:
+        from . import core_discovery
+        core_discovery.interface_monitoring_mode(duration)
+        
+        if RICH_AVAILABLE:
+            console.print("[green]✅ Interface monitoring completed successfully[/green]")
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]Interface monitoring failed: {e}[/red]")
+        else:
+            print(f"Interface monitoring failed: {e}")
+
+@enhanced.command('nuclear')
+@click.option('--duration', default=1800, show_default=True, help='Nuclear duration (seconds)')
+@click.option('--confirm-nuclear', is_flag=True, help='Skip nuclear confirmation prompt')
+def nuclear_option(duration: int, confirm_nuclear: bool):
+    """💥 NUCLEAR OPTION: Full spectrum RF warfare.
+    
+    🚀 MAXIMUM RF WARFARE - All attack vectors deployed simultaneously:
+    - Psychological warfare (fear campaigns, confusion matrix)
+    - Technical attacks (coordinated multi-spectrum assault)
+    - Chaos attacks (spectrum domination, RF interference)
+    - Ultimate threat assessment and annihilation
+    
+    ⚠️  WARNING: This is the most aggressive mode available!
+    """
+    if not confirm_nuclear:
+        if RICH_AVAILABLE:
+            nuclear_warning = Panel(
+                f"☢️  NUCLEAR OPTION WARNING ☢️\n\n"
+                f"🚀 MAXIMUM RF WARFARE - All attack vectors deployed\n"
+                f"🧠 Psychological + Technical + Chaos attacks\n"
+                f"💥 Full spectrum annihilation active\n\n"
+                f"⚠️  This is the MOST AGGRESSIVE mode available!\n"
+                f"⚠️  Only use in authorized test environments!\n\n"
+                f"Duration: {duration}s ({duration//60} minutes)",
+                title="[bold red]☢️  NUCLEAR OPTION CONFIRMATION[/bold red]",
+                border_style="red"
+            )
+            console.print(nuclear_warning)
+            
+            nuclear_confirm = Confirm.ask(
+                "[bold red]Are you ABSOLUTELY SURE you want to deploy the NUCLEAR OPTION?[/bold red]", 
+                default=False
+            )
+            if not nuclear_confirm:
+                console.print("[yellow]Nuclear option cancelled - probably a wise choice![/yellow]")
+                return
+            
+            final_confirm = Confirm.ask(
+                "[bold red]FINAL WARNING: This will launch MAXIMUM RF WARFARE. Continue?[/bold red]", 
+                default=False
+            )
+            if not final_confirm:
+                console.print("[yellow]Nuclear option cancelled at final confirmation[/yellow]")
+                return
+        else:
+            print("\n☢️  NUCLEAR OPTION WARNING ☢️")
+            print("This will launch MAXIMUM RF WARFARE with all attack vectors.")
+            response = input("Are you ABSOLUTELY SURE? (type 'NUCLEAR' to confirm): ")
+            if response != 'NUCLEAR':
+                print("Nuclear option cancelled")
+                return
+    
+    if RICH_AVAILABLE:
+        console.print("[bold red]💥 NUCLEAR OPTION AUTHORIZED - DEPLOYING MAXIMUM RF WARFARE[/bold red]")
+        with console.status("[bold red]☢️  Initializing nuclear systems...", spinner="dots"):
+            time.sleep(3)  # Dramatic pause
+    
+    try:
+        from . import core_discovery
+        core_discovery.nuclear_option_mode(duration)
+        
+        if RICH_AVAILABLE:
+            console.print("[green]✅ Nuclear option completed - Total devastation achieved[/green]")
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]Nuclear option failed: {e}[/red]")
+        else:
+            print(f"Nuclear option failed: {e}")
+
+@enhanced.command('guardian')
+@click.option('--interval', default=300, show_default=True, help='Assessment interval (seconds)')
+def continuous_guardian(interval: int):
+    """🛡️ Continuous guardian mode with automated threat response.
+    
+    Automated RF threat detection and response system:
+    - Periodic comprehensive threat assessment
+    - Auto-engage critical threats immediately
+    - Interactive prompts for non-critical threats
+    - Continuous protection with minimal user intervention
+    """
+    if RICH_AVAILABLE:
+        guardian_panel = Panel(
+            f"🚪 Automated RF threat detection and response\n"
+            f"⏰ Assessment interval: {interval}s\n"
+            f"🎆 Auto-engage critical threats, prompt for others\n\n"
+            f"🛡️ Continuous protection with minimal intervention\n"
+            f"Press Ctrl+C to stop guardian mode",
+            title="[bold green]🛡️ CONTINUOUS GUARDIAN MODE[/bold green]",
+            border_style="green"
+        )
+        console.print(guardian_panel)
+    
+    try:
+        from . import core_discovery
+        core_discovery.continuous_guardian_mode(interval)
+        
+        if RICH_AVAILABLE:
+            console.print("[green]✅ Guardian mode ended successfully[/green]")
+    except KeyboardInterrupt:
+        if RICH_AVAILABLE:
+            console.print("[yellow]Guardian mode stopped by user[/yellow]")
+        else:
+            print("Guardian mode stopped by user")
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]Guardian mode failed: {e}[/red]")
+        else:
+            print(f"Guardian mode failed: {e}")
+
+def _confirm_enhanced_attack(mode_name: str, duration: int) -> bool:
+    """Confirm enhanced attack mode with user."""
+    if not RICH_AVAILABLE:
+        response = input(f"Launch {mode_name} mode for {duration}s? (yes/no): ")
+        return response.lower() in ['y', 'yes']
+    
+    warning_panel = Panel(
+        f"Mode: {mode_name}\n"
+        f"Duration: {duration}s ({duration//60} minutes)\n\n"
+        f"⚠️  Enhanced attack modes use advanced techniques\n"
+        f"⚠️  Only use in authorized environments!",
+        title="[bold yellow]Enhanced Attack Confirmation[/bold yellow]",
+        border_style="yellow"
+    )
+    console.print(warning_panel)
+    
+    return Confirm.ask(f"[bold yellow]Launch {mode_name} mode?[/bold yellow]", default=False)
+
+# ============================================================================
+# EASTER EGG - SPINNING SKULL DEMO 💀🌪️
+# ============================================================================
+
+@cli.command(help='💀 Epic spinning skull demonstration (hacker vibes!)', hidden=True)
+@click.option('--duration', default=5.0, show_default=True, help='Skull spin duration (seconds)')
+@click.option('--fps', default=8.0, show_default=True, help='Frames per second (animation speed)')
+@click.option('--message', default='☠ RF WARFARE SKULL ☠', help='Custom skull message')
+def skull(duration: float, fps: float, message: str):
+    """💀 Show off the epic spinning skull animation!
+    
+    Because every serious RF warfare toolkit needs a spinning skull! 🌪️
+    This is pure eye candy for that authentic underground hacker vibe.
+    
+    Perfect for intimidating enemies and impressing fellow hackers!
+    """
+    if RICH_AVAILABLE:
+        skull_panel = Panel(
+            f"💀 SPINNING SKULL DEMONSTRATION 💀\n\n"
+            f"Duration: {duration}s\n"
+            f"FPS: {fps}\n"
+            f"Message: {message}\n\n"
+            f"🌪️ Prepare for MAXIMUM hacker vibes!\n"
+            f"🔥 This is what RF warfare looks like! 💀",
+            title="[bold red]☠ SKULL POWER ☠[/bold red]",
+            border_style="red",
+            padding=(1, 2)
+        )
+        console.print(skull_panel)
+        time.sleep(1)  # Brief dramatic pause
+    else:
+        print(f"💀 Spinning skull demo - Duration: {duration}s, FPS: {fps}")
+    
+    try:
+        from .spinning_skull import SpinningSkull
+        
+        skull_instance = SpinningSkull()
+        
+        if RICH_AVAILABLE:
+            console.print("[red]🌪️ SKULL SPINNING INITIATED! 🌪️[/red]")
+        
+        skull_instance.spin_animation(duration=duration, fps=fps)
+        
+        if RICH_AVAILABLE:
+            console.print("\n[green]💀 SKULL POWER DEMONSTRATION COMPLETE! 💀[/green]")
+            console.print("[cyan]Maximum hacker vibes achieved! 🔥[/cyan]")
+        else:
+            print("\n💀 Skull spinning complete! Maximum hacker vibes! 🔥")
+            
+    except KeyboardInterrupt:
+        if RICH_AVAILABLE:
+            console.print("\n[yellow]💀 Skull spinning interrupted by user! 💀[/yellow]")
+        else:
+            print("\n💀 Skull spinning interrupted! 💀")
+    except Exception as e:
+        if RICH_AVAILABLE:
+            console.print(f"[red]💀 Skull error: {e} 💀[/red]")
+        else:
+            print(f"💀 Skull error: {e} 💀")
+
+if __name__ == '__main__':  # pragma: no cover
+    cli()

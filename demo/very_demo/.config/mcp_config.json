@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "radare2": {
+      "command": "/home/punk/.local/bin/r2mcp",
+      "args": [],
+      "env": {
+        "R2_NOPROMPT": "1",
+        "R2_QUIET": "0"
+      }
+    }
+  }
+}

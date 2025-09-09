@@ -20,9 +20,18 @@ def main():
             for k in ["seg_len","pcpu","threads","batch"]:
                 if k in r and r[k] != "":
                     r[k] = int(r[k])
-            for k in ["elapsed_s","MBps","pcpu_units_per_s","eff_ops_per_s","cpu_MBps","cpu_ops_per_s","ops_ratio"]:
+            for k in [
+                "elapsed_s","MBps","pcpu_units_per_s","eff_ops_per_s",
+                "cpu_MBps","cpu_ops_per_s","ops_ratio",
+                "cpu_user_s","cpu_sys_s","cpu_percent","max_rss_kb",
+                "ctx_voluntary","ctx_involuntary",
+            ]:
                 if k in r and r[k] != "":
-                    r[k] = float(r[k])
+                    try:
+                        r[k] = float(r[k])
+                    except ValueError:
+                        # Some fields may be blank in non-measured rows
+                        pass
             rows.append(r)
 
     # Filter rows with ops_ratio present
@@ -49,6 +58,26 @@ def main():
             print(f"seg_len={seg}: modes={sorted(modes)}, pCPU={pcpu_vals}, max_MBps={mbps_max:.0f}, max_ops_ratio={ratio_max:.3f}")
     else:
         print("\nNo ops_ratio >= 1.0 in this dataset.")
+
+    # CPU efficiency summary if measured fields are present
+    measured = []
+    for r in rows:
+        cu = r.get("cpu_user_s", 0.0) or 0.0
+        cs = r.get("cpu_sys_s", 0.0) or 0.0
+        cpu_total = cu + cs
+        if cpu_total > 0 and "elapsed_s" in r and "MBps" in r:
+            mb = r["MBps"] * r["elapsed_s"]
+            mb_per_cpu_s = (mb / cpu_total) if cpu_total > 0 else 0.0
+            measured.append((mb_per_cpu_s, cpu_total, r))
+
+    if measured:
+        measured.sort(key=lambda t: t[0], reverse=True)
+        print("\nCPU efficiency (measured rows): mode,seg_len,pcpu,threads,batch,MBps,MB_per_CPU_s,CPU_s,elapsed_s,CPU%")
+        for mb_per_cpu_s, cpu_total, r in measured[: args.top]:
+            cpu_pct = r.get("cpu_percent", 0.0) or 0.0
+            print(
+                f"{r['mode']},{r['seg_len']},{r['pcpu']},{r['threads']},{r['batch']},{r['MBps']:.0f},{mb_per_cpu_s:.0f},{cpu_total:.2f},{r['elapsed_s']:.3f},{cpu_pct:.0f}"
+            )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "freddo"
+   },
+   "desaturated": {
+      "message": "desaturato"
+   },
+   "saturated": {
+      "message": "saturato"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Un tema ombroso e minimalista appositamente progettato per coloro che amano il buio."
+   },
+   "warm": {
+      "message": "caldo"
+   }
+}

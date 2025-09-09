@@ -1,0 +1,12 @@
+#!/bin/bash
+echo "🚀💎⚡ WELCOME TO PACKETFS CONTAINER ⚡💎🚀"
+echo "========================================"
+echo ""
+echo "Available PacketFS commands:"
+echo "  pfs-compress <file>     - Compress file with PacketFS"
+echo "  pfs-exec <file.pfs>     - Execute PacketFS compressed file"
+echo "  python3 /packetfs/demo.py - Run PacketFS demo"
+echo ""
+echo "Files in /packetfs/ are shared with host system!"
+echo "Compression ratios up to 18,333:1 achieved! 🗜️"
+echo ""

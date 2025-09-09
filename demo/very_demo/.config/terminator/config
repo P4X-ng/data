@@ -1,0 +1,74 @@
+[global_config]
+[keybindings]
+[profiles]
+  [[default]]
+    background_color = "#300a24"
+    background_darkness = 0.96
+    background_type = transparent
+    foreground_color = "#ffffff"
+    scrollback_infinite = True
+    title_transmit_bg_color = "#1a5fb4"
+    title_receive_bg_color = "#e5a50a"
+  [[Alex]]
+    background_color = "#300a24"
+    background_darkness = 0.96
+    background_type = transparent
+    cursor_shape = ibeam
+    cursor_fg_color = "#c0bebf"
+    cursor_bg_color = "#300924"
+    foreground_color = "#c0bebf"
+    scrollback_infinite = True
+    title_transmit_bg_color = "#1a5fb4"
+    title_receive_bg_color = "#241f31"
+[layouts]
+  [[default]]
+    [[[window0]]]
+      type = Window
+      parent = ""
+    [[[child1]]]
+      type = Terminal
+      parent = window0
+      profile = default
+  [[AlexLayout]]
+    [[[child0]]]
+      type = Window
+      parent = ""
+      order = 0
+      position = 446:383
+      maximised = False
+      fullscreen = False
+      size = 657, 427
+      title = punk@punk-strx: ~
+      last_active_term = b8c1964d-d5ee-4d37-a846-2ba523527a1c
+      last_active_window = True
+    [[[child1]]]
+      type = VPaned
+      parent = child0
+      order = 0
+      position = 211
+      ratio = 0.5
+    [[[terminal2]]]
+      type = Terminal
+      parent = child1
+      order = 0
+      profile = Alex
+      uuid = f3a2c140-b1b0-4ec1-a2c2-b3b6e6368318
+    [[[child3]]]
+      type = HPaned
+      parent = child1
+      order = 1
+      position = 326
+      ratio = 0.5
+    [[[terminal4]]]
+      type = Terminal
+      parent = child3
+      order = 0
+      profile = Alex
+      uuid = 5c0e167d-edab-49f9-8aef-f69b1629e16e
+    [[[terminal5]]]
+      type = Terminal
+      parent = child3
+      order = 1
+      profile = Alex
+      uuid = b8c1964d-d5ee-4d37-a846-2ba523527a1c
+[plugins]

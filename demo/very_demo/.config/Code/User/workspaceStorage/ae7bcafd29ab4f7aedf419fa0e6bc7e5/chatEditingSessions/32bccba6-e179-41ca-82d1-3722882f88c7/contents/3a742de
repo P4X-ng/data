@@ -1,0 +1,388 @@
+#!/usr/bin/env python3
+"""Interface Sanity Monitor - Continuous RF interface health monitoring."""
+
+import time
+import subprocess
+import logging
+import threading
+from typing import Dict, List, Any
+
+logger = logging.getLogger(__name__)
+
+class InterfaceSanityMonitor:
+    """Continuous RF interface health monitoring and recovery system."""
+    
+    def __init__(self, config_file: str = None):
+        self.config = self._load_config(config_file)
+        self.running = False
+        self.interface_status = {}
+        self.health_history = []
+        self.recovery_attempts = {}
+    
+    def _load_config(self, config_file: str = None) -> Dict[str, Any]:
+        """Load configuration for interface monitoring."""
+        default_config = {
+            'check_interval': 30,
+            'auto_recovery': True,
+            'comprehensive_check_interval': 300,
+            'max_recovery_attempts': 3,
+            'log_level': 'INFO'
+        }
+        
+        if config_file:
+            try:
+                import json
+                with open(config_file, 'r') as f:
+                    user_config = json.load(f)
+                default_config.update(user_config)
+            except Exception as e:
+                logger.warning(f"Could not load config file {config_file}: {e}")
+        
+        return default_config
+    
+    def start_continuous_monitoring(self):
+        """Start continuous interface monitoring."""
+        logger.info("🔍 Starting continuous interface monitoring")
+        self.running = True
+        
+        try:
+            last_comprehensive = 0
+            
+            while self.running:
+                current_time = time.time()
+                
+                # Regular health check
+                self._perform_health_check()
+                
+                # Comprehensive check periodically
+                if (current_time - last_comprehensive >= 
+                    self.config['comprehensive_check_interval']):
+                    self._perform_comprehensive_check()
+                    last_comprehensive = current_time
+                
+                time.sleep(self.config['check_interval'])
+                
+        except KeyboardInterrupt:
+            logger.info("Interface monitoring interrupted by user")
+        except Exception as e:
+            logger.error(f"Interface monitoring error: {e}")
+        finally:
+            self.running = False
+            logger.info("🔍 Interface monitoring stopped")
+    
+    def _perform_health_check(self):
+        """Perform regular interface health check."""
+        try:
+            wifi_interfaces = self._get_wifi_interfaces()
+            bt_interfaces = self._get_bluetooth_interfaces()
+            
+            for interface in wifi_interfaces:
+                status = self._check_wifi_interface(interface)
+                self.interface_status[interface] = status
+                
+                if not status['healthy'] and self.config['auto_recovery']:
+                    self._attempt_recovery(interface, 'wifi')
+            
+            for interface in bt_interfaces:
+                status = self._check_bluetooth_interface(interface)
+                self.interface_status[interface] = status
+                
+                if not status['healthy'] and self.config['auto_recovery']:
+                    self._attempt_recovery(interface, 'bluetooth')
+            
+            # Record health snapshot
+            self.health_history.append({
+                'timestamp': time.time(),
+                'total_interfaces': len(wifi_interfaces) + len(bt_interfaces),
+                'healthy_interfaces': len([s for s in self.interface_status.values() if s['healthy']]),
+                'wifi_interfaces': len(wifi_interfaces),
+                'bt_interfaces': len(bt_interfaces)
+            })
+            
+            # Keep history manageable
+            if len(self.health_history) > 1000:
+                self.health_history = self.health_history[-500:]
+                
+        except Exception as e:
+            logger.error(f"Health check error: {e}")
+    
+    def _perform_comprehensive_check(self):
+        """Perform comprehensive interface analysis."""
+        logger.info("🔍 Performing comprehensive interface check")
+        
+        try:
+            # Check system RF capabilities
+            rf_capabilities = self._check_rf_capabilities()
+            
+            # Check driver status
+            driver_status = self._check_driver_status()
+            
+            # Check tool availability
+            tool_status = self._check_tool_availability()
+            
+            comprehensive_result = {
+                'timestamp': time.time(),
+                'rf_capabilities': rf_capabilities,
+                'driver_status': driver_status,
+                'tool_status': tool_status
+            }
+            
+            logger.info(f"🔍 Comprehensive check complete: {comprehensive_result}")
+            
+        except Exception as e:
+            logger.error(f"Comprehensive check error: {e}")
+    
+    def _get_wifi_interfaces(self) -> List[str]:
+        """Get available WiFi interfaces."""
+        interfaces = []
+        
+        try:
+            # Linux method
+            result = subprocess.run(['iw', 'dev'], capture_output=True, text=True)
+            if result.returncode == 0:
+                for line in result.stdout.split('\n'):
+                    if 'Interface' in line:
+                        interface = line.split()[-1]
+                        interfaces.append(interface)
+            
+        except FileNotFoundError:
+            # Windows fallback
+            try:
+                result = subprocess.run([
+                    'powershell', '-Command',
+                    'Get-NetAdapter | Where-Object {$_.InterfaceDescription -like "*Wireless*"} | Select-Object -ExpandProperty Name'
+                ], capture_output=True, text=True)
+                
+                if result.returncode == 0:
+                    interfaces = [line.strip() for line in result.stdout.split('\n') if line.strip()]
+                    
+            except Exception:
+                pass
+        
+        return interfaces
+    
+    def _get_bluetooth_interfaces(self) -> List[str]:
+        """Get available Bluetooth interfaces."""
+        interfaces = []
+        
+        try:
+            # Linux method
+            result = subprocess.run(['hciconfig'], capture_output=True, text=True)
+            if result.returncode == 0:
+                for line in result.stdout.split('\n'):
+                    if 'hci' in line and ':' in line:
+                        interface = line.split(':')[0].strip()
+                        interfaces.append(interface)
+            
+        except FileNotFoundError:
+            # Windows - use device enumeration
+            interfaces = ['bt0']  # Placeholder
+        
+        return interfaces
+    
+    def _check_wifi_interface(self, interface: str) -> Dict[str, Any]:
+        """Check WiFi interface health."""
+        status = {
+            'interface': interface,
+            'type': 'wifi',
+            'healthy': False,
+            'issues': [],
+            'last_check': time.time()
+        }
+        
+        try:
+            # Check if interface is up
+            result = subprocess.run(['ip', 'link', 'show', interface], 
+                                  capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                if 'UP' in result.stdout:
+                    status['healthy'] = True
+                else:
+                    status['issues'].append('Interface down')
+            else:
+                status['issues'].append('Interface not found')
+                
+        except FileNotFoundError:
+            # Windows fallback
+            status['healthy'] = True  # Assume healthy if can't check
+        except Exception as e:
+            status['issues'].append(f'Check failed: {e}')
+        
+        return status
+    
+    def _check_bluetooth_interface(self, interface: str) -> Dict[str, Any]:
+        """Check Bluetooth interface health."""
+        status = {
+            'interface': interface,
+            'type': 'bluetooth',
+            'healthy': False,
+            'issues': [],
+            'last_check': time.time()
+        }
+        
+        try:
+            # Check Bluetooth interface status
+            result = subprocess.run(['hciconfig', interface], 
+                                  capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                if 'UP RUNNING' in result.stdout:
+                    status['healthy'] = True
+                else:
+                    status['issues'].append('Interface not running')
+            else:
+                status['issues'].append('Interface not accessible')
+                
+        except FileNotFoundError:
+            # Windows or no hciconfig
+            status['healthy'] = True  # Assume healthy if can't check
+        except Exception as e:
+            status['issues'].append(f'Check failed: {e}')
+        
+        return status
+    
+    def _attempt_recovery(self, interface: str, interface_type: str):
+        """Attempt to recover a failed interface."""
+        recovery_key = f"{interface}_{interface_type}"
+        
+        # Check recovery attempt limits
+        if recovery_key not in self.recovery_attempts:
+            self.recovery_attempts[recovery_key] = {'count': 0, 'last_attempt': 0}
+        
+        recovery_info = self.recovery_attempts[recovery_key]
+        
+        # Rate limiting
+        if (time.time() - recovery_info['last_attempt'] < 60 or 
+            recovery_info['count'] >= self.config['max_recovery_attempts']):
+            return
+        
+        logger.info(f"🔧 Attempting recovery of {interface} ({interface_type})")
+        
+        try:
+            if interface_type == 'wifi':
+                self._recover_wifi_interface(interface)
+            elif interface_type == 'bluetooth':
+                self._recover_bluetooth_interface(interface)
+            
+            recovery_info['count'] += 1
+            recovery_info['last_attempt'] = time.time()
+            
+        except Exception as e:
+            logger.error(f"Recovery attempt failed for {interface}: {e}")
+    
+    def _recover_wifi_interface(self, interface: str):
+        """Attempt to recover WiFi interface."""
+        try:
+            # Bring interface down and up
+            subprocess.run(['ip', 'link', 'set', interface, 'down'], 
+                          capture_output=True)
+            time.sleep(2)
+            subprocess.run(['ip', 'link', 'set', interface, 'up'], 
+                          capture_output=True)
+            
+            logger.info(f"🔧 WiFi interface {interface} recovery attempted")
+            
+        except FileNotFoundError:
+            # Windows recovery
+            logger.info(f"🔧 WiFi interface {interface} recovery not available on Windows")
+    
+    def _recover_bluetooth_interface(self, interface: str):
+        """Attempt to recover Bluetooth interface."""
+        try:
+            # Reset Bluetooth interface
+            subprocess.run(['hciconfig', interface, 'down'], capture_output=True)
+            time.sleep(2)
+            subprocess.run(['hciconfig', interface, 'up'], capture_output=True)
+            
+            logger.info(f"🔧 Bluetooth interface {interface} recovery attempted")
+            
+        except FileNotFoundError:
+            logger.info(f"🔧 Bluetooth interface {interface} recovery not available")
+    
+    def _check_rf_capabilities(self) -> Dict[str, Any]:
+        """Check system RF capabilities."""
+        capabilities = {
+            'wifi_monitor_mode': False,
+            'bluetooth_available': False,
+            'packet_injection': False
+        }
+        
+        try:
+            # Check WiFi capabilities
+            result = subprocess.run(['iw', 'list'], capture_output=True, text=True)
+            if result.returncode == 0:
+                if 'monitor' in result.stdout:
+                    capabilities['wifi_monitor_mode'] = True
+                if 'AP' in result.stdout:
+                    capabilities['packet_injection'] = True
+            
+            # Check Bluetooth
+            result = subprocess.run(['hciconfig'], capture_output=True, text=True)
+            if result.returncode == 0:
+                capabilities['bluetooth_available'] = True
+                
+        except FileNotFoundError:
+            pass
+        
+        return capabilities
+    
+    def _check_driver_status(self) -> Dict[str, Any]:
+        """Check RF driver status."""
+        driver_status = {
+            'wifi_drivers': [],
+            'bluetooth_drivers': [],
+            'issues': []
+        }
+        
+        try:
+            # Check loaded modules
+            result = subprocess.run(['lsmod'], capture_output=True, text=True)
+            if result.returncode == 0:
+                for line in result.stdout.split('\n'):
+                    if any(wifi_mod in line for wifi_mod in ['iwlwifi', 'ath9k', 'rtl']):
+                        driver_status['wifi_drivers'].append(line.split()[0])
+                    if any(bt_mod in line for bt_mod in ['btusb', 'bluetooth']):
+                        driver_status['bluetooth_drivers'].append(line.split()[0])
+                        
+        except FileNotFoundError:
+            driver_status['issues'].append('Cannot check drivers (non-Linux system)')
+        
+        return driver_status
+    
+    def _check_tool_availability(self) -> Dict[str, bool]:
+        """Check availability of RF tools."""
+        tools = {
+            'iw': False,
+            'iwconfig': False,
+            'hciconfig': False,
+            'hcitool': False,
+            'aircrack-ng': False,
+            'airodump-ng': False
+        }
+        
+        for tool in tools:
+            try:
+                result = subprocess.run([tool, '--help'], 
+                                      capture_output=True, timeout=5)
+                tools[tool] = result.returncode in [0, 1]
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                tools[tool] = False
+        
+        return tools
+    
+    def stop(self):
+        """Stop interface monitoring."""
+        logger.info("🛑 Stopping interface monitoring")
+        self.running = False
+    
+    def get_status_report(self) -> Dict[str, Any]:
+        """Get comprehensive status report."""
+        return {
+            'running': self.running,
+            'interface_count': len(self.interface_status),
+            'healthy_interfaces': len([s for s in self.interface_status.values() if s['healthy']]),
+            'recovery_attempts': sum(info['count'] for info in self.recovery_attempts.values()),
+            'health_history_length': len(self.health_history),
+            'interfaces': self.interface_status
+        }

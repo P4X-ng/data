@@ -1,0 +1,4 @@
+Command terminated by signal 7
+ELAPSED_SEC=5.08
+USER=1.98
+SYS=0.09

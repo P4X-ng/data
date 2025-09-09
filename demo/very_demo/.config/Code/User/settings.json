@@ -1,0 +1,32 @@
+{
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "chat.mcp.autostart": "newAndOutdated",
+    "makefile.configureOnOpen": true,
+    "amazonQ.suppressPrompts": {
+        "amazonQChatDisclaimer": true,
+        "createCredentialsProfile": true,
+        "codeWhispererNewWelcomeMessage": true,
+        "codeWhispererConnectionExpired": true,
+        "amazonQWelcomePage": true,
+        "amazonQSessionConfigurationMessage": true,
+        "minIdeVersion": true,
+        "ssoCacheError": true,
+        "amazonQLspManifestMessage": false,
+        "amazonQWorkspaceLspManifestMessage": true,
+        "amazonQChatPairProgramming": true,
+        "amazonQSelectDeveloperProfile": true
+    },
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "gitlens.ai.model": "gitkraken",
+    "gitlens.ai.gitkraken.model": "gemini:gemini-2.0-flash",
+    "gitlens.graph.minimap.enabled": false,
+    "workbench.iconTheme": "vscode-icons",
+    "diffEditor.renderSideBySide": false,
+    "amazonQ.workspaceIndex": true,
+    "amazonQ.workspaceIndexCacheDirPath": "/tmp",
+    "amazonQ.workspaceIndexMaxFileSize": 1000,
+    "amazonQ.workspaceIndexMaxSize": 2000,
+    "amazonQ.workspaceIndexUseGPU": true,
+    "amazonQ.workspaceIndexWorkerThreads": 12
+}

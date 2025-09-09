@@ -1,0 +1,6 @@
+2025/08/24-10:17:30.906 4967 Creating DB /home/punk/.config/opera/Default/WebStorage/96/IndexedDB/indexeddb.leveldb since it was missing.
+2025/08/24-10:17:30.909 4967 Reusing MANIFEST /home/punk/.config/opera/Default/WebStorage/96/IndexedDB/indexeddb.leveldb/MANIFEST-000001
+2025/08/24-10:20:59.707 4968 Level-0 table #5: started
+2025/08/24-10:20:59.709 4968 Level-0 table #5: 20412 bytes OK
+2025/08/24-10:20:59.710 4968 Delete type=0 #3
+2025/08/24-10:20:59.710 4968 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

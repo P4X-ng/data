@@ -1,5 +1,8 @@
 Title: PacketFS — Terminology, Metrics, and Labeled Benchmarks (Transfer vs pCPU)
 
+Terminology note (2025-09-06)
+- We use: PFS-TCP, PFS-UDP, PFS-Native Offset Mode, PFS-Native Arithmetic Mode. See docs/architecture/TERMINOLOGY.md.
+- Older references to “PacketFS‑gram” map to the overlay framing used by PFS-TCP/UDP.
 Legend (authoritative labels and meanings)
 - Conventional
   - Plain kernel-transport byte-stream transfer using standard tools (e.g., scp/sftp/rsync/curl). No PacketFS concepts. Payload bytes are transferred end-to-end, with tool-specific overhead (e.g., SSH crypto).

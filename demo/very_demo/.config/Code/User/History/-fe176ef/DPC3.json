@@ -1,0 +1,5 @@
+{
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "chat.mcp.autostart": "newAndOutdated",
+    "makefile.configureOnOpen": true
+}

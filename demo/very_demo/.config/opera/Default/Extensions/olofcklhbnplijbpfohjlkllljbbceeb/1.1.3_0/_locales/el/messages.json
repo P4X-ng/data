@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "δροσερός"
+   },
+   "desaturated": {
+      "message": "αποκορεσμένος"
+   },
+   "saturated": {
+      "message": "κορεσμένος"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Ένα σκιασμένο και μινιμαλιστικό θέμα ειδικά σχεδιασμένο για όσους αγαπούν το σκοτάδι."
+   },
+   "warm": {
+      "message": "ζεστός"
+   }
+}

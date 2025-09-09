@@ -1,0 +1,6 @@
+2025/09/01-07:43:48.351 718f Creating DB /home/punk/.config/opera/Default/IndexedDB/https_codeburst.io_0.indexeddb.leveldb since it was missing.
+2025/09/01-07:43:48.354 718f Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_codeburst.io_0.indexeddb.leveldb/MANIFEST-000001
+2025/09/01-07:44:29.425 7184 Level-0 table #5: started
+2025/09/01-07:44:29.426 7184 Level-0 table #5: 14697 bytes OK
+2025/09/01-07:44:29.427 7184 Delete type=0 #3
+2025/09/01-07:44:29.427 7184 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

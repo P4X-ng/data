@@ -1,0 +1,12 @@
+{
+  "pci_address": "00ed:12:06.0",
+  "iommu_group": "virtual_60822",
+  "device_type": "infiniband_hdr",
+  "device_index": 822,
+  "vendor_id": "1337",
+  "device_id": "4484",
+  "firmware_original_size": 134217728,
+  "firmware_compressed_size": 7,
+  "compression_ratio": 19173961.14285714,
+  "virtual_capabilities": {}
+}

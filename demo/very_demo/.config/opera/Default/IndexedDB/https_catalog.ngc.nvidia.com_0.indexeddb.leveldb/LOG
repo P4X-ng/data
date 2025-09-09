@@ -1,0 +1,31 @@
+2025/09/01-05:14:33.918 7191 Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_catalog.ngc.nvidia.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/09/01-05:14:33.918 7191 Recovering log #15
+2025/09/01-05:14:33.918 7191 Reusing old log /home/punk/.config/opera/Default/IndexedDB/https_catalog.ngc.nvidia.com_0.indexeddb.leveldb/000015.log 
+2025/09/01-05:14:33.918 7191 Delete type=2 #14
+2025/09/01-05:14:57.176 718d Level-0 table #20: started
+2025/09/01-05:14:57.188 718d Level-0 table #20: 3338800 bytes OK
+2025/09/01-05:14:57.190 718d Delete type=0 #15
+2025/09/01-05:14:57.844 718d Level-0 table #22: started
+2025/09/01-05:14:57.856 718d Level-0 table #22: 3472883 bytes OK
+2025/09/01-05:14:57.858 718d Delete type=0 #19
+2025/09/01-05:15:02.019 7183 Level-0 table #24: started
+2025/09/01-05:15:02.027 7183 Level-0 table #24: 3816187 bytes OK
+2025/09/01-05:15:02.028 7183 Delete type=0 #21
+2025/09/01-05:15:02.088 718d Level-0 table #26: started
+2025/09/01-05:15:02.097 718d Level-0 table #26: 3179828 bytes OK
+2025/09/01-05:15:02.099 718d Delete type=0 #23
+2025/09/01-05:15:02.340 7183 Level-0 table #28: started
+2025/09/01-05:15:02.350 7183 Level-0 table #28: 2966731 bytes OK
+2025/09/01-05:15:02.351 7183 Delete type=0 #25
+2025/09/01-05:15:02.353 7183 Compacting 4@0 + 1@1 files
+2025/09/01-05:15:02.367 7183 Generated table #29@0: 2227 keys, 136832 bytes
+2025/09/01-05:15:02.367 7183 Compacted 4@0 + 1@1 files => 136832 bytes
+2025/09/01-05:15:02.368 7183 compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/09/01-05:15:02.369 7183 Delete type=2 #20
+2025/09/01-05:15:02.369 7183 Delete type=2 #22
+2025/09/01-05:15:02.369 7183 Delete type=2 #24
+2025/09/01-05:15:02.369 7183 Delete type=2 #26
+2025/09/01-05:15:02.369 7183 Delete type=2 #28
+2025/09/01-05:15:14.325 7183 Level-0 table #31: started
+2025/09/01-05:15:14.345 7183 Level-0 table #31: 3398123 bytes OK
+2025/09/01-05:15:14.349 7183 Delete type=0 #27

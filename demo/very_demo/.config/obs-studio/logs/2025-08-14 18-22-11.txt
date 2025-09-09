@@ -1,0 +1,178 @@
+18:22:11.521: Using EGL/X11
+18:22:11.521: CPU Name: Intel(R) Core(TM) Ultra 9 275HX
+18:22:11.521: CPU Speed: 2197.471MHz
+18:22:11.521: Physical Cores: 24, Logical Cores: 24
+18:22:11.521: Physical Memory: 31506MB Total, 12681MB Free
+18:22:11.521: Kernel Version: Linux 6.14.0-27-generic
+18:22:11.521: Distribution: "Ubuntu" "24.04"
+18:22:11.521: Desktop Environment: ubuntu:GNOME (ubuntu)
+18:22:11.521: Session Type: x11
+18:22:11.521: Window System: X11.0, Vendor: The X.Org Foundation, Version: 1.21.1
+18:22:11.570: Current Date/Time: 2025-08-14, 06:22:11 PM
+18:22:11.570: Browser Hardware Acceleration: true
+18:22:11.570: Qt Version: 6.4.2 (runtime), 6.4.2 (compiled)
+18:22:11.570: Portable mode: false
+18:22:11.608: OBS 31.1.2 (linux)
+18:22:11.608: ---------------------------------
+18:22:11.608: ---------------------------------
+18:22:11.608: audio settings reset:
+18:22:11.608: 	samples per sec: 48000
+18:22:11.608: 	speakers:        2
+18:22:11.608: 	max buffering:   960 milliseconds
+18:22:11.608: 	buffering type:  dynamically increasing
+18:22:11.609: ---------------------------------
+18:22:11.609: Initializing OpenGL...
+18:22:11.686: Loading up OpenGL on adapter Intel Mesa Intel(R) Graphics (ARL)
+18:22:11.686: OpenGL loaded successfully, version 4.6 (Core Profile) Mesa 25.0.7-0ubuntu0.24.04.1, shading language 4.60
+18:22:11.772: ---------------------------------
+18:22:11.772: video settings reset:
+18:22:11.772: 	base resolution:   1920x1080
+18:22:11.772: 	output resolution: 1280x720
+18:22:11.772: 	downscale filter:  Bicubic
+18:22:11.772: 	fps:               30/1
+18:22:11.772: 	format:            NV12
+18:22:11.772: 	YUV mode:          Rec. 709/Partial
+18:22:11.772: NV12 texture support enabled
+18:22:11.772: P010 texture support not available
+18:22:11.777: Audio monitoring device:
+18:22:11.777: 	name: Default
+18:22:11.777: 	id: default
+18:22:11.778: ---------------------------------
+18:22:11.785: No AJA devices found, skipping loading AJA UI plugin
+18:22:11.785: Failed to initialize module 'aja-output-ui.so'
+18:22:11.791: No AJA devices found, skipping loading AJA plugin
+18:22:11.791: Failed to initialize module 'aja.so'
+18:22:11.795: Failed to load 'en-US' text for module: 'decklink-captions.so'
+18:22:11.799: Failed to load 'en-US' text for module: 'decklink-output-ui.so'
+18:22:11.803: A DeckLink iterator could not be created.  The DeckLink drivers may not be installed
+18:22:11.803: Failed to initialize module 'decklink.so'
+18:22:11.926: [pipewire] Available capture sources:
+18:22:11.926: [pipewire]     - Monitor source
+18:22:11.926: [pipewire]     - Window source
+18:22:11.945: [obs-browser]: Version 2.25.3
+18:22:11.945: [obs-browser]: CEF Version 127.0.6533.120 (runtime), 127.0.0-6533-fix-stutter-and-osr-extra-info.3040+ga0ca18e+chromium-127.0.6533.120 (compiled)
+18:22:11.982: VAAPI: API version 1.20
+18:22:11.983: FFmpeg VAAPI H264 encoding supported
+18:22:11.986: FFmpeg VAAPI AV1 encoding supported
+18:22:11.989: FFmpeg VAAPI HEVC encoding supported
+18:22:12.789: [obs-nvenc] NVENC version: 12.1 (compiled) / 13.0 (driver), CUDA driver version: 12.90, AV1 supported: true
+18:22:12.833: [obs-websocket] [obs_module_load] you can haz websockets (Version: 5.6.2 | RPC Version: 1)
+18:22:12.833: [obs-websocket] [obs_module_load] Qt version (compile-time): 6.4.2 | Qt version (run-time): 6.4.2
+18:22:12.833: [obs-websocket] [obs_module_load] Linked ASIO Version: 102801
+18:22:12.833: DEPRECATION: obs_frontend_get_global_config is deprecated. Read from global or user configuration explicitly instead.
+18:22:12.833: [obs-websocket] [Config::Load] Existing configuration not found, using defaults.
+18:22:12.833: [obs-websocket] [Config::Load] (FirstLoad) Generating new server password.
+18:22:12.837: [obs-websocket] [obs_module_load] Module loaded.
+18:22:12.858: os_dlopen(libvlc.so.5->libvlc.so.5): libvlc.so.5: cannot open shared object file: No such file or directory
+18:22:12.858: 
+18:22:12.858: [vlc-video]: Couldn't find VLC installation, VLC video source disabled
+18:22:12.858: ---------------------------------
+18:22:12.858:   Loaded Modules:
+18:22:12.858:     vlc-video.so
+18:22:12.858:     text-freetype2.so
+18:22:12.858:     rtmp-services.so
+18:22:12.858:     obs-x264.so
+18:22:12.858:     obs-websocket.so
+18:22:12.858:     obs-vst.so
+18:22:12.858:     obs-transitions.so
+18:22:12.858:     obs-qsv11.so
+18:22:12.858:     obs-outputs.so
+18:22:12.858:     obs-nvenc.so
+18:22:12.858:     obs-libfdk.so
+18:22:12.858:     obs-filters.so
+18:22:12.858:     obs-ffmpeg.so
+18:22:12.858:     obs-browser.so
+18:22:12.858:     linux-v4l2.so
+18:22:12.858:     linux-pulseaudio.so
+18:22:12.858:     linux-pipewire.so
+18:22:12.858:     linux-jack.so
+18:22:12.858:     linux-capture.so
+18:22:12.858:     linux-alsa.so
+18:22:12.858:     image-source.so
+18:22:12.858:     frontend-tools.so
+18:22:12.858:     decklink-output-ui.so
+18:22:12.858:     decklink-captions.so
+18:22:12.858: ---------------------------------
+18:22:12.858: ---------------------------------
+18:22:12.858: Available Encoders:
+18:22:12.858:   Video Encoders:
+18:22:12.858: 	- ffmpeg_svt_av1 (SVT-AV1)
+18:22:12.858: 	- ffmpeg_aom_av1 (AOM AV1)
+18:22:12.858: 	- ffmpeg_vaapi_tex (FFmpeg VAAPI H.264)
+18:22:12.858: 	- av1_ffmpeg_vaapi_tex (FFmpeg VAAPI AV1)
+18:22:12.858: 	- hevc_ffmpeg_vaapi_tex (FFmpeg VAAPI HEVC)
+18:22:12.858: 	- obs_nvenc_h264_tex (NVIDIA NVENC H.264)
+18:22:12.858: 	- obs_nvenc_hevc_tex (NVIDIA NVENC HEVC)
+18:22:12.858: 	- obs_nvenc_av1_tex (NVIDIA NVENC AV1)
+18:22:12.858: 	- obs_qsv11_v2 (QuickSync H.264)
+18:22:12.858: 	- obs_qsv11_av1 (QuickSync AV1)
+18:22:12.858: 	- obs_qsv11_hevc (QuickSync HEVC)
+18:22:12.858: 	- obs_x264 (x264)
+18:22:12.858:   Audio Encoders:
+18:22:12.858: 	- ffmpeg_aac (FFmpeg AAC)
+18:22:12.858: 	- ffmpeg_opus (FFmpeg Opus)
+18:22:12.858: 	- ffmpeg_pcm_s16le (FFmpeg PCM (16-bit))
+18:22:12.858: 	- ffmpeg_pcm_s24le (FFmpeg PCM (24-bit))
+18:22:12.858: 	- ffmpeg_pcm_f32le (FFmpeg PCM (32-bit float))
+18:22:12.858: 	- ffmpeg_alac (FFmpeg ALAC (24-bit))
+18:22:12.858: 	- ffmpeg_flac (FFmpeg FLAC (16-bit))
+18:22:12.858: 	- libfdk_aac (libfdk AAC)
+18:22:12.858: ==== Startup complete ===============================================
+18:22:12.861: No scene file found, creating default scene
+18:22:12.889: All scene data cleared
+18:22:12.889: ------------------------------------------------
+18:22:12.897: pulse-input: Server name: 'PulseAudio (on PipeWire 1.0.5) 15.0.0'
+18:22:12.897: pulse-input: Audio format: s32le, 48000 Hz, 2 channels
+18:22:12.897: pulse-input: Started recording from 'alsa_output.pci-0000_02_00.1.hdmi-stereo.monitor' (default)
+18:22:12.897: Switched to scene 'Scene'
+18:22:12.898: Created scene collection 'Untitled' (clean, Untitled.json)
+18:22:12.898: ------------------------------------------------
+18:22:13.508: adding 42 milliseconds of audio buffering, total audio buffering is now 42 milliseconds (source: Desktop Audio)
+18:22:13.508: 
+18:22:24.839: 
+18:22:24.839: ==== Auto-config wizard testing commencing ======
+
+18:22:26.544: ---------------------------------
+18:22:26.544: video settings reset:
+18:22:26.544: 	base resolution:   1920x1080
+18:22:26.544: 	output resolution: 1920x1080
+18:22:26.544: 	downscale filter:  Bicubic
+18:22:26.544: 	fps:               60/1
+18:22:26.544: 	format:            NV12
+18:22:26.544: 	YUV mode:          Rec. 709/Partial
+18:22:26.544: NV12 texture support enabled
+18:22:26.544: P010 texture support not available
+18:22:26.556: 
+18:22:26.556: ==== Auto-config wizard testing stopping ========
+
+18:22:43.421: [obs-nvenc: 'simple_video_recording'] Not running on NVIDIA GPU, falling back to non-texture encoder
+18:22:43.560: [obs-nvenc: 'simple_video_recording'] settings:
+18:22:43.560: 	codec:        H264
+18:22:43.560: 	rate_control: CQP
+18:22:43.560: 	cqp:          23
+18:22:43.560: 	keyint:       250
+18:22:43.560: 	preset:       p5
+18:22:43.560: 	tuning:       hq
+18:22:43.560: 	multipass:    qres
+18:22:43.560: 	profile:      high
+18:22:43.560: 	width:        1920
+18:22:43.560: 	height:       1080
+18:22:43.560: 	b-frames:     2
+18:22:43.560: 	b-ref-mode:   0
+18:22:43.560: 	lookahead:    true (8 frames)
+18:22:43.560: 	aq:           true
+18:22:43.560: 
+18:22:43.607: libfdk_aac encoder created
+18:22:43.607: libfdk_aac bitrate: 192, channels: 2
+18:22:43.609: ==== Recording Start ===============================================
+18:22:43.609: [ffmpeg muxer: 'simple_file_output'] Writing file '/home/punk/2025-08-14 18-22-43.mkv'...
+18:23:52.614: User added source 'Window Capture (Xcomposite)' (xcomposite_input) to scene 'Scene'
+18:24:12.356: [window-capture: 'Window Capture (Xcomposite)'] update settings:
+18:24:12.356: 	title: ~/Desktop/RFKilla
+18:24:12.356: 	class: dev.warp.Warp
+18:24:12.356: 
+18:38:15.563: output simple_file_output paused
+19:01:56.638: output simple_file_output unpaused
+19:13:27.908: output simple_file_output paused
+19:52:12.883: output simple_file_output unpaused
+22:49:44.232: output simple_file_output paused

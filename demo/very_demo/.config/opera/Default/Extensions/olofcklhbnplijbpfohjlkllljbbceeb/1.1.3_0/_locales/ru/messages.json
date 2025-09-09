@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "прохладный"
+   },
+   "desaturated": {
+      "message": "несыщенный"
+   },
+   "saturated": {
+      "message": "насыщенный"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Теневой и минималистичный стиль, специально разработанный для тех, кто любит темноту."
+   },
+   "warm": {
+      "message": "теплый"
+   }
+}

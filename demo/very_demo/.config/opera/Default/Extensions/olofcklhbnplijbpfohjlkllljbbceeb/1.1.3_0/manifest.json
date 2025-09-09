@@ -1,0 +1,256 @@
+{
+   "author": "Opera Software",
+   "default_locale": "en",
+   "description": "__MSG_themeDescription__",
+   "developer": {
+      "name": "Opera Software"
+   },
+   "icons": {
+      "218": "icon.png"
+   },
+   "key": "MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEArCo4Qw8/mSqYmVXWvzUkJzrIl8cC9SHIfdMjpWy5wowhKxDr+BYX2wWN52VBfB0e9Qjq122wNvClaniODGj66JwOEa/oa71P9lfixM0bhiIHG422RapxmynUXBQdSkBRbrQUB4EgIchBuRB7N29eURpJDWOY8EHHJeY8myWCpNTtT4D0reXkdMbPnabgTnMM1Fh0SZeNjX058w93HEePzbndfOfJT1XMc5d5oPmQApYjulogW1v5G59c5+vY5+3AN/7Zpqgn2MNCZFJcsYvtZsPn1mXx1PAvqGOmHSr+5KiokBSJHfe5/Gft++TTnzXs8evpNxNYwvQzlJ3odPd1OVMdFnrPlW92JWlXT/JCXbPSGGtOma+4Sn0vjIfDxtZWeipdPssjBOwmSOBU6VSbn1KLTCPV0QjIIt2EHap5RLSdihxtOk9ZMtrfCm3zCmYuxGL3NrHg1xpUNOFzZCJ2wedBGwzjtYJN/1ZbSwf1TwVCoeM6Gc/zep/nwETbkGaEyfA9J39LryOsTNeGr8jc+d5P5JZBgh019Ft5MkjW9p6/hyF/KIzqLubosVI3/4gmFORUHmLnxw9RFFnzFrSCFryOIw2BMJgXhimB3KKzmF8w+JNfpTE7XoUcY+6jCbPHbuq1dIARubgT9znc4izIBCkOmjJ9L1PbGYqosWySZPECAwEAAQ==",
+   "manifest_version": 3,
+   "mod": {
+      "flavor": {
+         "features": [  ],
+         "hash": "74be16979710d4c4e7c6647856088456",
+         "parent_hash": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "payload": {
+         "theme": [ {
+            "dark": {
+               "gx_accent": {
+                  "h": 246,
+                  "l": 51,
+                  "s": 67
+               },
+               "gx_secondary_base": {
+                  "h": 0,
+                  "l": 2,
+                  "s": 0
+               }
+            },
+            "id": "vibe",
+            "light": {
+               "gx_accent": {
+                  "h": 246,
+                  "l": 51,
+                  "s": 67
+               },
+               "gx_secondary_base": {
+                  "h": 0,
+                  "l": 2,
+                  "s": 0
+               }
+            },
+            "name": "default"
+         } ],
+         "wallpaper": [ {
+            "dark": {
+               "groups": [ {
+                  "layers": [ {
+                     "resource": "wallpaper/image/dark1.jpg",
+                     "type": "image"
+                  } ]
+               } ],
+               "preview": {
+                  "176x124": "wallpaper/preview/prev_dark1.jpg"
+               },
+               "text_color": "#ffffff",
+               "text_shadow": "#000000"
+            },
+            "full_browser": false,
+            "id": "image1",
+            "name": "image1",
+            "title": "image1"
+         }, {
+            "dark": {
+               "groups": [ {
+                  "layers": [ {
+                     "resource": "wallpaper/image/dark2.jpg",
+                     "type": "image"
+                  } ]
+               } ],
+               "preview": {
+                  "176x124": "wallpaper/preview/prev_dark2.jpg"
+               },
+               "text_color": "#ffffff",
+               "text_shadow": "#000000"
+            },
+            "full_browser": false,
+            "id": "image2",
+            "name": "image2",
+            "title": "image2"
+         }, {
+            "dark": {
+               "groups": [ {
+                  "layers": [ {
+                     "resource": "wallpaper/image/dark3.jpg",
+                     "type": "image"
+                  } ]
+               } ],
+               "preview": {
+                  "176x124": "wallpaper/preview/prev_dark3.jpg"
+               },
+               "text_color": "#ffffff",
+               "text_shadow": "#000000"
+            },
+            "full_browser": false,
+            "id": "image3",
+            "name": "image3",
+            "title": "image3"
+         }, {
+            "dark": {
+               "groups": [ {
+                  "layers": [ {
+                     "resource": "wallpaper/image/dark4.jpg",
+                     "type": "image"
+                  } ]
+               } ],
+               "preview": {
+                  "176x124": "wallpaper/preview/prev_dark4.jpg"
+               },
+               "text_color": "#ffffff",
+               "text_shadow": "#000000"
+            },
+            "full_browser": false,
+            "id": "image4",
+            "name": "image4",
+            "title": "image4"
+         }, {
+            "dark": {
+               "groups": [ {
+                  "layers": [ {
+                     "resource": "wallpaper/image/dark5.jpg",
+                     "type": "image"
+                  } ]
+               } ],
+               "preview": {
+                  "176x124": "wallpaper/preview/prev_dark5.jpg"
+               },
+               "text_color": "#ffffff",
+               "text_shadow": "#000000"
+            },
+            "full_browser": false,
+            "id": "image5",
+            "name": "image5",
+            "title": "image5"
+         }, {
+            "dark": {
+               "groups": [ {
+                  "layers": [ {
+                     "resource": "wallpaper/image/dark6.jpg",
+                     "type": "image"
+                  } ]
+               } ],
+               "preview": {
+                  "176x124": "wallpaper/preview/prev_dark6.jpg"
+               },
+               "text_color": "#ffffff",
+               "text_shadow": "#000000"
+            },
+            "full_browser": false,
+            "id": "image6",
+            "name": "image6",
+            "title": "image6"
+         }, {
+            "dark": {
+               "groups": [ {
+                  "layers": [ {
+                     "resource": "wallpaper/image/dark7.jpg",
+                     "type": "image"
+                  } ]
+               } ],
+               "preview": {
+                  "176x124": "wallpaper/preview/prev_dark7.jpg"
+               },
+               "text_color": "#ffffff",
+               "text_shadow": "#000000"
+            },
+            "full_browser": false,
+            "id": "image7",
+            "name": "image7",
+            "title": "image7"
+         }, {
+            "dark": {
+               "groups": [ {
+                  "layers": [ {
+                     "resource": "wallpaper/image/dark8.jpg",
+                     "type": "image"
+                  } ]
+               } ],
+               "preview": {
+                  "176x124": "wallpaper/preview/prev_dark8.jpg"
+               },
+               "text_color": "#ffffff",
+               "text_shadow": "#000000"
+            },
+            "full_browser": false,
+            "id": "image8",
+            "name": "image8",
+            "title": "image8"
+         }, {
+            "dark": {
+               "groups": [ {
+                  "layers": [ {
+                     "resource": "wallpaper/image/dark9.jpg",
+                     "type": "image"
+                  } ]
+               } ],
+               "preview": {
+                  "176x124": "wallpaper/preview/prev_dark9.jpg"
+               },
+               "text_color": "#ffffff",
+               "text_shadow": "#000000"
+            },
+            "full_browser": false,
+            "id": "image9",
+            "name": "image9",
+            "title": "image9"
+         } ]
+      },
+      "schema_version": 2,
+      "settings": [ {
+         "id": "color_picker_x_axis",
+         "label": "color-picker-x",
+         "max": 1,
+         "max_label": "__MSG_desaturated__",
+         "min": 0,
+         "min_label": "__MSG_saturated__",
+         "min_max_labels_translated": true,
+         "name": "color-picker-x-axis",
+         "step": 0.1,
+         "type": "range",
+         "value": 0.13
+      }, {
+         "id": "color_picker_y_axis",
+         "label": "color-picker-y",
+         "max": 1,
+         "max_label": "__MSG_warm__",
+         "min": 0,
+         "min_label": "__MSG_cool__",
+         "min_max_labels_translated": true,
+         "name": "color-picker-y-axis",
+         "step": 0.1,
+         "type": "range",
+         "value": 0.6
+      } ],
+      "vibe": {
+         "color-picker-palettes": {
+            "dark": {
+               "accent": "wallpaper/color_picker/accent.png",
+               "background": "wallpaper/color_picker/background.png"
+            }
+         },
+         "preview": "wallpaper/preview.png",
+         "transparent_ui": true,
+         "wallpaper": {
+            "animated": false,
+            "type": "image"
+         }
+      }
+   },
+   "name": "Opera One: Mirage",
+   "update_url": "https://api.gx.me/store/mods/update",
+   "version": "1.1.3"
+}

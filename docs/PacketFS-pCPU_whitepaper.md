@@ -4,6 +4,11 @@ Audience
 - Hackers and performance engineers familiar with systems and networks but not necessarily deep CPU micro‑arch experts.
 - Goal: explain what PacketFS‑gram changes for transport, how the pCPU execution model works, what we’ve actually measured, and what looks feasible next — without IP‑sensitive minutiae or massaging numbers.
 
+Terminology note (2025-09-06)
+- “PacketFS‑gram” aligns with the overlay used by PFS-TCP and PFS-UDP.
+- “PacketFS Native” is transportless and has two variants: PFS‑Native Offset Mode and PFS‑Native Arithmetic Mode.
+See docs/architecture/TERMINOLOGY.md for the current canonical definitions.
+
 Executive overview (the four questions)
 1) What it means for transport
    - We batch many small logical operations into grams (superframes) and address data by offsets into a shared hugepage‑backed blob. This slashes per‑message syscall/copy overhead while keeping the application’s logical boundaries intact.

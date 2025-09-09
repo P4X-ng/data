@@ -1,0 +1,6 @@
+2025/09/01-06:48:07.847 7183 Creating DB /home/punk/.config/opera/Default/IndexedDB/https_securityboulevard.com_0.indexeddb.leveldb since it was missing.
+2025/09/01-06:48:07.854 7183 Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_securityboulevard.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/09/01-06:49:47.292 7184 Level-0 table #5: started
+2025/09/01-06:49:47.295 7184 Level-0 table #5: 11826 bytes OK
+2025/09/01-06:49:47.297 7184 Delete type=0 #3
+2025/09/01-06:49:47.298 7184 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

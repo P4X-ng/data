@@ -127,6 +127,23 @@ build-net-pfs-gram-udp:
       realsrc/packetfs/memory/pfs_hugeblob.c \
       realsrc/packetfs/gram/pfs_gram.c
 
+# Aliases using current terminology (kept separate to avoid recipe chaining)
+build-pfs-tcp:
+    @echo "Building PFS-TCP (alias of PacketFS-gram TCP)"
+    mkdir -p dev/wip/native
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -o dev/wip/native/pfs_gram \
+      realsrc/packetfs/network/pfs_gram_proto.c \
+      realsrc/packetfs/memory/pfs_hugeblob.c \
+      realsrc/packetfs/gram/pfs_gram.c
+
+build-pfs-udp:
+    @echo "Building PFS-UDP (alias of PacketFS-gram UDP)"
+    mkdir -p dev/wip/native
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -o dev/wip/native/pfs_gram_udp \
+      realsrc/packetfs/network/pfs_gram_udp.c \
+      realsrc/packetfs/memory/pfs_hugeblob.c \
+      realsrc/packetfs/gram/pfs_gram.c
+
 # Build AF_XDP streaming executables (pfs-pure streaming)
 build-net-pfs-stream-afxdp:
     @echo "Building PacketFS AF_XDP streaming TX/RX (userspace-only rings over kernel memory)"
@@ -168,6 +185,15 @@ run-net-pfs-gram-client host="127.0.0.1" port="8433" blob_bytes="1073741824" see
     @echo "Starting PacketFS-gram client to {{host}}:{{port}}"
     dev/wip/native/pfs_gram --mode client --host {{host}} --port {{port}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-gram {{dpg}} --gram-count {{grams}} --max-len {{max_len}} --align {{align}}
 
+# Aliases using current terminology
+run-pfs-tcp-server port="8433" blob_bytes="1073741824" seed="305419896" dpg="16" grams="2048" max_len="65536" align="64":
+    @echo "Starting PFS-TCP server on port {{port}}"
+    dev/wip/native/pfs_gram --mode server --port {{port}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-gram {{dpg}} --gram-count {{grams}} --max-len {{max_len}} --align {{align}}
+
+run-pfs-tcp-client host="127.0.0.1" port="8433" blob_bytes="1073741824" seed="305419896" dpg="16" grams="2048" max_len="65536" align="64":
+    @echo "Starting PFS-TCP client to {{host}}:{{port}}"
+    dev/wip/native/pfs_gram --mode client --host {{host}} --port {{port}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-gram {{dpg}} --gram-count {{grams}} --max-len {{max_len}} --align {{align}}
+
 # Run UDP PacketFS-gram server/client
 run-net-pfs-gram-udp-server port="8533" blob_bytes="1073741824" seed="305419896" dpg="16" total="1073741824" gram_bytes="60000" align="64":
     @echo "Starting UDP PacketFS-gram server on port {{port}}"
@@ -175,6 +201,15 @@ run-net-pfs-gram-udp-server port="8533" blob_bytes="1073741824" seed="305419896"
 
 run-net-pfs-gram-udp-client host="127.0.0.1" port="8533" blob_bytes="1073741824" seed="305419896" dpg="16" total="1073741824" gram_bytes="60000" align="64":
     @echo "Starting UDP PacketFS-gram client to {{host}}:{{port}}"
+    dev/wip/native/pfs_gram_udp --mode client --host {{host}} --port {{port}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-gram {{dpg}} --total-bytes {{total}} --gram-bytes {{gram_bytes}} --align {{align}}
+
+# Aliases using current terminology
+run-pfs-udp-server port="8533" blob_bytes="1073741824" seed="305419896" dpg="16" total="1073741824" gram_bytes="60000" align="64":
+    @echo "Starting PFS-UDP server on port {{port}}"
+    dev/wip/native/pfs_gram_udp --mode server --port {{port}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-gram {{dpg}} --total-bytes {{total}} --gram-bytes {{gram_bytes}} --align {{align}}
+
+run-pfs-udp-client host="127.0.0.1" port="8533" blob_bytes="1073741824" seed="305419896" dpg="16" total="1073741824" gram_bytes="60000" align="64":
+    @echo "Starting PFS-UDP client to {{host}}:{{port}}"
     dev/wip/native/pfs_gram_udp --mode client --host {{host}} --port {{port}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-gram {{dpg}} --total-bytes {{total}} --gram-bytes {{gram_bytes}} --align {{align}}
 
 # Build in-process ALU endpoints as a shared library
@@ -285,6 +320,18 @@ bench-blueprint-maxwin-dumbcpu:
     PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/bench_blueprint_maxwin.py --size-mb 400 --blob-size-mb 100 --blob-name pfs_vblob_test --pcpu 200000,400000,800000,1300000,2600000 --seg 80,256,4096 --threads 8,16,32 --batch 8,16,32 --modes contig,scatter --hugehint --numa auto --ops-per-byte 1 --cpu-baseline --cpu-dumb --out logs/bp_maxwin_dumbcpu.csv
     PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/blueprint_report.py --in logs/bp_maxwin_dumbcpu.csv --top 15
 
+# Max-win with CPU measurement enabled (multi-threaded CPU baseline)
+bench-blueprint-maxwin-measured:
+    @echo "Max-win sweep (with CPU measurement enabled)"
+    PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/bench_blueprint_maxwin.py --size-mb 400 --blob-size-mb 100 --blob-name pfs_vblob_test --pcpu 200000,400000,800000,1300000,2600000 --seg 80,256,4096 --threads 8,16,32 --batch 8,16,32 --modes contig,scatter --hugehint --numa auto --ops-per-byte 1 --cpu-baseline --measure-cpu --out logs/bp_maxwin_measured.csv
+    PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/blueprint_report.py --in logs/bp_maxwin_measured.csv --top 15
+
+# Max-win with dumb CPU baseline and CPU measurement
+bench-blueprint-maxwin-dumbcpu-measured:
+    @echo "Max-win sweep (dumb CPU baseline + CPU measurement)"
+    PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/bench_blueprint_maxwin.py --size-mb 400 --blob-size-mb 100 --blob-name pfs_vblob_test --pcpu 200000,400000,800000,1300000,2600000 --seg 80,256,4096 --threads 8,16,32 --batch 8,16,32 --modes contig,scatter --hugehint --numa auto --ops-per-byte 1 --cpu-baseline --cpu-dumb --measure-cpu --out logs/bp_maxwin_dumbcpu_measured.csv
+    PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/blueprint_report.py --in logs/bp_maxwin_dumbcpu_measured.csv --top 15
+
 # Fast contiguous profile (handy defaults to lean into winning conditions)
 #  - size=400MB, seg=80, pCPU=200k, coalescing on, hugehint on, CPU baseline
 bench-blueprint-fast-contig:
@@ -309,10 +356,10 @@ test-ir-exec:
     @echo "Running IR execution pipeline tests"
     PYTHONPATH=realsrc {{VENV_PATH}}/bin/python -m pytest -q dev/working/tests/test_ir_exec_pipeline.py
 
-# Run the production IR executor CLI on a .ll file
-run-ir-exec ll="dev/working/samples/llvm/compute/hello_world.ll" windows="1" mode="both":
+# Run the production IR executor CLI on a .ll file (clean wrapper)
+run-ir-exec ll="dev/working/samples/llvm/compute/hello_world.ll" mode="both" windows="1":
     @echo "Running IR executor on {{ll}} (mode={{mode}}, windows={{windows}})"
-    PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/ir_exec.py {{ll}} --mode {{mode}} {{if windows == '1'}}--windows{{endif}}
+    dev/working/tools/run_ir_exec.sh "{{ll}}" "{{mode}}" "{{windows}}"
 
 # === Whole-program LLVM bitcode pipeline (freestanding, no libc) ===
 # 1) Compile sources to .bc (freestanding, no builtins)
@@ -354,3 +401,38 @@ verify-bc:
       if [ -z "$nmbin" ]; then echo "llvm-nm not found"; exit 1; fi; \
       "$nmbin" --undefined-only {{BC_DIR}}/program.opt.bc > {{BC_DIR}}/undefined.txt; \
       test ! -s {{BC_DIR}}/undefined.txt || (echo "Undefined symbols remain:" && cat {{BC_DIR}}/undefined.txt && exit 1)'
+
+# === 1GiB hugetlbfs helpers ===
+
+hugepages-status:
+    @echo "[STATUS] Verifying hugepages and mounts"
+    bash scripts/hugepages/verify_hugepages.sh
+
+hugepages-mount:
+    @echo "[MOUNT] mount -a then verify"
+    sudo mount -a
+    bash scripts/hugepages/verify_hugepages.sh
+
+pfs-1g:
+    @echo "1GiB hugetlbfs workflow:"
+    @echo "  1) just hugepages-status"
+    @echo "  2) just build-net-pfs-gram; just build-blueprint-native; just build-cpu-baseline"
+    @echo "  3) just run-pfs-tcp-1g-server port=8433 blob_bytes=1073741824"
+    @echo "  4) just run-pfs-tcp-1g-client host=127.0.0.1 port=8433 blob_bytes=1073741824"
+    @echo "  5) just bench-blueprint-fast-1g"
+
+run-pfs-tcp-1g-server port="8433" blob_bytes="1073741824" seed="305419896" dpg="16" grams="2048" max_len="65536" align="64":
+    @echo "Starting PFS-TCP server on 1GiB hugetlbfs (/mnt/huge1g)"
+    dev/wip/native/pfs_gram --mode server --port {{port}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-gram {{dpg}} --gram-count {{grams}} --max-len {{max_len}} --align {{align}} --huge-dir /mnt/huge1g
+
+run-pfs-tcp-1g-client host="127.0.0.1" port="8433" blob_bytes="1073741824" seed="305419896" dpg="16" grams="2048" max_len="65536" align="64":
+    @echo "Starting PFS-TCP client to {{host}}:{{port}} using 1GiB hugetlbfs (/mnt/huge1g)"
+    dev/wip/native/pfs_gram --mode client --host {{host}} --port {{port}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-gram {{dpg}} --gram-count {{grams}} --max-len {{max_len}} --align {{align}} --huge-dir /mnt/huge1g
+
+bench-blueprint-maxwin-1g out="logs/bp_maxwin_huge1g_dumbcpu.csv":
+    @echo "Max-win sweep (1GiB hugetlbfs) -> {{out}}"
+    PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/bench_blueprint_maxwin.py --size-mb 400 --blob-size-mb 100 --blob-name pfs_vblob_test --pcpu 200000,400000,800000,1300000,2600000 --seg 80,256,4096 --threads 8,16,32 --batch 8,16,32 --modes contig,scatter --hugehint --numa auto --ops-per-byte 1 --cpu-baseline --cpu-dumb --out {{out}} --out-hugefs-dir /mnt/huge1g --blob-hugefs-dir /mnt/huge1g
+
+bench-blueprint-fast-1g out="logs/bp_fast_huge1g.csv":
+    @echo "Fast profile (1GiB hugetlbfs) -> {{out}}"
+    PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/bench_blueprint_maxwin.py --size-mb 200 --blob-size-mb 100 --blob-name pfs_vblob_test --pcpu 800000,1300000,2600000 --seg 256,4096 --threads 8,16 --batch 8,16 --modes contig --hugehint --numa auto --ops-per-byte 1 --cpu-baseline --out {{out}} --out-hugefs-dir /mnt/huge1g --blob-hugefs-dir /mnt/huge1g

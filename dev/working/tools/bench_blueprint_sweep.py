@@ -42,16 +42,20 @@ def run_one(server: PacketFSFileTransfer,
             threads: int, batch: int,
             hugehint: bool, numa: str, numa_interleave: bool,
             coalesce: bool,
-            measure_cpu: bool) -> Dict[str, Any]:
-    # Ensure VirtualBlob exists and filled
-    vb = VirtualBlob(blob_name, blob_size_mb * (1 << 20), seed)
-    vb.create_or_attach(create=True)
-    vb.ensure_filled()
-    # Close our handle early; native reconstructor will attach by name
-    try:
-        vb.close()
-    except Exception:
-        pass
+            measure_cpu: bool,
+            mlock_pages: bool,
+            out_hugefs_dir: str,
+            blob_file_path: str) -> Dict[str, Any]:
+    # Ensure blob exists. If blob_file_path is set, we skip VirtualBlob and use hugetlbfs file mapping.
+    if not blob_file_path:
+        vb = VirtualBlob(blob_name, blob_size_mb * (1 << 20), seed)
+        vb.create_or_attach(create=True)
+        vb.ensure_filled()
+        # Close our handle early; native reconstructor will attach by name
+        try:
+            vb.close()
+        except Exception:
+            pass
 
     file_size = size_mb * (1 << 20)
     count_limit = (file_size + seg_len - 1) // seg_len
@@ -110,6 +114,12 @@ def run_one(server: PacketFSFileTransfer,
     ]
     if hugehint:
         args += ["--hugehint", "1"]
+    if mlock_pages:
+        args += ["--mlock", "1"]
+    if out_hugefs_dir:
+        args += ["--out-hugefs-dir", out_hugefs_dir]
+    if blob_file_path:
+        args += ["--blob-file", blob_file_path]
 
     import subprocess, re
     t0 = time.perf_counter()
@@ -193,6 +203,10 @@ def main():
     ap.add_argument("--coalesce", action=argparse.BooleanOptionalAction, default=True, help="Enable contiguous segment coalescing (default: on)")
     # CPU measurement
     ap.add_argument("--measure-cpu", action="store_true", help="Run native under /usr/bin/time -v and record CPU stats")
+    # Memory mapping controls
+    ap.add_argument("--mlock", action="store_true", help="Lock blob and output pages in RAM using mlock")
+    ap.add_argument("--out-hugefs-dir", default="", help="Directory of a hugetlbfs mount for output mapping (e.g., /mnt/huge or /mnt/huge1g)")
+    ap.add_argument("--blob-hugefs-dir", default="", help="Directory of a hugetlbfs mount for the blob backing file")
     # Effective ops settings
     ap.add_argument("--ops-per-byte", type=float, default=1.0, help="Ops counted per byte to compute effective ops/s")
     ap.add_argument("--cpu-baseline", action="store_true", help="Run CPU baseline to compute ops/s ratio")
@@ -202,6 +216,85 @@ def main():
 
     host = "127.0.0.1"; port = PFS_PORT
     server = start_server_in_thread(host, port)
+
+    # Optional: prepare a hugefs-backed blob file once and reuse
+    blob_file_path = ""
+    if args.blob_hugefs_dir:
+        import mmap
+        import errno
+        os.makedirs(args.blob_hugefs_dir, exist_ok=True)
+        # Stable name to allow reuse
+        blob_file_path = os.path.join(args.blob_hugefs_dir, f"pfs_blob_{args.blob_name}.bin")
+        # Create/truncate with hugefs alignment handling
+        fd = os.open(blob_file_path, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            size_bytes = args.blob_size_mb * (1 << 20)
+            # Try exact; if EINVAL, try 2MB and then 1GB rounding
+            try:
+                os.ftruncate(fd, size_bytes)
+                map_len = size_bytes
+            except OSError as e:
+                if e.errno == errno.EINVAL:
+                    two_mb = 2 * 1024 * 1024
+                    one_g = 1024 * 1024 * 1024
+                    s2 = ((size_bytes + two_mb - 1) // two_mb) * two_mb
+                    try:
+                        os.ftruncate(fd, s2)
+                        map_len = s2
+                    except OSError:
+                        s3 = ((size_bytes + one_g - 1) // one_g) * one_g
+                        os.ftruncate(fd, s3)
+                        map_len = s3
+                else:
+                    raise
+            # Deterministic fill using xorshift32 block; fill via per-page mmap (required by hugetlbfs)
+            def fill_block(n: int, seed: int) -> bytes:
+                out = bytearray(n)
+                state = (seed ^ 0x9E3779B9) & 0xFFFFFFFF
+                i = 0
+                while i + 4 <= n:
+                    state ^= (state << 13) & 0xFFFFFFFF
+                    state ^= (state >> 17) & 0xFFFFFFFF
+                    state ^= (state << 5) & 0xFFFFFFFF
+                    w = state
+                    out[i + 0] = (w >> 0) & 0xFF
+                    out[i + 1] = (w >> 8) & 0xFF
+                    out[i + 2] = (w >> 16) & 0xFF
+                    out[i + 3] = (w >> 24) & 0xFF
+                    i += 4
+                while i < n:
+                    state ^= (state << 13) & 0xFFFFFFFF
+                    state ^= (state >> 17) & 0xFFFFFFFF
+                    state ^= (state << 5) & 0xFFFFFFFF
+                    out[i] = state & 0xFF
+                    i += 1
+                return bytes(out)
+            block = fill_block(1 << 20, args.seed)
+            blen = len(block)
+            # Heuristic page size choice based on dir name
+            page_size = (1 << 30) if ("1g" in args.blob_hugefs_dir.lower()) else (2 << 20)
+            off = 0
+            while off < size_bytes:
+                map_len_local = page_size
+                try:
+                    mm = mmap.mmap(fd, length=map_len_local, access=mmap.ACCESS_WRITE, offset=off)
+                except Exception:
+                    # Fallback: try mapping only the remaining bytes rounded up to 2MB when possible
+                    rem = size_bytes - off
+                    two_mb = 2 * 1024 * 1024
+                    map_len_local = ((rem + two_mb - 1) // two_mb) * two_mb
+                    mm = mmap.mmap(fd, length=map_len_local, access=mmap.ACCESS_WRITE, offset=off)
+                to_write = min(page_size, size_bytes - off)
+                pos = 0
+                while pos < to_write:
+                    n = min(blen, to_write - pos)
+                    mm[pos:pos+n] = block[:n]
+                    pos += n
+                mm.flush(); mm.close()
+                off += page_size
+            os.fsync(fd)
+        finally:
+            os.close(fd)
 
     # Optional CPU baseline
     cpu_mbps = None
@@ -229,7 +322,10 @@ def main():
                         threads=args.threads, batch=args.batch,
                         hugehint=args.hugehint, numa=args.numa, numa_interleave=args.numa_interleave,
                         coalesce=args.coalesce,
-                        measure_cpu=args.measure_cpu)
+                        measure_cpu=args.measure_cpu,
+                        mlock_pages=args.mlock,
+                        out_hugefs_dir=args.out_hugefs_dir,
+                        blob_file_path=blob_file_path)
             r["mode"] = "contig"
             results.append(r)
             # Vary pCPU on contiguous
@@ -239,7 +335,10 @@ def main():
                             threads=args.threads, batch=args.batch,
                             hugehint=args.hugehint, numa=args.numa, numa_interleave=args.numa_interleave,
                             coalesce=args.coalesce,
-                            measure_cpu=args.measure_cpu)
+                            measure_cpu=args.measure_cpu,
+                            mlock_pages=args.mlock,
+                            out_hugefs_dir=args.out_hugefs_dir,
+                            blob_file_path=blob_file_path)
                 r["mode"] = "contig"
                 results.append(r)
             if args.include_scatter:
@@ -250,7 +349,10 @@ def main():
                                 threads=args.threads, batch=args.batch,
                                 hugehint=args.hugehint, numa=args.numa, numa_interleave=args.numa_interleave,
                                 coalesce=args.coalesce,
-                                measure_cpu=args.measure_cpu)
+                                measure_cpu=args.measure_cpu,
+                                mlock_pages=args.mlock,
+                                out_hugefs_dir=args.out_hugefs_dir,
+                                blob_file_path=blob_file_path)
                     r["mode"] = "scatter"
                     results.append(r)
         # Print summary
@@ -284,6 +386,12 @@ def main():
                     f.write("\n".join(out_lines) + "\n")
             except Exception as e:
                 print(f"Warning: could not write out CSV to {args.out}: {e}")
+        # Cleanup blob file if created
+        if blob_file_path:
+            try:
+                os.remove(blob_file_path)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

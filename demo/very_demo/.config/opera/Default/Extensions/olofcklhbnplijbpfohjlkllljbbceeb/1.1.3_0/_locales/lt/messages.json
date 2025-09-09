@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "šaltas"
+   },
+   "desaturated": {
+      "message": "nesotintas"
+   },
+   "saturated": {
+      "message": "prisotintas"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Tamsus ir minimalistinis tema, specialiai sukurta tiems, kurie mėgsta tamsą."
+   },
+   "warm": {
+      "message": "šiltas"
+   }
+}

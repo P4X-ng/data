@@ -1,0 +1,4 @@
+[console_scripts]
+bluetooth-kill = rfkilla.bluetooth_kill:main
+rfkilla = rfkilla.cli:cli
+wifi-blocker = rfkilla.wifi_blocker:main

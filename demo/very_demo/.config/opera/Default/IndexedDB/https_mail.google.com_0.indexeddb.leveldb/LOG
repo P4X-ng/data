@@ -1,0 +1,60 @@
+2025/08/30-12:06:22.525 7184 Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_mail.google.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/08/30-12:06:22.525 7184 Recovering log #58
+2025/08/30-12:06:22.528 7184 Reusing old log /home/punk/.config/opera/Default/IndexedDB/https_mail.google.com_0.indexeddb.leveldb/000058.log 
+2025/08/30-12:06:54.902 718f Level-0 table #64: started
+2025/08/30-12:06:54.918 718f Level-0 table #64: 3118877 bytes OK
+2025/08/30-12:06:54.920 718f Delete type=0 #58
+2025/08/30-12:07:06.406 7184 Compacting 1@1 + 1@2 files
+2025/08/30-12:07:06.415 7184 Generated table #65@1: 386 keys, 1133020 bytes
+2025/08/30-12:07:06.415 7184 Compacted 1@1 + 1@2 files => 1133020 bytes
+2025/08/30-12:07:06.415 7184 compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/08/30-12:07:06.415 7184 Delete type=2 #61
+2025/08/30-12:07:06.417 7184 Delete type=2 #64
+2025/08/30-12:07:06.441 7183 Level-0 table #67: started
+2025/08/30-12:07:06.455 7183 Level-0 table #67: 3198881 bytes OK
+2025/08/30-12:07:06.456 7183 Delete type=0 #63
+2025/08/30-18:04:44.873 7184 Compacting 1@1 + 1@2 files
+2025/08/30-18:04:44.879 7184 Generated table #68@1: 148 keys, 210185 bytes
+2025/08/30-18:04:44.879 7184 Compacted 1@1 + 1@2 files => 210185 bytes
+2025/08/30-18:04:44.880 7184 compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/08/30-18:04:44.880 7184 Delete type=2 #65
+2025/08/30-18:04:44.881 7184 Delete type=2 #67
+2025/08/30-18:04:50.751 7184 Level-0 table #70: started
+2025/08/30-18:04:50.768 7184 Level-0 table #70: 3176588 bytes OK
+2025/08/30-18:04:50.770 7184 Delete type=0 #66
+2025/08/30-18:04:57.860 7184 Level-0 table #72: started
+2025/08/30-18:04:57.875 7184 Level-0 table #72: 3228910 bytes OK
+2025/08/30-18:04:57.878 7184 Delete type=0 #69
+2025/08/30-18:05:52.377 7184 Compacting 1@0 + 1@1 files
+2025/08/30-18:05:52.398 7184 Generated table #73@0: 1555 keys, 1817544 bytes
+2025/08/30-18:05:52.398 7184 Compacted 1@0 + 1@1 files => 1817544 bytes
+2025/08/30-18:05:52.399 7184 compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/08/30-18:05:52.400 7184 Delete type=2 #70
+2025/08/30-18:05:52.400 7184 Delete type=2 #72
+2025/08/30-18:06:03.876 718d Compacting 1@1 + 1@2 files
+2025/08/30-18:06:03.882 718d Generated table #74@1: 163 keys, 295745 bytes
+2025/08/30-18:06:03.882 718d Compacted 1@1 + 1@2 files => 295745 bytes
+2025/08/30-18:06:03.883 718d compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/08/30-18:06:03.884 718d Delete type=2 #68
+2025/08/30-18:06:03.884 718d Delete type=2 #73
+2025/08/30-18:06:12.370 7183 Level-0 table #76: started
+2025/08/30-18:06:12.386 7183 Level-0 table #76: 3200508 bytes OK
+2025/08/30-18:06:12.388 7183 Delete type=0 #71
+2025/08/31-22:28:33.909 7184 Compacting 1@1 + 1@2 files
+2025/08/31-22:28:33.920 7184 Generated table #77@1: 160 keys, 280514 bytes
+2025/08/31-22:28:33.920 7184 Compacted 1@1 + 1@2 files => 280514 bytes
+2025/08/31-22:28:33.921 7184 compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/09/01-04:44:14.028 7184 Level-0 table #79: started
+2025/09/01-04:44:14.647 7184 Level-0 table #79: 648915 bytes OK
+2025/09/01-04:44:15.182 7184 Delete type=2 #74
+2025/09/01-04:44:16.073 7184 Delete type=0 #75
+2025/09/01-04:44:16.112 7184 Delete type=2 #76
+2025/09/01-04:44:16.126 7184 Manual compaction at level-0 from (begin) .. (end); will stop at (end)
+2025/09/01-04:44:16.167 7184 Manual compaction at level-1 from (begin) .. (end); will stop at '\x00\x01\x01\x02\x01(\x00S\x00t\x00o\x00r\x00e\x00d\x00N\x00e\x00t\x00w\x00o\x00r\x00k\x00F\x00e\x00t\x00c\x00h\x00C\x00o\x00u\x00n\x00t\x00e\x00r\x00s\x00:\x00:\x00S\x00T\x00A\x00T\x00I\x00C\x00_\x00A\x00S\x00S\x00E\x00T' @ 40888 : 1
+2025/09/01-04:44:16.206 7184 Compacting 1@1 + 1@2 files
+2025/09/01-04:44:16.281 7184 Generated table #80@1: 206 keys, 649762 bytes
+2025/09/01-04:44:16.300 7184 Compacted 1@1 + 1@2 files => 649762 bytes
+2025/09/01-04:44:16.315 7184 compacted to: files[ 0 0 1 0 0 0 0 ]
+2025/09/01-04:44:16.340 7184 Delete type=2 #77
+2025/09/01-04:44:16.342 7184 Delete type=2 #79
+2025/09/01-04:44:16.392 718d Manual compaction at level-1 from '\x00\x01\x01\x02\x01(\x00S\x00t\x00o\x00r\x00e\x00d\x00N\x00e\x00t\x00w\x00o\x00r\x00k\x00F\x00e\x00t\x00c\x00h\x00C\x00o\x00u\x00n\x00t\x00e\x00r\x00s\x00:\x00:\x00S\x00T\x00A\x00T\x00I\x00C\x00_\x00A\x00S\x00S\x00E\x00T' @ 40888 : 1 .. (end); will stop at (end)

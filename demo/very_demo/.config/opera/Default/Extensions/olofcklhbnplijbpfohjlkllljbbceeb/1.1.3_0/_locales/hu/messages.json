@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "hűvös"
+   },
+   "desaturated": {
+      "message": "telítetlen"
+   },
+   "saturated": {
+      "message": "telített"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Egy árnyékos és minimalista téma, amelyet kifejezetten a sötétet kedvelők számára terveztek."
+   },
+   "warm": {
+      "message": "meleg"
+   }
+}

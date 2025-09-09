@@ -3,6 +3,11 @@ Title: PacketFS‑gram: From 1.25× a “real CPU” to a batched, blob‑indexe
 Audience
 Performance engineering stakeholders evaluating transport and execution models; this document is intentionally high‑level to avoid IP leakage while preserving enough specificity to judge impact and trajectory.
 
+Terminology note (2025-09-06)
+- “PacketFS‑gram” corresponds to the overlay framing used by PFS-TCP and PFS-UDP in current terminology.
+- “PacketFS Native” refers only to the transportless modes: PFS‑Native Offset Mode and PFS‑Native Arithmetic Mode.
+See docs/architecture/TERMINOLOGY.md for authoritative definitions and mapping from older names.
+
 1) Where we started: ~1.25× a “real CPU” and the limits of per‑message work
 - Early stage: We pursued raw throughput with user‑space ring buffers and simple async TX/RX prototypes. These paths validated that careful batching and large socket buffers could push beyond a single “baseline” CPU’s naive copy loop by roughly 1.25× on our internal microbenchmarks, but they also exposed the headwinds:
   - Per‑packet syscall overhead and kernel crossings dominated with small messages.

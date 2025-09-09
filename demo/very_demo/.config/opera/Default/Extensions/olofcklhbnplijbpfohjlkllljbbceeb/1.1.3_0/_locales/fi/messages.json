@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "kylmä"
+   },
+   "desaturated": {
+      "message": "tyydyttymätön"
+   },
+   "saturated": {
+      "message": "tyydyttynyt"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Varjoisa ja minimalistinen teema, joka on erityisesti suunniteltu niille, jotka rakastavat pimeyttä."
+   },
+   "warm": {
+      "message": "lämmin"
+   }
+}

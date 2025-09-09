@@ -1,0 +1,14 @@
+2025/08/30-10:37:27.687 718f Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/chrome-extension_igpdmclhhlcpoindmhkhillbfhdgoegm_0.indexeddb.leveldb/MANIFEST-000001
+2025/08/30-10:37:27.687 718f Recovering log #30
+2025/08/30-10:37:27.688 718f Reusing old log /home/punk/.config/opera/Default/IndexedDB/chrome-extension_igpdmclhhlcpoindmhkhillbfhdgoegm_0.indexeddb.leveldb/000030.log 
+2025/08/30-10:37:27.688 718f Delete type=2 #28
+2025/08/30-10:37:27.703 718e Level-0 table #35: started
+2025/08/30-10:37:27.706 718e Level-0 table #35: 5448 bytes OK
+2025/08/30-10:37:27.707 718e Delete type=0 #30
+2025/08/30-10:37:27.707 718f Manual compaction at level-0 from '\x00\x0c\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0d\x00\x00\x00' @ 0 : 0; will stop at '\x00\x0c\x00\x00\x05' @ 1167 : 1
+2025/08/30-10:37:27.707 718f Compacting 1@0 + 1@1 files
+2025/08/30-10:37:27.708 718f Generated table #36@0: 208 keys, 5474 bytes
+2025/08/30-10:37:27.708 718f Compacted 1@0 + 1@1 files => 5474 bytes
+2025/08/30-10:37:27.710 718f compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/08/30-10:37:27.710 718f Delete type=2 #35
+2025/08/30-10:37:27.710 718f Manual compaction at level-0 from '\x00\x0c\x00\x00\x05' @ 1167 : 1 .. '\x00\x0d\x00\x00\x00' @ 0 : 0; will stop at (end)

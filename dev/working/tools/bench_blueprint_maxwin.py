@@ -39,14 +39,18 @@ def run_case(server: PacketFSFileTransfer,
              ops_per_byte: float,
              coalesce: bool,
              measure_cpu: bool,
+             mlock_pages: bool,
+             out_hugefs_dir: str,
+             blob_file_path: str,
              ):  # returns dict
-    vb = VirtualBlob(blob_name, blob_size_mb * (1 << 20), seed)
-    vb.create_or_attach(create=True)
-    vb.ensure_filled()
-    try:
-        vb.close()
-    except Exception:
-        pass
+    if not blob_file_path:
+        vb = VirtualBlob(blob_name, blob_size_mb * (1 << 20), seed)
+        vb.create_or_attach(create=True)
+        vb.ensure_filled()
+        try:
+            vb.close()
+        except Exception:
+            pass
 
     stride = seg_len if mode == "contig" else (8191 if seg_len != 65536 else 65537)
     file_size = size_mb * (1 << 20)
@@ -96,6 +100,12 @@ def run_case(server: PacketFSFileTransfer,
     ]
     if hugehint:
         args += ["--hugehint", "1"]
+    if mlock_pages:
+        args += ["--mlock", "1"]
+    if out_hugefs_dir:
+        args += ["--out-hugefs-dir", out_hugefs_dir]
+    if blob_file_path:
+        args += ["--blob-file", blob_file_path]
 
     import subprocess
     t0 = time.perf_counter()
@@ -195,11 +205,88 @@ def main():
     ap.add_argument("--coalesce", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--measure-cpu", action="store_true")
     ap.add_argument("--out", default="logs/bp_maxwin.csv")
+    # Memory mapping controls
+    ap.add_argument("--mlock", action="store_true")
+    ap.add_argument("--out-hugefs-dir", default="")
+    ap.add_argument("--blob-hugefs-dir", default="")
     args = ap.parse_args()
 
     host = "127.0.0.1"; port = PFS_PORT
     server = start_server(host, port)
     print(f"[maxwin] Starting sweep; will write CSV to: {os.path.abspath(args.out)} (cwd={os.getcwd()})")
+
+    # Optional: prepare hugefs-backed blob file once
+    blob_file_path = ""
+    if args.blob_hugefs_dir:
+        import mmap, errno
+        os.makedirs(args.blob_hugefs_dir, exist_ok=True)
+        blob_file_path = os.path.join(args.blob_hugefs_dir, f"pfs_blob_{args.blob_name}.bin")
+        fd = os.open(blob_file_path, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            size_bytes = args.blob_size_mb * (1 << 20)
+            try:
+                os.ftruncate(fd, size_bytes)
+                map_len = size_bytes
+            except OSError as e:
+                if e.errno == errno.EINVAL:
+                    two_mb = 2 * 1024 * 1024
+                    one_g = 1024 * 1024 * 1024
+                    s2 = ((size_bytes + two_mb - 1) // two_mb) * two_mb
+                    try:
+                        os.ftruncate(fd, s2)
+                        map_len = s2
+                    except OSError:
+                        s3 = ((size_bytes + one_g - 1) // one_g) * one_g
+                        os.ftruncate(fd, s3)
+                        map_len = s3
+                else:
+                    raise
+            # Fill deterministically via per-page mmap (hugetlbfs requires mmap access)
+            def fill_block(n: int, seed: int) -> bytes:
+                out = bytearray(n)
+                state = (seed ^ 0x9E3779B9) & 0xFFFFFFFF
+                i = 0
+                while i + 4 <= n:
+                    state ^= (state << 13) & 0xFFFFFFFF
+                    state ^= (state >> 17) & 0xFFFFFFFF
+                    state ^= (state << 5) & 0xFFFFFFFF
+                    w = state
+                    out[i + 0] = (w >> 0) & 0xFF
+                    out[i + 1] = (w >> 8) & 0xFF
+                    out[i + 2] = (w >> 16) & 0xFF
+                    out[i + 3] = (w >> 24) & 0xFF
+                    i += 4
+                while i < n:
+                    state ^= (state << 13) & 0xFFFFFFFF
+                    state ^= (state >> 17) & 0xFFFFFFFF
+                    state ^= (state << 5) & 0xFFFFFFFF
+                    out[i] = state & 0xFF
+                    i += 1
+                return bytes(out)
+            block = fill_block(1 << 20, args.seed)
+            blen = len(block)
+            page_size = (1 << 30) if ("1g" in args.blob_hugefs_dir.lower()) else (2 << 20)
+            off = 0
+            while off < size_bytes:
+                map_len_local = page_size
+                try:
+                    mm = mmap.mmap(fd, length=map_len_local, access=mmap.ACCESS_WRITE, offset=off)
+                except Exception:
+                    rem = size_bytes - off
+                    two_mb = 2 * 1024 * 1024
+                    map_len_local = ((rem + two_mb - 1) // two_mb) * two_mb
+                    mm = mmap.mmap(fd, length=map_len_local, access=mmap.ACCESS_WRITE, offset=off)
+                to_write = min(page_size, size_bytes - off)
+                pos = 0
+                while pos < to_write:
+                    n = min(blen, to_write - pos)
+                    mm[pos:pos+n] = block[:n]
+                    pos += n
+                mm.flush(); mm.close()
+                off += page_size
+            os.fsync(fd)
+        finally:
+            os.close(fd)
 
     cpu_mbps = None
     if args.cpu_baseline:
@@ -225,7 +312,10 @@ def main():
                                          args.size_mb, pcpu, seg, mode, th, ba,
                                          args.hugehint, args.numa, args.ops_per_byte,
                                          args.coalesce,
-                                         args.measure_cpu)
+                                         args.measure_cpu,
+                                         args.mlock,
+                                         args.out_hugefs_dir,
+                                         blob_file_path)
                             if not r.get("ok", False):
                                 continue
                             if cpu_mbps is not None:
@@ -238,6 +328,11 @@ def main():
                                 best_mbps = r
     finally:
         server.stop()
+        if blob_file_path:
+            try:
+                os.remove(blob_file_path)
+            except Exception:
+                pass
 
     try:
         out_dir = os.path.dirname(args.out)

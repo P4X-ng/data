@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "เย็น"
+   },
+   "desaturated": {
+      "message": "ไม่อิ่มตัว"
+   },
+   "saturated": {
+      "message": "อิ่มตัว"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "ธีมที่มีเงาและเรียบง่ายออกแบบมาเป็นพิเศษสำหรับผู้ที่ชื่นชอบความมืด."
+   },
+   "warm": {
+      "message": "อบอุ่น"
+   }
+}

@@ -1,0 +1,21 @@
+{
+  "version": 3,
+  "requesterUsername": "P4X-ng",
+  "requesterAvatarIconUri": {
+    "$mid": 1,
+    "path": "/u/223870169",
+    "scheme": "https",
+    "authority": "avatars.githubusercontent.com",
+    "query": "v=4"
+  },
+  "responderUsername": "GitHub Copilot",
+  "responderAvatarIconUri": {
+    "id": "copilot"
+  },
+  "initialLocation": "panel",
+  "requests": [],
+  "sessionId": "f2320f07-748d-4f3a-ad93-dffe77d126b9",
+  "creationDate": 1756719628619,
+  "isImported": false,
+  "lastMessageDate": 1756719628619
+}

@@ -241,9 +241,13 @@ int main(int argc, char **argv){
     const char *coalesce_s = get_arg(argc, argv, "--coalesce");
     const char *numa_s = get_arg(argc, argv, "--numa"); // auto|none|node:N
     const char *numa_interleave_s = get_arg(argc, argv, "--numa-interleave"); // 0|1
+    // New optional flags
+    const char *mlock_s = get_arg(argc, argv, "--mlock"); // 0|1
+    const char *out_huge_dir = get_arg(argc, argv, "--out-hugefs-dir"); // path to hugetlbfs mount
+    const char *blob_file = get_arg(argc, argv, "--blob-file"); // optional: path to blob file (hugetlbfs)
 
     if(!blob_name || !blob_size_s || !out_path || !file_size_s || !count_s || !seg_len_s || !start_off_s || !stride_s || !delta_s){
-        die("Usage: %s --blob-name NAME --blob-size BYTES --out PATH --file-size BYTES --count N --seg-len BYTES --start-offset BYTES --stride BYTES --delta 0..255 [--threads N]", argv[0]);
+        die("Usage: %s --blob-name NAME --blob-size BYTES --out PATH --file-size BYTES --count N --seg-len BYTES --start-offset BYTES --stride BYTES --delta 0..255 [--threads N] [--madvise 0|1] [--hugehint 0|1] [--mlock 0|1] [--out-hugefs-dir DIR]", argv[0]);
     }
 
     size_t blob_size = strtoull(blob_size_s, NULL, 10);
@@ -262,6 +266,7 @@ int main(int argc, char **argv){
     size_t batch = batch_s ? (size_t)strtoull(batch_s, NULL, 10) : 1;
     if(batch == 0) batch = 1;
     bool use_coalesce = coalesce_s ? (strcmp(coalesce_s, "0") != 0 && strcasecmp(coalesce_s, "false") != 0) : true;
+    bool lock_pages = mlock_s ? ((strcmp(mlock_s, "0") != 0) && (strcasecmp(mlock_s, "false") != 0)) : false;
 
     // NUMA selection
     bool want_numa = true;
@@ -283,33 +288,96 @@ int main(int argc, char **argv){
     if(blob_name[0] == '/') snprintf(shm_name, sizeof(shm_name), "%s", blob_name);
     else snprintf(shm_name, sizeof(shm_name), "/%s", blob_name);
 
-    // Open shared memory
-    int shm_fd = shm_open(shm_name, O_RDONLY, 0);
-    if(shm_fd < 0) die("shm_open('%s') failed: %s", shm_name, strerror(errno));
-
-    struct stat st; if(fstat(shm_fd, &st) != 0) die("fstat shm failed: %s", strerror(errno));
-    if((size_t)st.st_size < blob_size) die("shared memory smaller (%zu) than requested blob_size (%zu)", (size_t)st.st_size, blob_size);
-
-    int mmap_flags_blob = MAP_SHARED;
+    const uint8_t *blob = NULL;
+    size_t map_len_blob = blob_size;
+    if(blob_file && blob_file[0] != '\0'){
+        // Map blob from file path (e.g., hugetlbfs)
+        int bfd = open(blob_file, O_RDONLY);
+        if(bfd < 0) die("open blob_file failed: %s", strerror(errno));
+        struct stat st; if(fstat(bfd, &st) != 0) die("fstat blob_file failed: %s", strerror(errno));
+        if((size_t)st.st_size < blob_size) die("blob_file smaller (%zu) than requested blob_size (%zu)", (size_t)st.st_size, blob_size);
+        map_len_blob = (size_t)st.st_size;
+        int mmap_flags_blob = MAP_SHARED;
 #ifdef MAP_POPULATE
-    mmap_flags_blob |= MAP_POPULATE;
+        mmap_flags_blob |= MAP_POPULATE;
 #endif
-    const uint8_t *blob = mmap(NULL, blob_size, PROT_READ, mmap_flags_blob, shm_fd, 0);
-    if(blob == MAP_FAILED) die("mmap shm failed: %s", strerror(errno));
-    close(shm_fd);
-
-    // Prepare output file
-    int ofd = open(out_path, O_CREAT | O_TRUNC | O_RDWR, 0644);
-    if(ofd < 0) die("open out failed: %s", strerror(errno));
-    if(ftruncate(ofd, (off_t)file_size) != 0) die("ftruncate out failed: %s", strerror(errno));
-    int mmap_flags_out = MAP_SHARED;
+        blob = mmap(NULL, map_len_blob, PROT_READ, mmap_flags_blob, bfd, 0);
+        if(blob == MAP_FAILED) die("mmap blob_file failed: %s", strerror(errno));
+        close(bfd);
+    } else {
+        // Open shared memory
+        int shm_fd = shm_open(shm_name, O_RDONLY, 0);
+        if(shm_fd < 0) die("shm_open('%s') failed: %s", shm_name, strerror(errno));
+        struct stat st; if(fstat(shm_fd, &st) != 0) die("fstat shm failed: %s", strerror(errno));
+        if((size_t)st.st_size < blob_size) die("shared memory smaller (%zu) than requested blob_size (%zu)", (size_t)st.st_size, blob_size);
+        map_len_blob = blob_size;
+        int mmap_flags_blob = MAP_SHARED;
 #ifdef MAP_POPULATE
-    // For NUMA first-touch, avoid pre-population
-    if(!(want_numa)) mmap_flags_out |= MAP_POPULATE;
+        mmap_flags_blob |= MAP_POPULATE;
 #endif
-    uint8_t *out = mmap(NULL, file_size, PROT_WRITE | PROT_READ, mmap_flags_out, ofd, 0);
-    if(out == MAP_FAILED) die("mmap out failed: %s", strerror(errno));
-    close(ofd);
+        blob = mmap(NULL, map_len_blob, PROT_READ, mmap_flags_blob, shm_fd, 0);
+        if(blob == MAP_FAILED) die("mmap shm failed: %s", strerror(errno));
+        close(shm_fd);
+    }
+
+    // Prepare output mapping (regular fs or hugetlbfs)
+    uint8_t *out = NULL;
+    int out_fd = -1;
+    bool out_on_hugefs = false;
+    char huge_tmp_path[512] = {0};
+
+    if(out_huge_dir && out_huge_dir[0] != '\0'){
+        char tmpl[512];
+        snprintf(tmpl, sizeof(tmpl), "%s/pfs_out_XXXXXX", out_huge_dir);
+        int hfd = mkstemp(tmpl);
+        if(hfd < 0) die("mkstemp in hugefs dir failed: %s", strerror(errno));
+        // ftruncate may require rounding up to huge page size (2MB or 1GB)
+        size_t map_len_out = file_size;
+        if(ftruncate(hfd, (off_t)map_len_out) != 0){
+            if(errno == EINVAL){
+                // try 2MB multiple
+                size_t two_mb = 2UL*1024UL*1024UL;
+                size_t s2 = (file_size + two_mb - 1) / two_mb * two_mb;
+                if(ftruncate(hfd, (off_t)s2) != 0){
+                    // try 1GB multiple
+                    size_t one_g = 1024UL*1024UL*1024UL;
+                    size_t s3 = (file_size + one_g - 1) / one_g * one_g;
+                    if(ftruncate(hfd, (off_t)s3) != 0){
+                        die("ftruncate hugefs out failed: %s", strerror(errno));
+                    } else {
+                        map_len_out = s3;
+                    }
+                } else {
+                    map_len_out = s2;
+                }
+            } else {
+                die("ftruncate hugefs out failed: %s", strerror(errno));
+            }
+        }
+        int mmap_flags_out = MAP_SHARED;
+#ifdef MAP_POPULATE
+        // For NUMA first-touch, avoid pre-population
+        if(!(want_numa)) mmap_flags_out |= MAP_POPULATE;
+#endif
+        out = mmap(NULL, map_len_out, PROT_WRITE | PROT_READ, mmap_flags_out, hfd, 0);
+        if(out == MAP_FAILED) die("mmap hugefs out failed: %s", strerror(errno));
+        out_fd = hfd;
+        out_on_hugefs = true;
+        snprintf(huge_tmp_path, sizeof(huge_tmp_path), "%s", tmpl);
+        // Note: we'll msync/munmap using map_len_out, but only write file_size bytes
+    } else {
+        int ofd = open(out_path, O_CREAT | O_TRUNC | O_RDWR, 0644);
+        if(ofd < 0) die("open out failed: %s", strerror(errno));
+        if(ftruncate(ofd, (off_t)file_size) != 0) die("ftruncate out failed: %s", strerror(errno));
+        int mmap_flags_out = MAP_SHARED;
+#ifdef MAP_POPULATE
+        // For NUMA first-touch, avoid pre-population
+        if(!(want_numa)) mmap_flags_out |= MAP_POPULATE;
+#endif
+        out = mmap(NULL, file_size, PROT_WRITE | PROT_READ, mmap_flags_out, ofd, 0);
+        if(out == MAP_FAILED) die("mmap out failed: %s", strerror(errno));
+        out_fd = ofd;
+    }
 
     // Advise kernel on access patterns
 #ifdef __linux__
@@ -322,6 +390,11 @@ int main(int argc, char **argv){
 #ifdef MADV_HUGEPAGE
         if(use_huge) { madvise(out, file_size, MADV_HUGEPAGE); madvise((void*)blob, blob_size, MADV_HUGEPAGE); }
 #endif
+    }
+    // Optional: lock pages into RAM (best effort)
+    if(lock_pages){
+        if(mlock((void*)blob, map_len_blob) != 0){ fprintf(stderr, "Warning: mlock(blob) failed: %s\n", strerror(errno)); }
+        if(mlock(out, file_size) != 0){ fprintf(stderr, "Warning: mlock(out) failed: %s\n", strerror(errno)); }
     }
 #endif
 #ifdef HAVE_LIBNUMA
@@ -376,9 +449,15 @@ int main(int argc, char **argv){
     for(long i=0;i<threads;i++) pthread_join(tids[i], NULL);
 
     // Flush and unmap
-    msync(out, file_size, MS_SYNC);
-    munmap((void*)blob, blob_size);
-    munmap(out, file_size);
+    // We don't know actual map length here if hugefs rounded; use file_size as minimum.
+    // For safety, msync/munmap should match the length passed to mmap. Track via out_fd and fstat.
+    size_t map_len_used = file_size;
+    if(out_fd >= 0){ struct stat st_out; if(fstat(out_fd, &st_out) == 0 && (size_t)st_out.st_size >= file_size) map_len_used = (size_t)st_out.st_size; }
+    msync(out, map_len_used, MS_SYNC);
+    munmap((void*)blob, map_len_blob);
+    munmap(out, map_len_used);
+    if(out_fd >= 0) close(out_fd);
+    if(out_on_hugefs && huge_tmp_path[0] != '\0') unlink(huge_tmp_path);
 
     free(tids); free(jobs);
     return 0;

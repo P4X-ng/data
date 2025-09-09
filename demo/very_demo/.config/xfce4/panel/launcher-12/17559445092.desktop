@@ -1,0 +1,13 @@
+[Desktop Entry]
+X-SnapInstanceName=firmware-updater
+Type=Application
+Version=1.0
+Name=Firmware Updater
+Comment=Manage firmware on your device
+Keywords=firmware;
+X-SnapAppName=firmware-updater
+Exec=env BAMF_DESKTOP_FILE_HINT=/var/lib/snapd/desktop/applications/firmware-updater_firmware-updater.desktop /snap/bin/firmware-updater
+Icon=/snap/firmware-updater/167/meta/gui/icon.png
+Terminal=false
+Categories=System;
+X-XFCE-Source=file:///var/lib/snapd/desktop/applications/firmware-updater_firmware-updater.desktop

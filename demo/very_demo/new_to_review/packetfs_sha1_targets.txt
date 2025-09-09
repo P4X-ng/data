@@ -1,0 +1,11 @@
+# PacketFS SHA-1 Targets
+secret:e5e9fa1ba31ecd1ae84f75caaa474f3a663f05f4:0.1 seconds
+admin1:6c7ca345f63f835cb353ff15bd6c5e052ec08e7a:0.1 seconds
+test123:7288edd0fc3ffcbe93a0cf06e3568e28521687bc:4.7 seconds
+hello99:349ad1c137d372b4f4268d6b765d0d85d1d3f5e9:4.7 seconds
+pass123:aafdc23870ecbcd3d557b6423a8982134e17927e:4.7 seconds
+admin12:38f078a81a2b033d197497af5b77f95b50bfcfb8:4.7 seconds
+secret1:00cafd126182e8a9e7c01bb2f0dfd00496be724f:4.7 seconds
+test12:4ff1a33e188b7b86123d6e3be2722a23514a83b4:0.1 seconds
+hello1:88fdd585121a4ccb3d1540527aee53a77c77abb8:0.1 seconds
+pass12:4e05d4fa6439a3daf2b853e3df1858d42e861df1:0.1 seconds

@@ -1,0 +1,1 @@
+__pycache__/\n*.so\n*.o\n*.pyc\n.build/\ndist/\nbuild/\n.eggs/\n*.egg-info/\n.venv/\nvenv/\n

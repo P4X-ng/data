@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "хладен"
+   },
+   "desaturated": {
+      "message": "ненаситен"
+   },
+   "saturated": {
+      "message": "наситен"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Сенчест и минималистичен темата, специално проектирана за тези, които обичат тъмното."
+   },
+   "warm": {
+      "message": "топъл"
+   }
+}

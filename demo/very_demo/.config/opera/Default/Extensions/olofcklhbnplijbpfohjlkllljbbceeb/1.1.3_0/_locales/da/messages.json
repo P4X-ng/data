@@ -1,0 +1,18 @@
+{
+   "cool": {
+      "message": "kold"
+   },
+   "desaturated": {
+      "message": "afmattet"
+   },
+   "saturated": {
+      "message": "mættet"
+   },
+   "themeDescription": {
+      "description": "Theme description",
+      "message": "Et skyggefuldt og minimalistisk tema specielt designet til dem, der elsker mørket."
+   },
+   "warm": {
+      "message": "varm"
+   }
+}

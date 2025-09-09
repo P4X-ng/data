@@ -1,0 +1,11 @@
+PACKETFS_HISTORICAL_DATA
+{
+  "description": "All missing person cases, investigations, evidence",
+  "estimated_size": "1 TB",
+  "sources": [
+    "Police databases",
+    "FBI missing persons",
+    "International databases"
+  ],
+  "mystery": "What happened to famous missing people?"
+}
