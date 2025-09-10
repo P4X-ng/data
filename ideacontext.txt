@@ -1,0 +1,403 @@
+[0m : Stop bruteforcing after the first successful attempt. 
+[2m(
+[2md
+[2me
+[2mf
+[2ma
+[2mu
+[2ml
+[2mt
+[2m=
+[2mt
+[2mr
+[2mu
+[2me
+[0m)
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33mw
+[33mi
+[33mf
+[33mi
+[33m.
+[33mb
+[33mr
+[33mu
+[33mt
+[33me
+[33mf
+[33mo
+[33mr
+[33mc
+[33me
+[33m.
+[33mt
+[33ma
+[33mr
+[33mg
+[33me
+[33mt
+[0m : One or more comma separated targets to bruteforce as ESSID or BSSID. Leave empty to bruteforce all visibile access points. 
+[2m(
+[2md
+[2me
+[2mf
+[2ma
+[2mu
+[2ml
+[2mt
+[2m=
+[0m)
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33m 
+[33mw
+[33mi
+[33mf
+[33mi
+[33m.
+[33mb
+[33mr
+[33mu
+[33mt
+[33me
+[33mf
+[33mo
+[33mr
+[33mc
+[33me
+[33m.
+[33mt
+[33mi
+[33mm
+[33me
+[33mo
+[33mu
+[33mt
+[0m : Timeout in seconds for each association attempt. 
+[2m(
+[2md
+GE#9
+7262ef7a-ef73-4403-8244-2388d4e87890e1b8db87-f5e6-443a-a596-2f5b37e0ab2b2025-09-09 14:35:02.770747836[{"Query":{"text":"D: holy shit. i ask for potential solutions -> you give me like 20 real ones lol. That's awesome! So this is particularly important because of another thing i'm hoping to implement in this weirdo system. Later on I try to redefine files as lazily evaluated \"formulas\" (the most simple one being the blob offset's representation in Native PFS Arithmetic mode) making storage near infinite- and moreso with good pattern matching methodology. A good example would be representing sounds as fourier transform formulas (and a good representation of the formulas). Other ones that would be useful to \"solve\" are things like human readable text (i.e. unicode, ascii) and executables (obvious may be stack winds, syscalls). Which gives me the idea that this blob should really be either one of two things - instead of a static blob, there should be a \"daemon\" (whether \"executed\" by packets or a real CPU) that is constantly using some sort of a simple-ish ML formula for statistical analysis and reshaping of the blob. Actually kind of gives me the idea of implementing a \"fuzzy isomorphism\" that can represent binary data... any work in that that you know of that may be useful in our case?","context":[{"Directory":{"pwd":"/home/punk/Projects/packetfs","home_dir":"/root","are_file_symbols_indexed":false}},{"CurrentTime":{"current_time":"2025-09-09T10:35:02.769338091-04:00"}},{"ExecutionEnvironment":{"os":{"category":"Linux","distribution":"Ubuntu"},"shell_name":"bash","shell_version":"5.2.21(1)-release"}},{"Codebase":{"path":"/home/punk/Projects/clusterfk-llm","name":"clusterfk-llm"}},{"Codebase":{"path":"/home/punk/Projects/SurveillanceSays","name":"SurveillanceSays"}},{"Codebase":{"path":"/home/punk/Projects/Tegrity","name":"Tegrity"}},{"Codebase":{"path":"/home/punk/Projects/HGWS","name":"HGWS"}},{"Codebase":{"path":"/home/punk/Projects/ChromePwnPanel","name":"ChromePwnPanel"}}],"referenced_attachments":{}}}]/home/punk/Projects/packetfs"Completed"gpt-5 (high reasoning)
+Oyle command-line flags for Go
+golang-github-oklog-run-dev - Universal mechanism to manage goroutine lifecycles
+golang-github-oklog-ulid-dev - ULID generation library for Golang
+golang-github-okzk-sdnotify-dev - systemd's service notification protocol (sd_notify)
+golang-github-oleiade-reflections-dev - high level abstractions over Golang reflect library
+golang-github-olekukonko-tablewriter-dev - generate ASCII tables in Golang
+golang-github-olekukonko-ts-dev - Simple go library to get Terminal Size
+golang-github-oneofone-xxhash-dev - native implementation of the excellent XXHash hashing algorithm
+golang-github-onsi-ginkgo-dev - BDD Testing Framework for Go (development files)
+golang-github-op-go-logging-dev - Golang logging library
+golang-github-opencontainers-go-digest-dev - Common digest package used across the container ecosystem
+golang-github-opencontainers-image-spec-dev - Open Container Initiative (OCI) Image Format Specification
+golang-github-opencontainers-runc-dev - Open Container Project - development files
+golang-github-opencontainers-runtime-tools-dev - OCI Runtime Tools
+golang-github-opencontainers-selinux-dev - common selinux implementation
+golang-github-opencontainers-specs-dev - Open Container Specifications
+golang-github-openfga-go-sdk-dev - OpenFGA SDK for Go (library)
+golang-github-opennota-urlesc-dev - Proper URL escaping as per RFC3986 for Go
+golang-github-openpeedeep-xdg-dev - Cross platform package that follows the XDG Standard
+golang-github-openprinting-goipp-dev - IPP core protocol in pure Go Library (RFC 8010)
+golang-github-openshift-api-dev - OpenShift API definitions
+golang-github-opensuse-umoci-dev - umoci development files
+golang-github-opentracing-basictracer-go-dev - basic implementation of the OpenTracing API for Go
+golang-github-opentracing-contrib-go-grpc-dev - OpenTracing support for gRPC client or server
+golang-github-opentracing-contrib-go-stdlib-dev - OpenTracing instrumentation for packages in the Go stdlib
+golang-github-opentracing-opentracing-go-dev - Go platform API for OpenTracing
+golang-github-openzipkin-zipkin-go-dev - Zipkin tracer library for go
+golang-github-optiopay-kafka-dev - Go client library for Apache Kafka
+golang-github-oschwald-geoip2-golang-dev - Unofficial MaxMind GeoIP2 Reader for Go
+golang-github-oschwald-maxminddb-golang-dev - MaxMind DB Reader for Go
+golang-github-ostreedev-ostree-go-dev - Golang bindings for httt://github.com/ostreedev/ostree
+golang-github-otiai10-copy-dev - Golang copy directory recursively (library)
+golang-github-ovh-go-ovh-dev - Simple go wrapper for the OVH API
+golang-github-ovn-org-libovsdb-dev - OVSDB Client Library
+golang-github-oxtoacart-bpool-dev - Buffer/Byte pool for Go
+golang-github-packethost-packngo-dev - Golang API client library for Packet (cloud provider)
+golang-github-parnurzeal-gorequest-dev - Go library for simplified HTTP client
+golang-github-pascaldekloe-goe-dev - enterprise tooling library for Golang
+golang-github-patrickmn-go-cache-dev - in-memory key:value store/cache (similar to Memcached)
+golang-github-paulbellamy-ratecounter-dev - thread-safe RateCounter implementation in Golang
+golang-github-paulrosania-go-charset-dev - character set conversion for Go
+golang-github-paypal-gatt-dev - building Bluetooth Low Energy peripherals
+golang-github-pbnjay-memory-dev - Provides go function to report total system memory
+golang-github-pbnjay-pixfont-dev - pixel font package for Go (library)
+golang-github-pborman-getopt-dev - getopt style option parsing for Go (library)
+golang-github-pborman-uuid-dev - Go bindings to work with UUIDs
+golang-github-pd0mz-go-maidenhead-dev - Maidenhead Locator system in Golang (library)
+golang-github-pearkes-cloudflare-dev - Cloudflare library written in Go
+golang-github-pearkes-dnsimple-dev - DNSimple library written in Go
+golang-github-pelletier-go-buffruneio-dev - wrapper around bufio to provide buffered runes access
+golang-github-pelletier-go-toml - Go library for the TOML format 
+ command-line programs
+golang-github-pelletier-go-toml-dev
+T JWT tokens signed using NKeys for the NATS ecosystem
+golang-github-nats-io-nats-server-dev - High-Performance server for NATS.io (library)
+golang-github-nats-io-nkeys-dev - public-key signature system based on Ed25519
+golang-github-nats-io-nuid-dev - NATS Unique Identifiers
+golang-github-nbio-st-dev - Simple Test micro-framework for Go
+golang-github-nbrownus-go-metrics-prometheus-dev - Prometheus support for go with additional nebula metrics (library)
+golang-github-nbutton23-zxcvbn-go-dev - Strong password generator in Go
+golang-github-ncabatoff-go-seq-dev - sequence go values to allow sorting them (library)
+golang-github-ncw-go-acd-dev - Go library for accessing Amazon Cloud Drive
+golang-github-ncw-swift-dev - Go language interface to Swift / Openstack / Rackspace cloud files
+golang-github-ncw-swift-v2-dev - Go language interface to Swift
+golang-github-nebulouslabs-bolt-dev - low-level key/value database for Go
+golang-github-nebulouslabs-demotemutex-dev - Allow an RWMutex writelock to be demoted to a readlock.
+golang-github-nebulouslabs-ed25519-dev - Go implementation of the Ed25519 signature algorithm
+golang-github-nebulouslabs-entropy-mnemonics-dev - Human readable entropy.
+golang-github-nebulouslabs-errors-dev - errors with context, composition, and easy error checking
+golang-github-nebulouslabs-fastrand-dev - 10x faster than crypto/rand
+golang-github-nebulouslabs-go-upnp-dev - Opinionated interface to Internet Gateway Devices
+golang-github-nebulouslabs-merkletree-dev - Go package for working with Merkle trees
+golang-github-neelance-astrewrite-dev - Go tool to walk & rewrite AST
+golang-github-neelance-sourcemap-dev - Javascript source map reader and writer for Go
+golang-github-neowaylabs-wabbit-dev - Golang AMQP mocking library
+golang-github-nesv-go-dynect-dev - Go client library for Dyn's DynECT API
+golang-github-netflix-go-expect-dev - expect-like golang library to automate terminal/console interactions
+golang-github-networkplumbing-go-nft-dev - Go bindings for nft utility (library)
+golang-github-newrelic-go-agent-dev - library for monitoring go applications
+golang-github-nf-cr2-dev - basic Camera Raw 2 reader
+golang-github-nfnt-resize-dev - Pure golang image resizing
+golang-github-ngaut-deadline-dev - deadline reader/writer
+golang-github-ngaut-go-zookeeper-dev - Native ZooKeeper client for Go
+golang-github-ngaut-log-dev - Provides a simple log wrapper for ngaut libraries
+golang-github-ngaut-pools-dev - provides pools for resources
+golang-github-ngaut-sync2-dev - Additional synchronization primitives extracted from Vitess
+golang-github-nginxinc-nginx-plus-go-client-dev - client for NGINX Plus API for Go (library)
+golang-github-nicksnyder-go-i18n.v2-dev - Translate Go program into multiple languages
+golang-github-nightlyone-lockfile-dev - Golang library to handle locking via pid files
+golang-github-nkovacs-streamquote-dev - Go package providing a streaming version of strconv.Quote
+golang-github-nlopes-slack-dev - Go library for Slack API
+golang-github-notedit-janus-go-dev - Janus gateway Go API (library)
+golang-github-nozzle-throttler-dev - Fill the gap between WaitGroup and manually monitor goroutines with channels
+golang-github-nrdcg-desec-dev - Go library for accessing the deSEC API
+golang-github-nrdcg-goinwx-dev - INWX Go API client
+golang-github-nsf-termbox-go-dev - pure Go implementation of termbox library
+golang-github-nu7hatch-gouuid-dev - pure Go UUID implementation as specified in RFC 4122
+golang-github-nwidger-jsoncolor-dev - Produce colorized json output for Go
+golang-github-nxadm-tail-dev - Go package for reading from continuously updated files
+golang-github-nytimes-gziphandler-dev - Golang middleware to gzip HTTP responses
+--
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhic/events.js'\nrm 'node_modules/playwright/lib/
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhic/folders.js'\nrm 'node_modules/playwright/lib/
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhic/stringInternPool.js'\nrm 'node_modules/playwright/lib/
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhic/teleReceiver.js'\nrm 'node_modules/playwright/lib/
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhic/teleSuiteUpdater.js'\nrm 'node_modules/playwright/lib/
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhic/testServerConnection.js'\nrm 'node_modules/playwright/lib/
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhic/testServerInterface.js'\nrm 'node_modules/playwright/lib/
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhic/testTree.js'\nrm 'node_modules/playwright/lib/
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhic/types.d.js'\nrm 'node_modules/playwright/lib/loader/loaderMain.js'\nrm 'node_modules/playwright/lib/matchers/expect.js'\nrm 'node_modules/playwright/lib/matchers/matcherHint.js'\nrm 'node_modules/playwright/lib/matchers/matchers.js'\nrm 'node_modules/playwright/lib/matchers/toBeTruthy.js'\nrm 'node_modules/playwright/lib/matchers/toEqual.js'\nrm 'node_modules/playwright/lib/matchers/toHaveURL.js'\nrm 'node_modules/playwright/lib/matchers/toMatchAriaSnapshot.js'\nrm 'node_modules/playwright/lib/matchers/toMatchSnapshot.js'\nrm 'node_modules/playwright/lib/matchers/toMatchText.js'\nrm 'node_modules/playwright/lib/mcp/bundle.js'\nrm 'node_modules/playwright/lib/mcp/exports.js'\nrm 'node_modules/playwright/lib/mcp/inProcessTransport.js'\nrm 'node_modules/playwright/lib/mcp/proxyBackend.js'\nrm 'node_modules/playwright/lib/mcp/server.js'\nrm 'node_modules/playwright/lib/mcp/tool.js'\nrm 'node_modules/playwright/lib/mcp/transport.js'\nrm 'node_modules/playwright/lib/mcpBundleImpl.js'\nrm 'node_modules/playwright/lib/plugins/gitCommitInfoPlugin.js'\nrm 'node_modules/playwright/lib/plugins/index.js'\nrm 'node_modules/playwright/lib/plugins/webServerPlugin.js'\nrm 'node_modules/playwright/lib/program.js'\nrm 'node_modules/playwright/lib/reporters/base.js'\nrm 'node_modules/playwright/lib/reporters/blob.js'\nrm 'node_modules/playwright/lib/reporters/dot.js'\nrm 'node_modules/playwright/lib/reporters/empty.js'\nrm 'node_modules/playwright/lib/reporters/github
+.js'\nrm 'node_modules/playwright/lib/reporters/html.js'\nrm 'node_modules/playwright/lib/reporters/internalReporter.js'\nrm 'node_modules/playwright/lib/reporters/json.js'\nrm 'node_modules/playwright/lib/reporters/junit.js'\nrm 'node_modules/playwright/lib/reporters/line.js'\nrm 'node_modules/playwright/lib/reporters/list.js'\nrm 'node_modules/playwright/lib/reporters/listModeReporter.js'\nrm 'node_modules/playwright/lib/reporters/markdown.js'\nrm 'node_modules/playwright/lib/reporters/merge.js'\nrm 'node_modul
+strings /home/punk/.local/state/warp-terminal/warp.sqlite | grep 
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0m2025-09-09 23:35:02.837150766/home/punk/Projects/packetfsbashpunkpunk-strx
+find /home/p* -type f -exec grep -l "
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0m" {} +
+find / -type f -exec grep -l "
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0m" {} +
+7262ef7a-ef73-4403-8244-2388d4e87890e1b8db87-f5e6-443a-a596-2f5b37e0ab2b2025-09-09 14:35:02.770747836[{"Query":{"text":"D: holy shit. i ask for potential solutions -> you give me like 20 real ones lol. That's awesome! So this is particularly important because of another thing i'm hoping to implement in this weirdo system. Later on I try to redefine files as lazily evaluated \"formulas\" (the most simple one being the blob offset's representation in Native PFS Arithmetic mode) making storage near infinite- and moreso with good pattern matching methodology. A good example would be representing sounds as fourier transform formulas (and a good representation of the formulas). Other ones that would be useful to \"solve\" are things like human readable text (i.e. unicode, ascii) and executables (obvious may be stack winds, syscalls). Which gives me the idea that this blob should really be either one of two things - instead of a static blob, there should be a \"daemon\" (whether \"executed\" by packets or a real CPU) that is constantly using some sort of a simple-ish ML formula for statistical analysis and reshaping of the blob. Actually kind of gives me the idea of implementing a \"fuzzy 
+[31;1mi
+[31;1ms
+[31;1mo
+[31;1mm
+[31;1mo
+[31;1mr
+[31;1mp
+[0mhism\" that can represent binary data... any work in that that you know of that may be useful in our case?","context":[{"Directory":{"pwd":"/home/punk/Projects/packetfs","home_dir":"/root","are_file_symbols_indexed":false}},{"CurrentTime":{"current_time":"2025-09-09T10:35:02.769338091-04:00"}},{"ExecutionEnvironment":{"os":{"category":"Linux","distribution":"Ubuntu"},"shell_name":"bash","shell_version":"5.2.21(1)-release"}},{"Codebase":{"path":"/home/punk/Projects/clusterfk-llm","name":"clusterfk-llm"}},{"Codebase":{"path":"/home/punk/Projects/SurveillanceSays","name":"SurveillanceSays"}},{"Codebase":{"path":"/home/punk/Projects/Tegrity","name":"Tegrity"}},{"Codebase":{"path":"/home/punk/Projects/HGWS","name":"HGWS"}},{"Codebase":{"path":"/home/punk/Projects/ChromePwnPanel","name":"ChromePwnPanel"}}],"referenced_attachments":{}}}]/home/punk/Projects/packetfs"Completed"gpt-5 (high reasoning)
+/home/punk/Projects/packetfsmain2025-09-09 23:35:03.9725359432025-09-09 23:35:02.837150766bashpunkpunk-strx{"chips":[{"kind":"ConversationManagement","value":"","on_click_values":[]},{"kind":"KubernetesContext","value":null,"on_click_values":[]},{"kind":"Ssh","value":null,"on_click_values":[]},{"kind":"Subshell","value":null,"on_click_values":[]},{"kind":"CondaEnvironment","value":null,"on_click_values":[]},{"kind":"VirtualEnvironment","value":null,"on_click_values":[]},{"kind":"NodeVersion","value":null,"on_click_values":[]},{"kind":"WorkingDirectory","value":"~/Projects/packetfs","on_click_values":[]},{"kind":"ShellGitBranch","value":"main","on_click_values":["main","triage/very_demo-quarantine"]},{"kind":"GitLineChanges","value":null,"on_click_values":[]},{"kind":"AttachedContext","value":"","on_click_values":[]}],"same_line_prompt_enabled":false,"separator":"None"}precmd-175746078612944-11
+msr,processor_thermal_rapl
+cryptd                 24576  2 crypto_simd,ghash_clmulni_intel
+snd                   143360  21 snd_hda_codec_generic,snd_seq,snd_seq_device,snd_hda_codec_hdmi,snd_hwdep,snd_hda_intel,snd_hda_codec,snd_hda_codec_realtek,snd_sof,snd_hda_scodec_tas2781_spi,snd_timer,snd_compress,snd_soc_core,snd_pcm,snd_rawmidi
+intel_pmc_core        122880  0
+spi_intel_pci          12288  0
+intel_cstate           20480  0
+bluetooth            1011712  6 btrtl,btmtk,btintel,btbcm,btusb
+pmt_telemetry          16384  1 intel_pmc_core
+spi_intel              36864  1 spi_intel_pci
+intel_vpu             286720  0
+intel_vsec             20480  1 intel_pmc_core
+intel_lpss_pci         28672  2
+intel_lpss             12288  1 intel_lpss_pci
+**Command Executed:**
+```bash
+glxinfo | head -10
+**Output:**
+name of display: :0.0
+display: :0  screen: 0
+direct rendering: Yes
+server glx vendor string: SGI
+server glx version string: 1.4
+server glx extensions:
+    GLX_ARB_context_flush_control, GLX_ARB_create_context, 
+    GLX_ARB_create_context_no_error, GLX_ARB_create_context_profile, 
+    GLX_ARB_fbconfig_float, GLX_ARB_framebuffer_sRGB, GLX_ARB_multisample, 
+    GLX_EXT_create_context_es2_profile, GLX_EXT_create_context_es_profile, 
+Interesting! I don't see the i915 driver loaded, but you do have direct rendering working. Let me check what's actually driving your display right now:
+**Command Executed:**
+```bash
+glxinfo | grep -i "vendor\|renderer\|version" | head -5
+**Output:**
+server glx vendor string: SGI
+server glx version string: 1.4
+client glx vendor string: Mesa Project and SGI
+client glx version string: 1.4
+    GLX_MESA_copy_sub_buffer, GLX_MESA_gl_interop, GLX_MESA_query_renderer, 
+**Command Executed:**
+```bash
+cat /sys/kernel/debug/dri/*/name 2>/dev/null || echo "No DRM debug info available"
+**Output:**
+No DRM debug info available
+**Command Executed:**
+```bash
+ls -la /dev/dri/
+**Output:**
+total 0
+drwxr-xr-x   3 root root      80 Sep  8 05:04 .
+drwxr-xr-x  23 root root    5000 Sep  8 05:06 ..
+drwxr-xr-x   2 root root      60 Sep  8 05:04 by-path
+crw-rw----+  1 root video 226, 0 Sep  8 05:04 card0
+Good! You have `/dev/dri/card0` which means a graphics driver is working. Let me get more specific info about what's rendering:
+**Command Executed:**
+```bash
+DISPLAY=:0 glxinfo | grep -E "(OpenGL vendor|OpenGL renderer|OpenGL version)"
+**Output:**
+OpenGL vendor string: Mesa
+OpenGL renderer string: llvmpipe (LLVM 20.1.2, 256 bits)
+OpenGL version string: 4.5 (Compatibility Profile) Mesa 25.0.7-0ubuntu0.24.04.2
+**Command Executed:**
+```bash
+lspci -v | grep -A 15 "Intel.*Graphics"
+**Output:**
+00:02.0 VGA compatible controller: Intel Corporation Arrow Lake-U [Intel Graphics] (rev 06) (prog-if 00 [VGA controller])
+	DeviceName: Onboard - Video
+	Subsystem: ASUSTeK Computer Inc. Device 1214
+	Flags: bus master, fast devsel, latency 0, IOMMU group 0
+	Memory at aa2b000000 (64-bit, prefetchable) [size=16M]
+	Memory at a210000000 (64-bit, prefetchable) [size=256M]
+	Expansion ROM at 000c0000 [virtual] [disabled] [size=128K]
+	Capabilities: <access denied>
+	Kernel modules: i915, xe
+00:04.0 Signal processing controller: Intel Corporation Device ad03 (rev 01)
+	DeviceName: Onboard - Other
+	Subsystem: ASUSTeK Computer Inc. Device 1214
+	Flags: bus master, fast devsel, latency 0, IRQ 16, IOMMU group 3
+	Memory at aa38080000 (64-bit, non-prefetchable) [size=128K]
+	Capabilities: <access denied>
+Ah! Now I see what's happening. You're currently using **software rendering** (llvmpipe) instead of hardware acceleration. The Intel integrated graphics hardware is there and available (with kernel modules i915 and xe available), but it's not being used. 
+Let me check why the Intel driver isn't loading:
+**Command Executed:**
+```bash
+modinfo i915 | head -5
+**Output:**
+filename:       /lib/modules/6.14.0-29-generic/kernel/drivers/gpu/drm/i915/i915.ko.zst
+license:        GPL and additional rights
+description:    Intel Graphics
+author:         Intel Corporation
+and required packages for the current OS (with confirmation).\n- just list 
+ List available VMs (conf files) in vms/.\n- just quickget OS VERSION [flavor] 
+ Use quickget to fetch image and generate a .conf into vms/.\n- just new NAME --from OS VERSION [flavor] 

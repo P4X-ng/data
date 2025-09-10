@@ -18,6 +18,18 @@ BC_DIR := "dev/wip/bc"
 
 # Standard targets
 
+default:
+    @echo "Running production unit tests (src/)"
+    {{VENV_PATH}}/bin/python -m pytest -q tests
+
+help:
+    @echo "Usage: just <recipe>. Categories: tests, dev-builds, staging/prod builds, experimental, env"
+    just --list
+
+# No-op alias to absorb accidental invocations like `just just build`
+just:
+    @echo "Tip: Use 'just <recipe>'. Ignoring stray 'just'."
+
 setup:
     @echo "Setting up PacketFS dev environment"
     {{VENV_PATH}}/bin/python -m pip install -q -U pip setuptools wheel
@@ -29,17 +41,27 @@ build:
 
 # Run full working tests
 test:
-    @echo "Running tests"
+    @echo "Running production unit tests (src/)"
+    {{VENV_PATH}}/bin/python -m pytest -q tests
+
+test-dev:
+    @echo "Running dev/prototype tests (PYTHONPATH=realsrc)"
     PYTHONPATH=realsrc {{VENV_PATH}}/bin/python -m pytest -q dev/working/tests
 
 lint:
     @echo "Linting"
-    {{VENV_PATH}}/bin/python -m black --check realsrc dev/working/tools
-    {{VENV_PATH}}/bin/python -m flake8 realsrc dev/working/tools
+    {{VENV_PATH}}/bin/python -m black --check src realsrc dev/working/tools
+    {{VENV_PATH}}/bin/python -m flake8 src realsrc dev/working/tools
 
 format:
     @echo "Formatting"
-    {{VENV_PATH}}/bin/python -m black realsrc dev/working/tools
+    {{VENV_PATH}}/bin/python -m black src realsrc dev/working/tools
+
+ci:
+    @echo "CI: lint then production tests"
+    {{VENV_PATH}}/bin/python -m black --check src realsrc dev/working/tools
+    {{VENV_PATH}}/bin/python -m flake8 src realsrc dev/working/tools
+    {{VENV_PATH}}/bin/python -m pytest -q tests
 
 bench:
     @echo "Benchmarks"
@@ -86,6 +108,25 @@ build-bitpack:
     {{VENV_PATH}}/bin/python -m pip install -e .
     {{VENV_PATH}}/bin/python -c "import packetfs._bitpack; print('bitpack import OK')"
     chown -R punk:punk {{VENV_PATH}}
+
+# Packaging / install (staging/prod)
+build-wheel:
+    @echo "Building wheel"
+    {{VENV_PATH}}/bin/python -m pip install -U build
+    {{VENV_PATH}}/bin/python -m build -w
+
+install:
+    @echo "Editable install from realsrc/"
+    {{VENV_PATH}}/bin/python -m pip install -e .
+
+uninstall:
+    @echo "Uninstalling packetfs"
+    -{{VENV_PATH}}/bin/python -m pip uninstall -y packetfs || true
+
+reinstall:
+    @echo "Reinstalling packetfs"
+    -{{VENV_PATH}}/bin/python -m pip uninstall -y packetfs || true
+    {{VENV_PATH}}/bin/python -m pip install -e .
 
 # Build WIP native tools into bin/
 build-wip-native:
@@ -410,6 +451,12 @@ hugepages-status:
 
 hugepages-mount:
     @echo "[MOUNT] mount -a then verify"
+    sudo mount -a
+    bash scripts/hugepages/verify_hugepages.sh
+
+# Typo-friendly alias
+hugepagess-mount:
+    @echo "[MOUNT] (alias) mount -a then verify"
     sudo mount -a
     bash scripts/hugepages/verify_hugepages.sh
 
