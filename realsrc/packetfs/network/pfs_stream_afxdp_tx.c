@@ -51,6 +51,7 @@ typedef struct {
     int verbose;
     const char* corr_listen; // host:port for UDP NAKs
     const char* desc_file;   // optional: path to descriptor list (offset,len) per line
+    PfsXdpMode mode_req;     // requested XDP mode
 } TxConfig;
 
 static void* correction_listener_thread(void* arg){ (void)arg; // Placeholder for UDP NAK handling; real payload resend can be added
@@ -61,11 +62,13 @@ static void* correction_listener_thread(void* arg){ (void)arg; // Placeholder fo
 
 int main(int argc, char** argv){
     signal(SIGINT,on_sigint);
-    TxConfig cfg={0}; cfg.ifname=NULL; cfg.queue=0; cfg.zerocopy=1; cfg.blob_size=2ULL<<30; cfg.huge_dir="/dev/hugepages"; cfg.blob_name="pfs_stream_blob"; cfg.seed=0x12345678ULL; cfg.desc_per_frame=64; cfg.total_bytes=1ULL<<30; cfg.duration_s=0.0; cfg.align=64; cfg.verbose=1; cfg.corr_listen=NULL; cfg.desc_file=NULL;
+TxConfig cfg={0}; cfg.ifname=NULL; cfg.queue=0; cfg.zerocopy=1; cfg.blob_size=2ULL<<30; cfg.huge_dir="/dev/hugepages"; cfg.blob_name="pfs_stream_blob"; cfg.seed=0x12345678ULL; cfg.desc_per_frame=64; cfg.total_bytes=1ULL<<30; cfg.duration_s=0.0; cfg.align=64; cfg.verbose=1; cfg.corr_listen=NULL; cfg.desc_file=NULL; cfg.mode_req=PFS_XDP_MODE_AUTO;
     for(int i=1;i<argc;i++){
         if(!strcmp(argv[i],"--ifname") && i+1<argc) cfg.ifname=argv[++i];
         else if(!strcmp(argv[i],"--queue") && i+1<argc) cfg.queue=(uint32_t)strtoul(argv[++i],NULL,10);
-        else if(!strcmp(argv[i],"--no-zerocopy")) cfg.zerocopy=0;
+else if(!strcmp(argv[i],"--no-zerocopy")) cfg.zerocopy=0;
+        else if(!strcmp(argv[i],"--zerocopy") && i+1<argc) cfg.zerocopy=(int)strtoul(argv[++i],NULL,10);
+        else if(!strcmp(argv[i],"--mode") && i+1<argc){ const char* m=argv[++i]; if(!strcmp(m,"drv")) cfg.mode_req=PFS_XDP_MODE_DRV; else if(!strcmp(m,"skb")) cfg.mode_req=PFS_XDP_MODE_SKB; else cfg.mode_req=PFS_XDP_MODE_AUTO; }
         else if(!strcmp(argv[i],"--blob-size") && i+1<argc) cfg.blob_size=strtoull(argv[++i],NULL,10);
         else if(!strcmp(argv[i],"--huge-dir") && i+1<argc) cfg.huge_dir=argv[++i];
         else if(!strcmp(argv[i],"--blob-name") && i+1<argc) cfg.blob_name=argv[++i];
@@ -78,8 +81,8 @@ int main(int argc, char** argv){
         else if(!strcmp(argv[i],"--corr-listen") && i+1<argc) cfg.corr_listen=argv[++i];
         else if(!strcmp(argv[i],"--desc-file") && i+1<argc) cfg.desc_file=argv[++i];
         else if(!strcmp(argv[i],"-h")||!strcmp(argv[i],"--help")){
-            printf("Usage: %s --ifname IF --queue Q [--no-zerocopy] [--blob-size BYTES] [--huge-dir D] [--blob-name N]\n", argv[0]);
-            printf("       [--seed S] [--desc-per-frame N] [--total-bytes B] [--duration S] [--align A] [--desc-file PATH] [--corr-listen HOST:PORT]\n");
+printf("Usage: %s --ifname IF --queue Q [--zerocopy 0|1] [--mode auto|drv|skb] [--blob-size BYTES] [--huge-dir D] [--blob-name N]\n", argv[0]);
+        printf("       [--seed S] [--desc-per-frame N] [--total-bytes B] [--duration S] [--align A] [--desc-file PATH] [--corr-listen HOST:PORT]\n");
             return 0;
         }
     }
@@ -93,8 +96,9 @@ int main(int argc, char** argv){
     PfsHugeBlob blob; if(pfs_hugeblob_map(cfg.blob_size, cfg.huge_dir, cfg.blob_name, &blob)!=0) die("map blob: %s", strerror(errno)); pfs_hugeblob_set_keep(&blob,1);
 
     // Create UMEM/XSK for TX
-    PfsXdpUmem umem; if(pfs_xdp_umem_create(&umem, 0, 2048, 4096)!=0) die("umem create");
-    PfsXdpSocket xsk; if(pfs_xdp_socket_create(&xsk, &umem, cfg.ifname, cfg.queue, 0, 1, cfg.zerocopy)!=0) die("xsk create");
+PfsXdpUmem umem; if(pfs_xdp_umem_create(&umem, 0, 2048, 4096)!=0) die("umem create");
+    PfsXdpSocket xsk; if(pfs_xdp_socket_create(&xsk, &umem, cfg.ifname, cfg.queue, 0, 1, cfg.zerocopy, cfg.mode_req)!=0) die("xsk create");
+    if(cfg.verbose) fprintf(stderr, "[XDP] mode=%s zerocopy=%d if=%s q=%u\n", pfs_xdp_mode_str(xsk.mode), xsk.zerocopy_active, cfg.ifname, cfg.queue);
 
     // Optional correction listener thread (UDP NAKs)
     pthread_t corr_tid; if(cfg.corr_listen){ pthread_create(&corr_tid, NULL, correction_listener_thread, NULL); }

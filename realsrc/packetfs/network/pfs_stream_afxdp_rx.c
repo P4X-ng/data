@@ -52,6 +52,7 @@ typedef struct {
     int verbose;
     const char* corr_target; // host:port for NAKs (optional)
     const char* bpf_obj; // path to compiled XDP object
+    PfsXdpMode mode_req;     // requested XDP mode
 } RxConfig;
 
 static void* checksum_thread(void* arg){
@@ -62,11 +63,13 @@ static void* checksum_thread(void* arg){
 
 int main(int argc, char** argv){
     signal(SIGINT,on_sigint);
-    RxConfig cfg={0}; cfg.ifname=NULL; cfg.queue=0; cfg.zerocopy=1; cfg.blob_size=2ULL<<30; cfg.huge_dir="/dev/hugepages"; cfg.blob_name="pfs_stream_blob"; cfg.verbose=1; cfg.corr_target=NULL; cfg.bpf_obj="dev/wip/native/pfs_xdp_redirect_kern.o";
+RxConfig cfg={0}; cfg.ifname=NULL; cfg.queue=0; cfg.zerocopy=1; cfg.blob_size=2ULL<<30; cfg.huge_dir="/dev/hugepages"; cfg.blob_name="pfs_stream_blob"; cfg.verbose=1; cfg.corr_target=NULL; cfg.bpf_obj="dev/wip/native/pfs_xdp_redirect_kern.o"; cfg.mode_req=PFS_XDP_MODE_AUTO;
     for(int i=1;i<argc;i++){
         if(!strcmp(argv[i],"--ifname") && i+1<argc) cfg.ifname=argv[++i];
         else if(!strcmp(argv[i],"--queue") && i+1<argc) cfg.queue=(uint32_t)strtoul(argv[++i],NULL,10);
-        else if(!strcmp(argv[i],"--no-zerocopy")) cfg.zerocopy=0;
+else if(!strcmp(argv[i],"--no-zerocopy")) cfg.zerocopy=0;
+        else if(!strcmp(argv[i],"--zerocopy") && i+1<argc) cfg.zerocopy=(int)strtoul(argv[++i],NULL,10);
+        else if(!strcmp(argv[i],"--mode") && i+1<argc){ const char* m=argv[++i]; if(!strcmp(m,"drv")) cfg.mode_req=PFS_XDP_MODE_DRV; else if(!strcmp(m,"skb")) cfg.mode_req=PFS_XDP_MODE_SKB; else cfg.mode_req=PFS_XDP_MODE_AUTO; }
         else if(!strcmp(argv[i],"--blob-size") && i+1<argc) cfg.blob_size=strtoull(argv[++i],NULL,10);
         else if(!strcmp(argv[i],"--huge-dir") && i+1<argc) cfg.huge_dir=argv[++i];
         else if(!strcmp(argv[i],"--blob-name") && i+1<argc) cfg.blob_name=argv[++i];
@@ -74,7 +77,7 @@ int main(int argc, char** argv){
         else if(!strcmp(argv[i],"--corr-target") && i+1<argc) cfg.corr_target=argv[++i];
         else if(!strcmp(argv[i],"--bpf-obj") && i+1<argc) cfg.bpf_obj=argv[++i];
         else if(!strcmp(argv[i],"-h")||!strcmp(argv[i],"--help")){
-            printf("Usage: %s --ifname IF --queue Q [--no-zerocopy] [--blob-size BYTES] [--huge-dir D] [--blob-name N] [--corr-target HOST:PORT]\n", argv[0]);
+printf("Usage: %s --ifname IF --queue Q [--zerocopy 0|1] [--mode auto|drv|skb] [--blob-size BYTES] [--huge-dir D] [--blob-name N] [--corr-target HOST:PORT]\n", argv[0]);
             return 0;
         }
     }
@@ -85,8 +88,9 @@ int main(int argc, char** argv){
     PfsHugeBlob blob; if(pfs_hugeblob_map(cfg.blob_size, cfg.huge_dir, cfg.blob_name, &blob)!=0) die("map blob: %s", strerror(errno)); pfs_hugeblob_set_keep(&blob,1);
 
     // Create UMEM/XSK for RX
-    PfsXdpUmem umem; if(pfs_xdp_umem_create(&umem, 0, 2048, 8192)!=0) die("umem create");
-    PfsXdpSocket xsk; if(pfs_xdp_socket_create(&xsk, &umem, cfg.ifname, cfg.queue, 1, 0, cfg.zerocopy)!=0) die("xsk create");
+PfsXdpUmem umem; if(pfs_xdp_umem_create(&umem, 0, 2048, 8192)!=0) die("umem create");
+    PfsXdpSocket xsk; if(pfs_xdp_socket_create(&xsk, &umem, cfg.ifname, cfg.queue, 1, 0, cfg.zerocopy, cfg.mode_req)!=0) die("xsk create");
+    if(cfg.verbose) fprintf(stderr, "[XDP] mode=%s zerocopy=%d if=%s q=%u\n", pfs_xdp_mode_str(xsk.mode), xsk.zerocopy_active, cfg.ifname, cfg.queue);
 
     // Load and attach XDP program (force SKB/generic mode on veth);
     // update xsks_map with xsk fd before attaching.

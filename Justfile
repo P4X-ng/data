@@ -209,13 +209,14 @@ build-net-pfs-stream-afxdp:
       -lxdp -lbpf -lelf -lz
 
 # Run AF_XDP TX/RX (requires root/capabilities and a NIC that supports XDP)
-run-net-pfs-stream-afxdp-tx ifname="{{ifname}}" queue="0" blob_bytes="2147483648" seed="305419896" dpf="64" total="0" duration="10" align="64":
-    @echo "Starting AF_XDP TX on {{ifname}} q{{queue}} for {{duration}}s"
-    sudo dev/wip/native/pfs_stream_afxdp_tx --ifname {{ifname}} --queue {{queue}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-frame {{dpf}} --duration {{duration}} --align {{align}}
+# Note: lo (loopback) typically does not support XDP. Use a physical NIC (e.g., enp3s0, eth0).
+run-net-pfs-stream-afxdp-tx ifname="" queue="0" blob_bytes="2147483648" seed="305419896" dpf="64" total="0" duration="10" align="64" zc="1" mode="auto":
+    @echo "Starting AF_XDP TX on {{ifname}} q{{queue}} for {{duration}}s (mode={{mode}} zc={{zc}})"
+    sudo dev/wip/native/pfs_stream_afxdp_tx --ifname {{ifname}} --queue {{queue}} --blob-size {{blob_bytes}} --seed {{seed}} --desc-per-frame {{dpf}} --duration {{duration}} --align {{align}} --zerocopy {{zc}} --mode {{mode}}
 
-run-net-pfs-stream-afxdp-rx ifname="{{ifname}}" queue="0" blob_bytes="2147483648":
-    @echo "Starting AF_XDP RX on {{ifname}} q{{queue}}"
-    sudo dev/wip/native/pfs_stream_afxdp_rx --ifname {{ifname}} --queue {{queue}} --blob-size {{blob_bytes}}
+run-net-pfs-stream-afxdp-rx ifname="" queue="0" blob_bytes="2147483648" zc="1" mode="auto":
+    @echo "Starting AF_XDP RX on {{ifname}} q{{queue}} (mode={{mode}} zc={{zc}})"
+    sudo dev/wip/native/pfs_stream_afxdp_rx --ifname {{ifname}} --queue {{queue}} --blob-size {{blob_bytes}} --zerocopy {{zc}} --mode {{mode}}
 
 # Run PacketFS-gram server/client (TCP)
 run-net-pfs-gram-server port="8433" blob_bytes="1073741824" seed="305419896" dpg="16" grams="2048" max_len="65536" align="64":

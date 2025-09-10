@@ -17,6 +17,16 @@ typedef struct {
     uint32_t frame_count;
 } PfsXdpUmem;
 
+typedef enum {
+    PFS_XDP_MODE_AUTO = 0,
+    PFS_XDP_MODE_DRV  = 1,
+    PFS_XDP_MODE_SKB  = 2,
+} PfsXdpMode;
+
+static inline const char* pfs_xdp_mode_str(PfsXdpMode m){
+    switch(m){ case PFS_XDP_MODE_DRV: return "DRV"; case PFS_XDP_MODE_SKB: return "SKB"; default: return "AUTO"; }
+}
+
 typedef struct {
     struct xsk_socket* xsk;
     PfsXdpUmem* umem;
@@ -25,11 +35,13 @@ typedef struct {
     uint32_t outstanding_tx;
     int ifindex;
     uint32_t queue_id;
+    PfsXdpMode mode;        // chosen XDP mode after creation
+    int zerocopy_active;    // 1 if zerocopy is active, else 0
 } PfsXdpSocket;
 
 int pfs_xdp_umem_create(PfsXdpUmem* u, size_t size, uint32_t frame_size, uint32_t frame_count);
 void pfs_xdp_umem_destroy(PfsXdpUmem* u);
-int pfs_xdp_socket_create(PfsXdpSocket* s, PfsXdpUmem* u, const char* ifname, uint32_t queue_id, int rx, int tx, int zerocopy);
+int pfs_xdp_socket_create(PfsXdpSocket* s, PfsXdpUmem* u, const char* ifname, uint32_t queue_id, int rx, int tx, int zerocopy, PfsXdpMode mode_req);
 void pfs_xdp_socket_destroy(PfsXdpSocket* s);
 
 static inline uint64_t pfs_xdp_frame_addr(PfsXdpUmem* u, uint32_t frame_idx){ return (uint64_t)frame_idx * u->frame_size; }
