@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>pfs-infinity</title>
+    <link href="https://releases.transloadit.com/uppy/v5.1.1/uppy.min.css" rel="stylesheet" />
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; margin: 2rem; }
+      .row { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+      #log { white-space: pre-wrap; background: #111; color: #ddd; padding: 1rem; border-radius: 8px; min-height: 8rem; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 13px; line-height: 1.5; }
+      label { width: 9rem; display: inline-block; }
+      input[type=text] { width: 22rem; }
+      
+      /* Speed bubble */
+      .metrics-container { position: relative; margin-bottom: 1rem; }
+      .speed-bubble {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        display: inline-block;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        opacity: 0;
+        transition: all 0.3s ease;
+        transform: translateY(-10px);
+      }
+      .speed-bubble.active {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .speed-bubble .title {
+        font-size: 12px;
+        opacity: 0.9;
+        margin-bottom: 0.3rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .speed-bubble .speed {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 0.3rem;
+      }
+      .speed-bubble .compression {
+        font-size: 14px;
+        opacity: 0.95;
+      }
+      .speed-bubble .sizes {
+        font-size: 11px;
+        opacity: 0.85;
+        margin-top: 0.5rem;
+      }
+      .success { color: #4ade80; }
+      .error { color: #f87171; }
+      .info { color: #60a5fa; }
+      .dim { opacity: 0.7; }
+    </style>
+  </head>
+  <body>
+    <h1>pfs-infinity</h1>
+    <div class="row">
+      <label>Receiver host:</label>
+      <input id="receiver" type="text" placeholder="127.0.0.1" value="127.0.0.1" />
+      <label>WS port:</label>
+      <input id="wsport" type="text" value="8811" />
+    </div>
+    <div id="uppy" />
+    <div class="row">
+      <label>Mode:</label>
+      <select id="mode">
+        <option value="ws">ws</option>
+        <option value="ws-multi">ws-multi</option>
+        <option value="quic">quic</option>
+      </select>
+      <label>QUIC port:</label>
+      <input id="quicport" type="text" value="8853" />
+    </div>
+    
+    <div class="metrics-container">
+      <div id="speedBubble" class="speed-bubble">
+        <div class="title">Transfer Performance</div>
+        <div class="speed" id="speedValue">—</div>
+        <div class="compression" id="compressionValue">—</div>
+        <div class="sizes" id="sizesValue">—</div>
+      </div>
+    </div>
+    
+    <h3>Transfer Log</h3>
+    <div id="log"></div>
+
+    <script type="module">
+      import { Uppy, Dashboard, XHRUpload } from 'https://releases.transloadit.com/uppy/v5.1.1/uppy.min.mjs'
+
+      const logEl = document.getElementById('log')
+      const receiverEl = document.getElementById('receiver')
+      const wsportEl = document.getElementById('wsport')
+      const modeSel = document.getElementById('mode')
+      const speedBubble = document.getElementById('speedBubble')
+      const speedValue = document.getElementById('speedValue')
+      const compressionValue = document.getElementById('compressionValue')
+      const sizesValue = document.getElementById('sizesValue')
+      let objectId = null
+      let fileSize = 0
+      let fileName = ''
+
+      function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 B'
+        const k = 1024
+        const dm = decimals < 0 ? 0 : decimals
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
+      }
+
+      function formatSpeed(bytesPerSec) {
+        if (bytesPerSec === 0) return '0 B/s'
+        const k = 1024
+        const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s']
+        const i = Math.floor(Math.log(bytesPerSec) / Math.log(k))
+        return parseFloat((bytesPerSec / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+      }
+
+      function log(msg, type = '') {
+        const timestamp = new Date().toLocaleTimeString()
+        const prefix = `[${timestamp}] `
+        let formatted = prefix + msg
+        if (type === 'success') {
+          formatted = `<span class="success">${prefix}✓ ${msg}</span>`
+        } else if (type === 'error') {
+          formatted = `<span class="error">${prefix}✗ ${msg}</span>`
+        } else if (type === 'info') {
+          formatted = `<span class="info">${prefix}ℹ ${msg}</span>`
+        } else {
+          formatted = `<span class="dim">${prefix}</span>${msg}`
+        }
+        logEl.innerHTML += formatted + '\n'
+        logEl.scrollTop = logEl.scrollHeight
+      }
+
+      function updateMetrics(data) {
+        if (!data) return
+        
+        speedBubble.classList.add('active')
+        
+        const speed = data.eff_bytes_per_s || 0
+        const planBytes = data.plan_bytes || 0
+        const objectSize = data.object_size || fileSize
+        const compression = objectSize > 0 ? ((1 - planBytes / objectSize) * 100).toFixed(1) : 0
+        const speedup = data.speedup_vs_raw || 1
+        
+        speedValue.textContent = formatSpeed(speed)
+        compressionValue.textContent = `${compression}% smaller with PFS (${speedup.toFixed(1)}x speedup)`
+        sizesValue.textContent = `Original: ${formatBytes(objectSize)} → PFS: ${formatBytes(planBytes)}`
+      }
+
+      // Initialize Uppy with Dashboard and XHRUpload to /objects
+      const uppy = new Uppy({ autoProceed: false })
+        .use(Dashboard, { target: '#uppy', inline: true, height: 300, showProgressDetails: true, proudlyDisplayPoweredByUppy: false })
+        .use(XHRUpload, {
+          endpoint: '/objects',
+          fieldName: 'file',
+          formData: true,
+          limit: 1,
+          withCredentials: false,
+          headers: {},
+          allowedMetaFields: [],
+        })
+
+      // Transfer trigger after successful upload
+      async function triggerTransfer(oid) {
+        try {
+          const peerHost = receiverEl.value.trim() || '127.0.0.1'
+          const wsPort = parseInt(wsportEl.value || '8811', 10)
+          const quicPort = parseInt((document.getElementById('quicport').value || '8853'), 10)
+          const mode = modeSel.value || 'ws'
+          const body = {
+            object_id: oid,
+            mode: mode,
+            peer: { host: peerHost, ws_port: wsPort, https_port: wsPort, udp_port: quicPort },
+            timeout_s: 5.0,
+          }
+          
+          log(`Starting transfer to ${peerHost}:${mode === 'quic' ? quicPort : wsPort} using ${mode.toUpperCase()}`, 'info')
+          
+          const tx = await fetch('/transfers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+          const txj = await tx.json()
+          
+          log(`Transfer initiated (ID: ${txj.transfer_id.substring(0, 8)}...)`, 'info')
+          
+          for (let i = 0; i < 10; i++) {
+            await new Promise(r => setTimeout(r, 1000))
+            const st = await fetch('/transfers/' + txj.transfer_id)
+            const stj = await st.json()
+            
+            if (stj.details) {
+              updateMetrics(stj.details)
+            }
+            
+            if (stj.state === 'success') {
+              const elapsed = stj.details?.elapsed_s?.toFixed(2) || '?'
+              const path = stj.details?.path || 'unknown'
+              log(`Transfer complete! Sent ${formatBytes(fileSize)} in ${elapsed}s via ${path}`, 'success')
+              log(`Effective speed: ${formatSpeed(stj.details?.eff_bytes_per_s || 0)}`, 'success')
+              break
+            } else if (stj.state === 'failed') {
+              log('Transfer failed. Check receiver connectivity.', 'error')
+              break
+            } else {
+              log(`Progress: ${stj.state}...`)
+            }
+          }
+        } catch (e) {
+          log(`Transfer error: ${e.message || e}`, 'error')
+        }
+      }
+
+      uppy.on('file-added', (file) => {
+        fileName = file.name
+        fileSize = file.size
+        log(`File selected: ${file.name} (${formatBytes(file.size)})`, 'info')
+      })
+
+      uppy.on('upload-success', (file, response) => {
+        try {
+          const body = response && response.body ? response.body : null
+          objectId = body && body.object_id ? body.object_id : null
+          if (objectId) {
+            log(`File uploaded successfully (${objectId.substring(0, 16)}...)`, 'success')
+            log('Initiating PacketFS transfer...', 'info')
+            triggerTransfer(objectId)
+          } else {
+            log('Upload succeeded but no object ID received', 'error')
+          }
+        } catch (e) {
+          log(`Upload processing error: ${e.message || e}`, 'error')
+        }
+      })
+
+      uppy.on('error', (err) => {
+        log(`Upload error: ${err.message || err}`, 'error')
+      })
+      
+      // Welcome message
+      log('PacketFS ready. Select a file to transfer.', 'info')
+    </script>
+  </body>
+</html>

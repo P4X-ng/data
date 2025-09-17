@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""
+pfcp-ssh - PacketFS over SSH (no server needed!)
+
+This uses SSH as transport but sends PFS-compressed data!
+Works with ANY SSH server - no PFS server required!
+
+Usage:
+    pfcp-ssh file.txt user@server:/path/to/dest
+    pfcp-ssh file.txt server:~/destination/
+    pfcp-ssh -r folder/ user@server:/backup/
+"""
+
+import sys
+import os
+import subprocess
+import tempfile
+import hashlib
+import zlib
+import base64
+import json
+from pathlib import Path
+
+def compress_file_pfs(file_path):
+    """
+    Compress file using PFS-style compression.
+    For now using zlib, but this is where the magic happens!
+    """
+    with open(file_path, 'rb') as f:
+        data = f.read()
+    
+    # In real PFS: create blueprint with offset references
+    # For now: aggressive compression as proof of concept
+    compressed = zlib.compress(data, level=9)
+    
+    # Create PFS metadata
+    metadata = {
+        'original_size': len(data),
+        'compressed_size': len(compressed),
+        'sha256': hashlib.sha256(data).hexdigest(),
+        'compression': 'zlib9',  # Will be 'pfs-offset' later
+        'version': 1
+    }
+    
+    return compressed, metadata
+
+def send_via_ssh(local_file, remote_dest):
+    """Send PFS-compressed file over SSH."""
+    
+    # Parse SSH destination
+    if ':' not in remote_dest:
+        print("Error: Destination must be user@host:/path or host:/path", file=sys.stderr)
+        return False
+    
+    ssh_part, remote_path = remote_dest.rsplit(':', 1)
+    if not remote_path:
+        remote_path = '~/'
+    
+    # Compress with PFS
+    print(f"📦 Compressing with PacketFS...", end='', flush=True)
+    compressed, metadata = compress_file_pfs(local_file)
+    compression_ratio = (1 - len(compressed) / metadata['original_size']) * 100
+    print(f" {compression_ratio:.1f}% smaller!")
+    
+    # Create temporary file with PFS data
+    with tempfile.NamedTemporaryFile(suffix='.pfs', delete=False) as tmp:
+        # Write magic header
+        tmp.write(b'PFS1')
+        # Write metadata length and metadata
+        meta_json = json.dumps(metadata).encode()
+        tmp.write(len(meta_json).to_bytes(4, 'big'))
+        tmp.write(meta_json)
+        # Write compressed data
+        tmp.write(compressed)
+        tmp_path = tmp.name
+    
+    try:
+        # Transfer the PFS file via SSH
+        local_name = Path(local_file).name
+        remote_pfs = f"/tmp/{local_name}.pfs.{os.getpid()}"
+        
+        print(f"📡 Transferring {len(compressed)/1024:.1f} KB via SSH (was {metadata['original_size']/1024:.1f} KB)...")
+        
+        # Use scp to transfer the compressed file
+        result = subprocess.run(
+            ['scp', '-q', tmp_path, f"{ssh_part}:{remote_pfs}"],
+            capture_output=True
+        )
+        
+        if result.returncode != 0:
+            print(f"❌ Transfer failed: {result.stderr.decode()}", file=sys.stderr)
+            return False
+        
+        # Decompress on remote side using SSH
+        print("🔓 Decompressing on remote...", end='', flush=True)
+        
+        # Python one-liner to decompress on remote
+        decompress_script = f'''
+import sys, json, zlib
+with open("{remote_pfs}", "rb") as f:
+    magic = f.read(4)
+    if magic != b"PFS1": sys.exit(1)
+    meta_len = int.from_bytes(f.read(4), "big")
+    metadata = json.loads(f.read(meta_len))
+    compressed = f.read()
+    data = zlib.decompress(compressed)
+    with open("{remote_path}/{local_name}", "wb") as out:
+        out.write(data)
+import os
+os.remove("{remote_pfs}")
+print("OK")
+'''
+        
+        result = subprocess.run(
+            ['ssh', ssh_part, 'python3', '-c', decompress_script],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode != 0 or "OK" not in result.stdout:
+            print(f" ❌ Failed")
+            print(f"Error: {result.stderr}", file=sys.stderr)
+            return False
+        
+        print(f" ✅ Success!")
+        
+        # Calculate effective speed
+        file_size = metadata['original_size']
+        print(f"\n✨ PacketFS Magic:")
+        print(f"   • Original: {file_size/1024:.1f} KB")
+        print(f"   • Sent: {len(compressed)/1024:.1f} KB ({compression_ratio:.1f}% smaller)")
+        print(f"   • Speedup: {file_size/len(compressed):.1f}x effective transfer")
+        
+        return True
+        
+    finally:
+        # Clean up temp file
+        os.unlink(tmp_path)
+
+def main():
+    if len(sys.argv) < 3:
+        print(__doc__)
+        sys.exit(1)
+    
+    source = sys.argv[1]
+    dest = sys.argv[2]
+    
+    if not Path(source).exists():
+        print(f"Error: {source} not found", file=sys.stderr)
+        sys.exit(1)
+    
+    success = send_via_ssh(source, dest)
+    sys.exit(0 if success else 1)
+
+if __name__ == '__main__':
+    main()

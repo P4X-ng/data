@@ -1,6 +1,0 @@
-2025/08/30-17:57:06.046 7184 Creating DB /home/punk/.config/opera/Default/IndexedDB/https_tailscale.com_0.indexeddb.leveldb since it was missing.
-2025/08/30-17:57:06.048 7184 Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_tailscale.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/08/30-17:57:54.061 7184 Level-0 table #5: started
-2025/08/30-17:57:54.062 7184 Level-0 table #5: 820 bytes OK
-2025/08/30-17:57:54.064 7184 Delete type=0 #3
-2025/08/30-17:57:54.064 7184 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

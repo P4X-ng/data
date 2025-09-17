@@ -1,0 +1,29 @@
+# syntax=docker/dockerfile:1
+# Note: we use Podman to build/run this Containerfile
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-venv python3-pip ca-certificates openssl \
+    fuse libfuse2 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user for safety (service may need extra caps at runtime)
+RUN useradd -m -u 1000 pfs
+
+WORKDIR /app
+COPY . /app
+
+# Install PacketFS (production path realsrc/)
+RUN python3 -m pip install --no-cache-dir -U pip setuptools wheel \
+ && python3 -m pip install --no-cache-dir -e .
+
+# Default directories inside the container
+ENV PFS_MERGE_ROOT=/data/local
+RUN mkdir -p /data/local && chown -R pfs:pfs /data
+
+USER pfs
+EXPOSE 9876
+
+# Entrypoint runs the merge service by default
+ENTRYPOINT ["python3", "-m", "packetfs.merge.service", "--bind", "0.0.0.0", "--port", "9876"]

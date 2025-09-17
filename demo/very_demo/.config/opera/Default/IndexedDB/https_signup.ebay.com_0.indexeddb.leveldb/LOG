@@ -1,6 +1,0 @@
-2025/08/27-11:15:24.496 90f8 Creating DB /home/punk/.config/opera/Default/IndexedDB/https_signup.ebay.com_0.indexeddb.leveldb since it was missing.
-2025/08/27-11:15:24.499 90f8 Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_signup.ebay.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/08/27-11:15:27.145 9105 Level-0 table #5: started
-2025/08/27-11:15:27.147 9105 Level-0 table #5: 565 bytes OK
-2025/08/27-11:15:27.150 9105 Delete type=0 #3
-2025/08/27-11:15:27.150 90f8 Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)

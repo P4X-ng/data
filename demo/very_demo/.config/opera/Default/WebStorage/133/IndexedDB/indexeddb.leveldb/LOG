@@ -1,7 +1,0 @@
-2025/08/30-23:22:39.503 7183 Reusing MANIFEST /home/punk/.config/opera/Default/WebStorage/133/IndexedDB/indexeddb.leveldb/MANIFEST-000001
-2025/08/30-23:22:39.503 7183 Recovering log #3
-2025/08/30-23:22:39.503 7183 Reusing old log /home/punk/.config/opera/Default/WebStorage/133/IndexedDB/indexeddb.leveldb/000003.log 
-2025/08/30-23:23:55.055 7184 Level-0 table #5: started
-2025/08/30-23:23:55.056 7184 Level-0 table #5: 30089 bytes OK
-2025/08/30-23:23:55.058 7184 Delete type=0 #3
-2025/08/30-23:23:55.059 7184 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

@@ -1,6 +1,0 @@
-2025/08/25-01:59:08.737 4967 Creating DB /home/punk/.config/opera/Default/IndexedDB/https_us-east-2.console.aws.amazon.com_0.indexeddb.leveldb since it was missing.
-2025/08/25-01:59:08.740 4967 Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_us-east-2.console.aws.amazon.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/08/25-01:59:29.686 4968 Level-0 table #5: started
-2025/08/25-01:59:29.688 4968 Level-0 table #5: 2147 bytes OK
-2025/08/25-01:59:29.690 4968 Delete type=0 #3
-2025/08/25-01:59:29.690 4968 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

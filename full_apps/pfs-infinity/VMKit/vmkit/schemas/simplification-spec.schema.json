@@ -1,0 +1,359 @@
+{
+  "$id": "https://kubesimpl.dev/schemas/simplification-spec.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Schema for defining how to simplify Kubernetes configurations",
+  "properties": {
+    "access_control": {
+      "description": "Access control model definitions",
+      "patternProperties": {
+        "^[a-zA-Z0-9._-]+$": {
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "method": {
+              "type": "string"
+            },
+            "permissions": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "constraints": {
+      "description": "Business logic constraints",
+      "items": {
+        "properties": {
+          "action": {
+            "default": "reject",
+            "enum": [
+              "reject",
+              "warn",
+              "fix"
+            ],
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "condition"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "defaults": {
+      "description": "Default values for simplified configurations",
+      "patternProperties": {
+        "^[a-zA-Z0-9._-]+$": {}
+      },
+      "type": "object"
+    },
+    "examples": {
+      "description": "Example transformations",
+      "items": {
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "input": {},
+          "name": {
+            "type": "string"
+          },
+          "output": {}
+        },
+        "required": [
+          "name",
+          "input",
+          "output"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "fields": {
+      "description": "Field-level transformation rules",
+      "patternProperties": {
+        "^[a-zA-Z0-9._-]+$": {
+          "properties": {
+            "default": {},
+            "description": {
+              "type": "string"
+            },
+            "required": {
+              "default": false,
+              "type": "boolean"
+            },
+            "transforms": {
+              "items": {
+                "enum": [
+                  "rename",
+                  "map",
+                  "drop",
+                  "merge",
+                  "template",
+                  "compute"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "metadata": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "type": "object"
+    },
+    "networking": {
+      "description": "Networking configuration",
+      "properties": {
+        "api": {
+          "properties": {
+            "bind": {
+              "type": "string"
+            },
+            "protection": {
+              "type": "string"
+            },
+            "protocol": {
+              "type": "string"
+            },
+            "ssl": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "containers": {
+          "properties": {
+            "isolation": {
+              "type": "string"
+            },
+            "mode": {
+              "type": "string"
+            },
+            "pod_subnet": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "presets": {
+      "description": "Predefined configuration presets",
+      "patternProperties": {
+        "^[a-zA-Z0-9._-]+$": {
+          "properties": {
+            "config": {
+              "type": "object"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "removals": {
+      "description": "Components and features to remove",
+      "properties": {
+        "components": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "features": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "replacements": {
+      "description": "Component replacement mappings",
+      "patternProperties": {
+        "^[a-zA-Z0-9._-]+$": {
+          "properties": {
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "resources": {
+      "description": "Resource types to simplify",
+      "items": {
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "simplified": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "specVersion": {
+      "description": "Version of the simplification specification format",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "type": "string"
+    },
+    "transforms": {
+      "description": "Transformation rules for different operations",
+      "properties": {
+        "compute": {
+          "patternProperties": {
+            "^[a-zA-Z0-9._-]+$": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "drop": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "map": {
+          "patternProperties": {
+            "^[a-zA-Z0-9._-]+$": {
+              "patternProperties": {
+                ".*": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "merge": {
+          "patternProperties": {
+            "^[a-zA-Z0-9._-]+$": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "rename": {
+          "patternProperties": {
+            "^[a-zA-Z0-9._-]+$": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "template": {
+          "patternProperties": {
+            "^[a-zA-Z0-9._-]+$": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "validations": {
+      "description": "Custom validation rules",
+      "items": {
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "string"
+          },
+          "severity": {
+            "default": "error",
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "message"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "vocabulary": {
+      "description": "Canonical terms and their synonyms for normalization",
+      "patternProperties": {
+        "^[a-z-_]+$": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "specVersion",
+    "metadata"
+  ],
+  "title": "KubeSimpl Simplification Specification",
+  "type": "object"
+}

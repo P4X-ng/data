@@ -1,0 +1,5 @@
+pfs-hugetlbfs-setup (0.1.0) unstable; urgency=medium
+
+  * Initial release: configure hugetlbfs and mount /mnt/huge1G
+
+ -- PacketFS <ops@packetfs.local>  Sun, 14 Sep 2025 05:50:00 +0000

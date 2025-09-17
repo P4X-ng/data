@@ -1,6 +1,0 @@
-2025/08/31-07:46:32.271 7184 Creating DB /home/punk/.config/opera/Default/IndexedDB/https_ancestors.familysearch.org_0.indexeddb.leveldb since it was missing.
-2025/08/31-07:46:32.277 7184 Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_ancestors.familysearch.org_0.indexeddb.leveldb/MANIFEST-000001
-2025/08/31-07:47:11.909 7184 Level-0 table #5: started
-2025/08/31-07:47:11.912 7184 Level-0 table #5: 5620 bytes OK
-2025/08/31-07:47:11.915 7184 Delete type=0 #3
-2025/08/31-07:47:11.915 7184 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

@@ -1,0 +1,19 @@
+FROM docker.io/library/python:3.11-slim AS base
+
+# Per repo rules, Podman is preferred; this Containerfile works with Podman
+
+WORKDIR /app
+ENV VIRTUAL_ENV=/opt/venv
+RUN python -m venv $VIRTUAL_ENV && \
+    $VIRTUAL_ENV/bin/pip install -U pip setuptools wheel
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Install runtime deps
+COPY containers/backend/requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+
+# Copy app
+COPY app /app/app
+
+EXPOSE 8811
+CMD ["hypercorn", "-b", "0.0.0.0:8811", "app.main:app"]

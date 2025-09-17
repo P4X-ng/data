@@ -1,0 +1,6 @@
+# requirements.txt - Python dependencies
+scrapy
+playwright
+scrapy-playwright
+redis
+ray

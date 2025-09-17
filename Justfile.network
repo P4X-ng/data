@@ -1,0 +1,64 @@
+# Network-focused Justfile for AF_XDP attach/detach and RX/TX wrappers
+# Requires: bpftool, libbpf-dev, libxdp-dev, and a NIC supporting XDP native for zerocopy.
+
+
+# Paths
+AFXDP_BPF_DIR := "realsrc/packetfs/network/afxdp/bpf"
+AFXDP_LOADER_DIR := "realsrc/packetfs/network/afxdp/loader"
+LOADER_BIN := "{{AFXDP_LOADER_DIR}}/build/pfs_xdp_loader"
+BPF_OBJ := "{{AFXDP_BPF_DIR}}/build/pfs_kern.bpf.o"
+
+# Defaults
+IFACE := "enp130s0"
+QUEUE := "0"
+MODE := "drv"
+PROG := "xdp_redirect_xsk"
+PIN  := "/sys/fs/bpf/packetfs"
+
+# Sanity: check DPDK version (for dpdk stream examples). Requires dpkg on Ubuntu.
+check-dpdk-version:
+    @bash scripts/check_dpdk_version.sh
+
+# Build AF_XDP BPF + loader + user lib/CLIs
+net-build-afxdp:
+    make -C {{AFXDP_BPF_DIR}}
+    make -C {{AFXDP_LOADER_DIR}}
+    make -C realsrc/packetfs/network/afxdp/user
+
+# Attach XDP program (native first, fallback to skb); pins xsks_map to bpffs
+net-attach-xdp IFACE="{{IFACE}}" MODE="{{MODE}}" PROG="{{PROG}}" PIN="{{PIN}}":
+    scripts/afxdp_verify_iface.sh "{{IFACE}}"
+    make -C {{AFXDP_BPF_DIR}}
+    make -C {{AFXDP_LOADER_DIR}}
+    sudo -n {{LOADER_BIN}} attach --iface "{{IFACE}}" --mode "{{MODE}}" --obj "{{BPF_OBJ}}" --prog "{{PROG}}" --pin "{{PIN}}"
+
+# Detach XDP program
+net-detach-xdp IFACE="{{IFACE}}":
+    sudo -n {{LOADER_BIN}} status --iface "{{IFACE}}" || true
+    sudo -n {{LOADER_BIN}} detach --iface "{{IFACE}}"
+
+# Status
+net-status-xdp IFACE="{{IFACE}}":
+    sudo -n {{LOADER_BIN}} status --iface "{{IFACE}}"
+
+# Run production AF_XDP RX/TX using new CLIs (zerocopy required by default)
+pfs-afxdp-rx IFACE="{{IFACE}}" QUEUE="{{QUEUE}}" NDESCS="4096" FRAME="2048" BUSY_POLL_MS="50" DURATION_S="10":
+    @bash scripts/ensure_afxdp_built.sh
+    @echo "Starting AF_XDP RX on {{IFACE}} q{{QUEUE}} (require-zc=1)"
+    sudo -n realsrc/packetfs/network/afxdp/user/build/pfs_afxdp_rx --iface "{{IFACE}}" --queue "{{QUEUE}}" --frame-size "{{FRAME}}" --ndescs "{{NDESCS}}" --require-zc 1 --busy-poll-ms "{{BUSY_POLL_MS}}" --duration-s "{{DURATION_S}}"
+
+pfs-afxdp-tx IFACE="{{IFACE}}" QUEUE="{{QUEUE}}" NDESCS="4096" FRAME="2048" BUSY_POLL_MS="50" DURATION_S="5":
+    @bash scripts/ensure_afxdp_built.sh
+    @echo "Starting AF_XDP TX on {{IFACE}} q{{QUEUE}} (require-zc=1)"
+    sudo -n realsrc/packetfs/network/afxdp/user/build/pfs_afxdp_tx --iface "{{IFACE}}" --queue "{{QUEUE}}" --frame-size "{{FRAME}}" --ndescs "{{NDESCS}}" --require-zc 1 --busy-poll-ms "{{BUSY_POLL_MS}}" --duration-s "{{DURATION_S}}"
+
+# Quickstart: build, attach, run RX (zerocopy required) for 10s, then detach
+pfs-afxdp-quickstart IFACE="{{IFACE}}" QUEUE="{{QUEUE}}":
+    scripts/afxdp_verify_iface.sh "{{IFACE}}"
+    just net-build-afxdp
+    sudo -n {{LOADER_BIN}} attach --iface "{{IFACE}}" --mode "drv" --obj "{{BPF_OBJ}}" --prog "{{PROG}}" --pin "{{PIN}}"
+    @echo "[quickstart] Running RX for 10 seconds (zerocopy required)..."
+    timeout 10 sudo -n realsrc/packetfs/network/afxdp/user/build/pfs_afxdp_rx --iface "{{IFACE}}" --queue "{{QUEUE}}" --frame-size 2048 --ndescs 4096 --require-zc 1 || true
+    sudo -n {{LOADER_BIN}} detach --iface "{{IFACE}}"
+    @echo "[quickstart] Done"
+

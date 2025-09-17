@@ -1,0 +1,23 @@
+# UI tooling
+
+# UI tests with Python Playwright
+ui-setup:
+    {{VENV_PATH}}/bin/python -m pip install -U pytest playwright
+    {{VENV_PATH}}/bin/playwright install --with-deps chromium
+
+ui-test:
+    {{VENV_PATH}}/bin/python -m pytest -q tests/ui/test_quic_ui.py
+
+# Rebuild UI static assets into .build/ui
+ui-rebuild:
+    bash scripts/ui/rebuild.sh
+
+# Dispatcher: `just ui <cmd>`
+ui cmd="help":
+    @bash -eu -o pipefail -c '
+    case "{{cmd}}" in \
+      setup) just ui-setup ;; \
+      test|tests) just ui-test ;; \
+      rebuild|build) just ui-rebuild ;; \
+      *) echo "ui commands: setup|test|rebuild"; exit 2 ;; \
+    esac'

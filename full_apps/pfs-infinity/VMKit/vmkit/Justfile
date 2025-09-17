@@ -1,0 +1,33 @@
+# VMKit test automation tasks
+
+# Default recipe to display help
+default:
+    @just --list
+
+# Run all tests
+test: test-vm-lifecycle test-resource-alloc test-passthrough test-networks test-storage
+    @echo "All tests completed!"
+
+# Test basic VM lifecycle operations
+test-vm-lifecycle:
+    pytest tests/test_vm_lifecycle.py -v
+
+# Test resource allocation features
+test-resource-alloc:
+    pytest tests/test_resource_allocation.py -v
+
+# Test device passthrough functionality
+test-passthrough:
+    pytest tests/test_passthrough.py -v
+
+# Test network management
+test-networks:
+    pytest tests/test_networks.py -v
+
+# Test storage operations
+test-storage:
+    pytest tests/test_storage.py -v
+
+# Clean up test VMs and resources
+clean:
+    python -c "from vmkit import SecureVM; SecureVM.cleanup_test_vms()"

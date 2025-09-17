@@ -1,6 +1,0 @@
-2025/08/30-06:19:46.163 26f31f Creating DB /home/punk/.config/opera/Default/IndexedDB/https_jagathishsaravanan.medium.com_0.indexeddb.leveldb since it was missing.
-2025/08/30-06:19:46.167 26f31f Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_jagathishsaravanan.medium.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/08/30-06:20:06.483 26f31f Level-0 table #5: started
-2025/08/30-06:20:06.484 26f31f Level-0 table #5: 12946 bytes OK
-2025/08/30-06:20:06.486 26f31f Delete type=0 #3
-2025/08/30-06:20:06.486 26f31f Manual compaction at level-0 from (begin) .. (end); will stop at (end)

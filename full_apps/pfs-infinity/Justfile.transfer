@@ -1,0 +1,39 @@
+# Transfer tooling (PacketFS senders and related)
+
+# Include central variables (ports) and rely on root-level vars for VENV_PATH
+import "./justfile.vars"
+
+# Send an IPROG plan over WebSocket to this receiver
+transfer-send-iprog iprog="" host="127.0.0.1" port="{{WS_PORT}}":
+    @bash -eu -o pipefail -c '
+    if [ -z "{{iprog}}" ]; then echo "usage: just transfer-send-iprog iprog=PATH [host=H port=P]" >&2; exit 2; fi; \
+    {{VENV_PATH}}/bin/pfs-arith-send --iprog "{{iprog}}" --host "{{host}}" --port "{{port}}"'
+
+# QUIC variant
+transfer-send-iprog-quic iprog="" host="127.0.0.1" port="{{QUIC_PORT}}":
+    @bash -eu -o pipefail -c '
+    if [ -z "{{iprog}}" ]; then echo "usage: just transfer-send-iprog-quic iprog=PATH [host=H port=P]" >&2; exit 2; fi; \
+    {{VENV_PATH}}/bin/pfs-arith-send-quic --iprog "{{iprog}}" --host "{{host}}" --port "{{port}}"'
+
+# Install pfcp command (symlink to PATH)
+transfer-install-pfcp:
+    @bash -eu -o pipefail -c "\
+    PFCP_SRC='$(pwd)/scripts/pfcp'; \
+    PFCP_DST='{{VENV_PATH}}/bin/pfcp'; \
+    if [ -f \"\$PFCP_DST\" ] || [ -L \"\$PFCP_DST\" ]; then \
+      echo '[pfcp] Already installed at '\$PFCP_DST; \
+    else \
+      ln -s \"\$PFCP_SRC\" \"\$PFCP_DST\"; \
+      echo '[pfcp] Installed to '\$PFCP_DST; \
+      echo '[pfcp] Usage: pfcp file.txt server:'; \
+    fi"
+
+# Dispatcher: `just transfer <cmd>`
+transfer cmd="help" iprog="" host="127.0.0.1" port="{{WS_PORT}}":
+    @bash -eu -o pipefail -c "\
+    case '{{cmd}}' in \
+      send) just transfer-send-iprog iprog='{{iprog}}' host='{{host}}' port='{{port}}' ;; \
+      send-quic) just transfer-send-iprog-quic iprog='{{iprog}}' host='{{host}}' port='{{port}}' ;; \
+      install-pfcp|install) just transfer-install-pfcp ;; \
+      *) echo 'transfer commands: send|send-quic|install-pfcp'; exit 2 ;; \
+    esac"

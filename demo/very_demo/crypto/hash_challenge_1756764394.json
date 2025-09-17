@@ -1,9 +1,0 @@
-{
-  "type": "hash_preimage",
-  "target_hash": "200e010654ec3008331a30a6ab13d3fda7cfa4bf7c3b7982a401cc6b5c7d090e",
-  "hash_function": "sha256",
-  "difficulty": "research",
-  "hint": "Message contains 'PacketFS-Challenge-1756764394'",
-  "cores_available": 1300000,
-  "estimated_time": "10-60 minutes with PacketFS cores"
-}

@@ -1,0 +1,57 @@
+# Optional VMKit runner (not auto-imported)
+import "./justfile.vars"
+
+# Default help for this Justfile
+_default: (help)
+
+help:
+    @echo "pfs-infinity VMKit helpers"
+    @echo "  just -f Justfile.vm dev-vm-run img=... share_dir=... huge_dir=... port=..."
+    @echo "  just -f Justfile.vm vm-pfsfs-mount mnt=.vm/pfs.mnt iprog_dir=./iprog blob_name=pfs_vblob blob_size=1073741824"
+    @echo "  just -f Justfile.vm vm-pfsfs-up img=pfs-infinity.qcow2 mnt=.vm/pfs.mnt"
+    @echo "  just -f Justfile.vm vm-image-embed-container img=pfs-infinity.qcow2 oci=packetfs/pfs-infinity:latest autostart=1"
+
+# VMKit runner
+# Example usage:
+#   just -f Justfile.vm dev-vm-run img="pfs-infinity.qcow2" share_dir="/srv/pfs-share" huge_dir="/mnt/huge1G" port="8811:8811"
+dev-vm-run img="pfs-infinity.qcow2" share_dir="/srv/pfs-share" huge_dir="/mnt/huge1G" port="{{WS_PORT}}:{{WS_PORT}}":
+    @bash -eu -o pipefail -c '
+    SH="${SHARE:-{{share_dir}}:/share}"; HG="${HUGE:-{{huge_dir}}:/mnt/huge1G}"; \
+    IMG="${IMG:-{{img}}}"; \
+    bash scripts/run_vmkit.sh --share "$SH" --huge "$HG" --port "{{port}}"'
+
+# Mount PacketFS (FUSE) on the host and prepare a share dir for the VM
+# Example:
+#   just -f Justfile.vm vm-pfsfs-mount mnt=".vm/pfs.mnt" iprog_dir="./iprog" blob_name="pfs_vblob" blob_size="1073741824"
+vm-pfsfs-mount mnt=".vm/pfs.mnt" iprog_dir="./iprog" blob_name="pfs_vblob" blob_size="1073741824" blob_seed="1337" window="65536" embed="1":
+    @bash -eu -o pipefail -c '
+    mkdir -p "{{mnt}}" "{{iprog_dir}}"; \
+    bash scripts/pfsfs_mount_host.sh --mnt "{{mnt}}" --iprog-dir "{{iprog_dir}}" --blob-name "{{blob_name}}" --blob-size "{{blob_size}}" --blob-seed "{{blob_seed}}" --window "{{window}}" --embed "{{embed}}"'
+
+# One-command: mount PacketFS on host and boot VM with that share
+# The VM will auto-mount virtiofs share/huge; container inside guest binds them
+vm-pfsfs-up img="pfs-infinity.qcow2" mnt=".vm/pfs.mnt" huge_dir="/mnt/huge1G" port="{{WS_PORT}}:{{WS_PORT}}":
+    @bash -eu -o pipefail -c '
+    just -f Justfile.vm vm-pfsfs-mount mnt="{{mnt}}"; \
+    just -f Justfile.vm dev-vm-run img="{{img}}" share_dir="{{mnt}}" huge_dir="{{huge_dir}}" port="{{port}}"'
+
+# Embed a container image tar into the VM disk and install an import+autostart service
+# Example:
+#   just -f Justfile.vm vm-image-embed-container img=pfs-infinity.qcow2 oci=packetfs/pfs-infinity:latest autostart=1
+vm-image-embed-container img="pfs-infinity.qcow2" oci="packetfs/pfs-infinity:latest" autostart="1" tar="":
+    @bash -eu -o pipefail -c '
+    if ! command -v guestfish >/dev/null 2>&1; then \
+      echo "guestfish (libguestfs-tools) not found. On Ubuntu: sudo apt-get install -y libguestfs-tools" >&2; exit 3; \
+    fi; \
+    mkdir -p .vm; \
+    TARFILE={{tar}}; \
+    if [ -z "$TARFILE" ]; then \
+      if ! podman image exists "{{oci}}" >/dev/null 2>&1; then \
+        echo "[vm-image] pulling {{oci}} via podman (per repo rule: Podman > Docker)"; \
+        podman pull "{{oci}}"; \
+      fi; \
+      TARFILE=.vm/pfs-infinity-image.tar; \
+      echo "[vm-image] saving {{oci}} -> $TARFILE"; \
+      podman save -o "$TARFILE" "{{oci}}"; \
+    fi; \
+    bash scripts/vm/image_embed.sh --img "{{img}}" --tar "$TARFILE" --name "{{oci}}" --autostart "{{autostart}}"'

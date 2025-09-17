@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>pfs-infinity — Transfer</title>
+    <link href="https://releases.transloadit.com/uppy/v5.1.1/uppy.min.css" rel="stylesheet" />
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; margin: 2rem; }
+      .row { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+      #log { white-space: pre-wrap; background: #111; color: #ddd; padding: 1rem; border-radius: 8px; min-height: 8rem; }
+      label { width: 9rem; display: inline-block; }
+      input[type=text] { width: 22rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Transfer</h1>
+    <div class="row">
+      <label>Receiver host:</label>
+      <input id="receiver" type="text" placeholder="127.0.0.1" value="127.0.0.1" />
+      <label>WS port:</label>
+      <input id="wsport" type="text" value="8811" />
+    </div>
+    <div id="uppy" />
+    <div class="row">
+      <label>Mode:</label>
+      <select id="mode">
+        <option value="ws">ws</option>
+        <option value="ws-multi">ws-multi</option>
+        <option value="quic">quic</option>
+      </select>
+      <label>QUIC port:</label>
+      <input id="quicport" type="text" value="8853" />
+    </div>
+    <h3>Log</h3>
+    <div id="log"></div>
+
+    <script type="module">
+      import { Uppy, Dashboard, XHRUpload } from 'https://releases.transloadit.com/uppy/v5.1.1/uppy.min.mjs'
+
+      const logEl = document.getElementById('log')
+      const receiverEl = document.getElementById('receiver')
+      const wsportEl = document.getElementById('wsport')
+      const modeSel = document.getElementById('mode')
+      let objectId = null
+
+      function log(msg) {
+        logEl.textContent += msg + '\n'
+        logEl.scrollTop = logEl.scrollHeight
+      }
+
+      const uppy = new Uppy({ autoProceed: false })
+        .use(Dashboard, { target: '#uppy', inline: true, height: 300, showProgressDetails: true, proudlyDisplayPoweredByUppy: false })
+        .use(XHRUpload, {
+          endpoint: '/objects',
+          fieldName: 'file',
+          formData: true,
+          limit: 1,
+          withCredentials: false,
+          headers: {},
+          allowedMetaFields: [],
+        })
+
+      async function triggerTransfer(oid) {
+        try {
+          const peerHost = receiverEl.value.trim() || '127.0.0.1'
+          const wsPort = parseInt(wsportEl.value || '8811', 10)
+          const quicPort = parseInt((document.getElementById('quicport').value || '8853'), 10)
+          const body = {
+            object_id: oid,
+            mode: modeSel.value || 'ws',
+            peer: { host: peerHost, ws_port: wsPort, https_port: wsPort, udp_port: quicPort },
+            timeout_s: 5.0,
+          }
+          log('[transfer] POST /transfers -> ' + JSON.stringify(body))
+          const tx = await fetch('/transfers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+          const txj = await tx.json()
+          log('[transfer] id=' + txj.transfer_id + ' state=' + txj.state)
+          for (let i = 0; i < 10; i++) {
+            await new Promise(r => setTimeout(r, 800))
+            const st = await fetch('/transfers/' + txj.transfer_id)
+            const stj = await st.json()
+            if (stj && stj.details) {
+              const d = stj.details
+              const eff = d.eff_bytes_per_s || 0
+              const planbps = d.plan_bytes_per_s || 0
+              const speed = d.speedup_vs_raw || 0
+              const path = d.path || '—'
+              const sz = d.object_size || 0
+              const pb = d.plan_bytes || 0
+              const el = d.elapsed_s || 0
+              const pct = speed ? ((speed - 1) * 100).toFixed(1) : '0.0'
+              log(`[status] state=${stj.state} path=${path} size=${sz}B plan=${pb}B elapsed=${el.toFixed(2)}s`)
+              log(`[metrics] eff=${(eff/1e6).toFixed(2)} MB/s on-wire=${(planbps/1e6).toFixed(2)} MB/s speedup=${speed.toFixed(2)}x (+${pct}%)`)
+            } else {
+              log('[status] ' + JSON.stringify(stj))
+            }
+            if (stj.state === 'success' || stj.state === 'failed') break
+          }
+        } catch (e) {
+          log('[error] ' + e)
+        }
+      }
+
+      uppy.on('file-added', (file) => {
+        log('[uppy] file added: ' + file.name + ' (' + file.size + ' bytes)')
+      })
+
+      uppy.on('upload-success', (file, response) => {
+        try {
+          const body = response && response.body ? response.body : null
+          objectId = body && body.object_id ? body.object_id : null
+          log('[upload] object_id=' + (objectId || 'unknown'))
+          if (objectId) {
+            triggerTransfer(objectId)
+          } else {
+            log('[upload] missing object_id in response')
+          }
+        } catch (e) {
+          log('[upload] parse error: ' + e)
+        }
+      })
+
+      uppy.on('error', (err) => {
+        log('[uppy:error] ' + err)
+      })
+    </script>
+  </body>
+</html>

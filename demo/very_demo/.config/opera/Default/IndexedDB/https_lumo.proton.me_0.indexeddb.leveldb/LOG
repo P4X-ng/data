@@ -1,6 +1,0 @@
-2025/08/28-09:51:34.726 17245 Creating DB /home/punk/.config/opera/Default/IndexedDB/https_lumo.proton.me_0.indexeddb.leveldb since it was missing.
-2025/08/28-09:51:34.729 17245 Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_lumo.proton.me_0.indexeddb.leveldb/MANIFEST-000001
-2025/08/28-22:02:08.165 17247 Level-0 table #5: started
-2025/08/28-22:02:08.171 17247 Level-0 table #5: 182259 bytes OK
-2025/08/28-22:02:08.173 17247 Delete type=0 #3
-2025/08/28-22:02:08.173 17247 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

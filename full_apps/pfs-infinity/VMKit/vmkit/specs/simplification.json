@@ -1,0 +1,314 @@
+{
+  "access_control": {
+    "admin": {
+      "description": "Root users or passwordless sudo users",
+      "method": "root-or-passwordless-sudo",
+      "permissions": "full-root"
+    },
+    "developer": {
+      "description": "Users with sudo access to everything",
+      "method": "sudoers-file",
+      "permissions": "full-with-sudo"
+    },
+    "user": {
+      "description": "Normal users without sudo, no system namespace access",
+      "method": "linux-user-permissions",
+      "permissions": "namespace-restricted"
+    },
+    "watcher": {
+      "description": "Users with list/read-only access to directories",
+      "method": "linux-file-permissions",
+      "permissions": "read-only"
+    }
+  },
+  "configuration": {
+    "compatibility": "kubernetes-yaml-drop-in",
+    "principle": "key-items-only",
+    "validation": "ignore-non-essential"
+  },
+  "constraints": [
+    {
+      "action": "reject",
+      "condition": "metadata.name != null",
+      "name": "require_name"
+    },
+    {
+      "action": "reject",
+      "condition": "all(containers, .image != null)",
+      "name": "container_image_required"
+    }
+  ],
+  "container_runtime": {
+    "cli": "nerdctl",
+    "export_to": "containerd",
+    "primary": "podman"
+  },
+  "defaults": {
+    "apiVersion": "v1",
+    "kind": "Container",
+    "metadata.namespace": "default",
+    "spec.containers[].imagePullPolicy": "IfNotPresent",
+    "spec.replicas": 1,
+    "spec.restartPolicy": "Always"
+  },
+  "deployment": {
+    "method": "untar-and-run",
+    "requirements": [
+      "ssh-keys",
+      "sudo-or-root"
+    ],
+    "service": "kubelet-as-root"
+  },
+  "fields": {
+    "metadata.name": {
+      "description": "Resource name",
+      "required": true
+    },
+    "metadata.namespace": {
+      "default": "default",
+      "description": "Kubernetes namespace",
+      "required": false
+    },
+    "spec.containers": {
+      "description": "Container specifications",
+      "required": true
+    },
+    "spec.replicas": {
+      "default": 1,
+      "description": "Number of replicas",
+      "required": false
+    },
+    "spec.selector": {
+      "description": "Auto-generated selector",
+      "required": false,
+      "transforms": [
+        "compute"
+      ]
+    }
+  },
+  "job_system": {
+    "compatibility": "kubernetes-job-configs",
+    "pattern": "consumer-producer",
+    "queue": "redis"
+  },
+  "kubectl_integration": {
+    "base_project": "/home/punk/Projects/VMKit",
+    "functions": [
+      "view-pods",
+      "interact-pods",
+      "list-pods",
+      "add-pods"
+    ],
+    "reference_file": "kubectl.py",
+    "vm_support": "full-passthrough-vms"
+  },
+  "metadata": {
+    "description": "Simplified Kubernetes implementation with SSH-based security",
+    "language": "Python",
+    "project": "KubeSimpl",
+    "target": "Ubuntu 24.04 LTS"
+  },
+  "networking": {
+    "api": {
+      "bind": "localhost-only",
+      "protection": "ssh-tunnel-required",
+      "protocol": "http",
+      "ssl": "self-signed-in-ca-store"
+    },
+    "containers": {
+      "isolation": "local-only-subnet",
+      "mode": "host-networking",
+      "pod_subnet": "192.168.0.0/24"
+    }
+  },
+  "performance": {
+    "chattiness": "minimal-network-chatter",
+    "coordination": "redis-cluster",
+    "preferences": [
+      "data-locality",
+      "resource-availability",
+      "minimal-os"
+    ],
+    "scheduling": "resource-aware-distribution"
+  },
+  "presets": {
+    "batch-job": {
+      "config": {
+        "kind": "Job",
+        "spec": {
+          "completions": 1,
+          "parallelism": 1
+        }
+      },
+      "description": "Batch processing job"
+    },
+    "web-app": {
+      "config": {
+        "containers": [
+          {
+            "ports": [
+              {
+                "containerPort": 8080
+              }
+            ]
+          }
+        ],
+        "replicas": 3
+      },
+      "description": "Standard web application"
+    }
+  },
+  "removals": {
+    "components": [
+      "kube-proxy",
+      "linux-namespaces",
+      "etcd",
+      "rbac",
+      "certificates",
+      "scheduler",
+      "controller-manager"
+    ],
+    "features": [
+      "acls",
+      "rbac",
+      "certificate-auth",
+      "pods",
+      "complex-networking"
+    ]
+  },
+  "replacements": {
+    "authentication": {
+      "from": "certificates",
+      "to": "ssh-keys"
+    },
+    "coordination": {
+      "from": "api-server",
+      "to": "redis-cluster"
+    },
+    "datastore": {
+      "from": "etcd",
+      "to": "rocksdb"
+    },
+    "networking": {
+      "from": "kube-proxy",
+      "to": "host-networking"
+    },
+    "orchestration": {
+      "from": "pods",
+      "to": "containers"
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "simplified": true
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "simplified": true
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "simplified": true
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "simplified": true
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Secret",
+      "simplified": true
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "simplified": true
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "simplified": true
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "simplified": true
+    }
+  ],
+  "simplified_resources": {
+    "containers": {
+      "health_checks": "central-monitor-container",
+      "replaces": "pods"
+    },
+    "services": {
+      "implementation": "containers-with-service"
+    },
+    "statefulsets": {
+      "coordination": "redis-queue",
+      "purpose": "distributed-containers"
+    }
+  },
+  "specVersion": "1.0",
+  "transforms": {
+    "compute": {
+      "spec.selector": "matchLabels: {app: '${metadata.name}'}"
+    },
+    "drop": [
+      "metadata.uid",
+      "metadata.resourceVersion",
+      "metadata.generation",
+      "metadata.creationTimestamp",
+      "metadata.managedFields",
+      "status"
+    ],
+    "rename": {
+      "metadata.name": "name",
+      "metadata.namespace": "namespace",
+      "spec.containers": "containers",
+      "spec.replicas": "replicas"
+    },
+    "template": {
+      "metadata.labels": "{app: '${metadata.name}'}"
+    }
+  },
+  "vocabulary": {
+    "container": [
+      "pod",
+      "workload",
+      "compute-unit"
+    ],
+    "monitoring": [
+      "observability",
+      "metrics",
+      "logging",
+      "health-checks"
+    ],
+    "network": [
+      "networking",
+      "connectivity",
+      "service-mesh"
+    ],
+    "orchestration": [
+      "scheduling",
+      "deployment",
+      "management"
+    ],
+    "security": [
+      "auth",
+      "authentication",
+      "authorization",
+      "rbac"
+    ],
+    "storage": [
+      "disk",
+      "volume",
+      "pv",
+      "pvc"
+    ]
+  }
+}

@@ -1,0 +1,232 @@
+import redis
+import psycopg2
+from fastapi import Request, Response
+
+class CachingPlugin:
+    def __init__(self, redis_url, postgres_conn_str):
+        self.redis = redis.Redis.from_url(redis_url)
+        self.postgres = psycopg2.connect(postgres_conn_str)
+        self.postgres_cursor = self.postgres.cursor()
+        print(f"Initializing {self.__name__}")
+
+    def cache_request(self, key, value):
+        # Cache response in Redis
+        self.redis.set(key, value)
+
+    def get_cache(self, key):
+        # Get cached response
+        return self.redis.get(key)
+
+    def log_request(self, method, url, status_code):
+        # Log request details in PostgreSQL
+        query = """INSERT INTO request_logs (method, url, status_code)
+                   VALUES (%s, %s, %s)"""
+        self.postgres_cursor.execute(query, (method, url, status_code))
+        self.postgres.commit()
+
+    async def handle_request(self, request: Request, response: Response):
+        key = request.url.path
+
+        cached_response = self.get_cache(key)
+        if cached_response:
+            return Response(content=cached_response, media_type='application/json')
+
+        # Log request
+        self.log_request(request.method, str(request.url), response.status_code)
+
+        # Cache the response
+        self.cache_request(key, response.body)
+        return response
+import brotli
+import gzip
+from fastapi import Request, Response
+import torch
+
+class CompressionPlugin:
+    def __init__(self):
+        pass
+    
+    def compress_data(self, data, method='brotli'):
+        if method == 'brotli':
+            # Using Brotli compression
+            return brotli.compress(data)
+        elif method == 'gzip':
+            # Using Gzip compression
+            return gzip.compress(data)
+        else:
+            raise ValueError(f"Unknown compression method: {method}")
+
+    async def handle_request(self, request: Request, response: Response):
+        data = await request.body()
+
+        # Use GPU for intensive compression tasks
+        if torch.cuda.is_available():
+            compressed_data = self.compress_data(data, method='brotli')  # Using Brotli by default
+        else:
+            compressed_data = self.compress_data(data, method='gzip')  # Fallback to Gzip if no GPU
+
+        response.body = compressed_data
+        response.headers['Content-Encoding'] = 'br' if 'brotli' in request.headers.get('Accept-Encoding', '') else 'gzip'
+        return response
+from hypercorn.config import Config
+from hypercorn.asyncio import serve
+from fastapi import FastAPI
+
+class HTTP2MultiplexingPlugin:
+    def __init__(self, app: FastAPI):
+        self.app = app
+
+    def start_http2_server(self, app, host="0.0.0.0", port=8080):
+        config = Config()
+        config.bind = [f"{host}:{port}"]
+        config.alpn_protocols = ["h2"]  # Enable HTTP/2
+        
+        # Use Hypercorn to serve with HTTP/2
+        return serve(app, config)
+import socket
+from urllib.parse import unquote
+from fastapi import FastAPI, Request, Response
+
+app = FastAPI()
+
+@app.route("/{full_path:path}", methods=["CONNECT"])
+async def handle_connect(request: Request, full_path: str):
+    # Decode the URL (for example, converting %3A to :)
+    full_path_decoded = unquote(full_path)
+
+    # Extract the host and port
+    try:
+        host, port = full_path_decoded.split(":")
+        port = int(port)
+    except ValueError:
+        return Response(content="Invalid CONNECT request format", status_code=400)
+
+    # Create a connection to the target server
+    try:
+        upstream = socket.create_connection((host, port))
+
+        # Send the 200 Connection Established response back to the client
+        client_connection = request.scope["client"]
+        client_socket = client_connection[1]
+        client_socket.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+
+        # Start tunneling traffic between the client and the upstream server
+        while True:
+            # Read from client and forward to upstream
+            data_from_client = client_socket.recv(4096)
+            if not data_from_client:
+                break
+            upstream.sendall(data_from_client)
+
+            # Read from upstream and forward to client
+            data_from_upstream = upstream.recv(4096)
+            if not data_from_upstream:
+                break
+            client_socket.sendall(data_from_upstream)
+
+    except Exception as e:
+        return Response(content=f"Failed to establish connection: {str(e)}", status_code=500)
+
+    finally:
+        upstream.close()
+
+    return Response(content="Connection closed", status_code=200)
+
+if __name__ == "__main__":
+    hypercorn optimize:app --bind 0.0.0.0:8888 --workers 8
+-----BEGIN CERTIFICATE-----
+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
+-----END CERTIFICATE-----
+#!/bin/bash
+
+pproxy --reuse -l 'socks5://10.1.1.111:8888' -ur "socks5://10.1.1.111:8888" -r "http" -v -d --sys --ssl registry.hg.local.crt 
+#!/bin/bash
+
+# Install Redis
+echo "Installing Redis..."
+sudo apt update
+sudo apt install -y redis-server
+
+# Start and enable Redis service
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+
+# Verify Redis is running
+redis_status=$(sudo systemctl is-active redis-server)
+if [ "$redis_status" != "active" ]; then
+  echo "Error: Redis failed to start."
+  exit 1
+fi
+echo "Redis is running."
+
+# Install Caddy (if not installed)
+echo "Installing Caddy..."
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo apt-key add -
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/deb/debian/caddy.list' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install -y caddy
+
+# Set up Caddy configuration
+echo "Configuring Caddy..."
+sudo tee /etc/caddy/Caddyfile > /dev/null <<EOL
+{
+  order before rewrite
+}
+
+localhost:9443 {
+  cache {
+    type redis
+    endpoint 127.0.0.1:6379
+    key_prefix my_cache
+    default_ttl 600s
+  }
+
+  encode gzip zstd brotli
+
+  reverse_proxy http://localhost {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  file_server
+}
+EOL
+
+# Restart Caddy to apply configuration
+echo "Restarting Caddy..."
+sudo systemctl restart caddy
+
+echo "Setup complete! Redis and Caddy are now running."

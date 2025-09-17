@@ -1,8 +1,0 @@
-setuptools>=68
-wheel
-pytest
-matplotlib
-seaborn
-pandas
-numpy
-psutil

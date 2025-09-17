@@ -1,6 +1,0 @@
-2025/08/30-12:06:51.419 7184 Reusing MANIFEST /home/punk/.config/opera/Default/IndexedDB/https_drive.google.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/08/30-12:06:51.420 7184 Recovering log #3
-2025/08/30-12:06:51.424 7184 Reusing old log /home/punk/.config/opera/Default/IndexedDB/https_drive.google.com_0.indexeddb.leveldb/000003.log 
-2025/08/30-22:56:23.652 7183 Level-0 table #5: started
-2025/08/30-22:56:23.660 7183 Level-0 table #5: 4023581 bytes OK
-2025/08/30-22:56:23.665 7183 Delete type=0 #3

@@ -79,6 +79,11 @@ local/
 .realsrc_build/
 build-*/
 
+# AF_XDP production build outputs
+realsrc/packetfs/network/afxdp/bpf/build/
+realsrc/packetfs/network/afxdp/loader/build/
+realsrc/packetfs/network/afxdp/user/build/
+
 # Exclude transient junk inside fake_trash
 fake_trash/**/tmp*
 fake_trash/**/build/

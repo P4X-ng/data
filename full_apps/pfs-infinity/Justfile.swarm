@@ -1,0 +1,25 @@
+# VMKit swarms
+
+# Include central variables
+import "./justfile.vars"
+
+# VMKit OSv/Linux swarm (agents inside microVMs launching containerized worker)
+swarm-up replicas="2" img="pfs-infinity.qcow2" coord_url="http://127.0.0.1:{{WS_PORT}}" cpu="2" mem="4096" lease_n="25" ua="pfs-spider" ignore_robots="0":
+    bash scripts/spider_vmkit_squad.sh up --img "{{img}}" --replicas "{{replicas}}" --coord "{{coord_url}}" --cpu "{{cpu}}" --mem "{{mem}}" --lease-n "{{lease_n}}" --ua "{{ua}}" --ignore-robots "{{ignore_robots}}" --mode linux-container
+
+# OSv image swarm variant (requires prebuilt OSv image with agent autostart)
+swarm-up-osv replicas="2" img="spider-osv.img" cpu="2" mem="2048":
+    bash scripts/spider_vmkit_squad.sh up --img "{{img}}" --replicas "{{replicas}}" --cpu "{{cpu}}" --mem "{{mem}}" --mode osv
+
+swarm-down:
+    bash scripts/spider_vmkit_squad.sh down
+
+# Dispatcher: `just swarm <cmd>`
+swarm cmd="help":
+    @bash -eu -o pipefail -c '
+    case "{{cmd}}" in \
+      up) just swarm-up ;; \
+      up-osv) just swarm-up-osv ;; \
+      down) just swarm-down ;; \
+      *) echo "swarm commands: up|up-osv|down"; exit 2 ;; \
+    esac'

@@ -1,9 +1,0 @@
-{
-  "version": "1.0",
-  "packet_size": 64,
-  "wire_speed_bps": 100000000000,
-  "compression_enabled": true,
-  "execution_mode": "packet_native",
-  "network_topology": "mesh",
-  "mount_point": "/tmp/packetfs"
-}

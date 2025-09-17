@@ -1,0 +1,1 @@
+savedcmd_r816x_peek.ko := ld -r -m elf_x86_64 -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T /usr/src/linux-headers-6.14.0-29-generic/scripts/module.lds -o r816x_peek.ko r816x_peek.o r816x_peek.mod.o .module-common.o

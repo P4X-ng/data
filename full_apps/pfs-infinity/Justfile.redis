@@ -1,0 +1,11 @@
+# Optional Redis lifecycle (not auto-imported)
+import "./justfile.vars"
+
+# Local Redis lifecycle via helper script
+_dev_redis := "bash scripts/dev_redis.sh"
+
+dev-redis-up:
+    {{_dev_redis}} up
+
+dev-redis-down:
+    {{_dev_redis}} down

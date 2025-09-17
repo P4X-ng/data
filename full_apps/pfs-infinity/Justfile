@@ -1,0 +1,50 @@
+# Central variables include
+import "../../Justfile.vars"
+
+# Focused imports: only core file transfer
+import "Justfile.dev"
+import "Justfile.transfer"
+
+# Optional concepts (uncomment to enable)
+# import "Justfile.prod"    # container image build/run
+# import "Justfile.kube"    # kubernetes / podman play kube
+# import "Justfile.ui"      # UI tooling and tests
+# import "Justfile.spider"  # spider/crawler coordinator
+# import "Justfile.swarm"   # VMKit swarm/agents
+# import "Justfile.redis"   # local redis lifecycle
+# import "Justfile.vm"      # VMKit single runner
+
+# Default shows help
+help:
+    @echo "pfs-infinity Just commands (core: dev, transfer)"
+    just --list
+
+# Convenience alias: quick send (WS)
+send iprog="" host="127.0.0.1" port="{{WS_PORT}}":
+    @bash -eu -o pipefail -c '
+    if [ -z "{{iprog}}" ]; then echo "usage: just send iprog=PATH [host=H port=P]" >&2; exit 2; fi; \
+    just transfer send iprog="{{iprog}}" host="{{host}}" port="{{port}}"'
+
+# Install pfcp command
+install-pfcp:
+    just transfer install-pfcp
+
+# Install the universal PFS wrapper
+install-pfs:
+    @echo "🚀 Installing PFS universal wrapper..."
+    @ln -sf $(pwd)/scripts/pfs {{VENV_PATH}}/bin/pfs 2>/dev/null || true
+    @ln -sf $(pwd)/scripts/pfcp {{VENV_PATH}}/bin/pfcp 2>/dev/null || true
+    @ln -sf $(pwd)/scripts/pfcp-ssh {{VENV_PATH}}/bin/pfcp-ssh 2>/dev/null || true
+    @ln -sf $(pwd)/scripts/pfcp-smart {{VENV_PATH}}/bin/pfcp-smart 2>/dev/null || true
+    @ln -sf $(pwd)/scripts/pfsshfs {{VENV_PATH}}/bin/pfsshfs 2>/dev/null || true
+    @echo "✅ PFS tools installed!"
+    @echo ""
+    @echo "Usage examples:"
+    @echo "  pfs rsync -avz source/ dest/     # 95% less bandwidth"
+    @echo "  pfs git clone https://...         # Clone with compression"
+    @echo "  pfs docker pull ubuntu            # Compressed containers"
+    @echo "  pfs ssh user@server               # SSH with compression"
+    @echo "  pfcp file.txt server:             # SCP replacement"
+    @echo "  pfsshfs user@server:/path /mnt   # Mount with compression"
+
+default: help

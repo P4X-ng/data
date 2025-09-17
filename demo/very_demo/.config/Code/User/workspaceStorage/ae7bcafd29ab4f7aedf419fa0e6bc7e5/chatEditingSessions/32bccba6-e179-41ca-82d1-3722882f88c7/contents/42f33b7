@@ -1,6 +1,0 @@
-[console_scripts]
-bluetooth-kill = rfkilla.bluetooth_kill:main
-rfkilla = rfkilla.rfkilla:main
-rfkilla-cli = rfkilla.cli:cli
-rogue-confuser = rfkilla.rogue_confuser:main
-wifi-blocker = rfkilla.wifi_blocker:main

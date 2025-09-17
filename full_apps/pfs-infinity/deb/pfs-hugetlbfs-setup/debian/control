@@ -1,0 +1,15 @@
+Source: pfs-hugetlbfs-setup
+Section: admin
+Priority: optional
+Maintainer: PacketFS <ops@packetfs.local>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://example.com/packetfs
+Rules-Requires-Root: no
+
+Package: pfs-hugetlbfs-setup
+Architecture: all
+Depends: ${misc:Depends}, procps, systemd
+Description: Configure hugetlbfs mount for PacketFS
+ Installs sysctl defaults and a hugetlbfs mount unit under /mnt/huge1G.
+ Falls back to /dev/hugepages on systems without 1GiB hugepages.

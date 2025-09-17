@@ -1,5 +1,0 @@
-include requirements.txt
-recursive-include rfkilla *.py
-recursive-include rfkilla *.json *.yaml *.yml
-recursive-include rfkilla/data *
-recursive-include rfkilla/templates *

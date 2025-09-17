@@ -1,0 +1,27 @@
+# Spider (crawler/agent) tasks
+
+# Include central variables (ports)
+import "./justfile.vars"
+
+# Dev server with spider enabled (moved from Justfile.dev)
+spider-up:
+    @echo "Starting pfs-infinity dev server (spider enabled) on http://127.0.0.1:{{WS_PORT}}"
+    just dev-redis-up
+    PFS_ENABLE_SPIDER=1 REDIS_URL=${REDIS_URL:-redis://127.0.0.1:{{REDIS_PORT}}/0} PYTHONPATH=. {{VENV_PATH}}/bin/hypercorn -b 127.0.0.1:{{WS_PORT}} app.main:app --reload
+
+# Back-compat alias
+up-spider:
+    just spider up
+
+# Run spider agent worker directly (local, outside VM)
+spider-worker:
+    REDIS_URL=${REDIS_URL:-redis://127.0.0.1:{{REDIS_PORT}}/0} {{VENV_PATH}}/bin/python -m app.agents.worker
+
+# Dispatcher: `just spider <cmd>`
+spider cmd="help":
+    @bash -eu -o pipefail -c '
+    case "{{cmd}}" in \
+      up) just spider-up ;; \
+      worker) just spider-worker ;; \
+      *) echo "spider commands: up|worker"; exit 2 ;; \
+    esac'
