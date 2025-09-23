@@ -3,17 +3,38 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>pfs-infinity — Transfer</title>
+    <title>F3 Infinite Storage — Transfer</title>
     <link href="https://releases.transloadit.com/uppy/v5.1.1/uppy.min.css" rel="stylesheet" />
+    <link rel="icon" href="/static/f3_logo.png" type="image/png" />
     <style>
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; margin: 2rem; }
       .row { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
       #log { white-space: pre-wrap; background: #111; color: #ddd; padding: 1rem; border-radius: 8px; min-height: 8rem; }
       label { width: 9rem; display: inline-block; }
       input[type=text] { width: 22rem; }
+    /* Brand bar */
+    .brand-bar { display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #ccc; padding-bottom: .5rem; margin-bottom: 1rem; }
+    .brand-bar .logo { height: 40px; width: auto; }
+    .brand-bar .brand-title { font-size: 22px; font-weight: 700; margin: 0; }
+    .brand-bar .brand-sub { font-size: 12px; opacity: 0.8; margin: 0; }
+    .brand-bar nav a { margin-right: .75rem; text-decoration: none; color: #0366d6; }
+    .brand-bar nav a:hover { text-decoration: underline; }
     </style>
   </head>
   <body>
+    <header class="brand-bar">
+      <img src="/static/f3_logo.png" alt="F3 Infinite Storage" class="logo" />
+      <div>
+        <div class="brand-title">F3 Infinite Storage</div>
+        <div class="brand-sub">PacketFS control</div>
+      </div>
+      <nav style="margin-left:auto;">
+        <a href="/static/transfer-v2.html">Home</a>
+        <a href="/static/transfer-v2.html">Transfer</a>
+        <a href="/static/cluster.html">Cluster</a>
+        <a href="/static/terminal.html">Terminal</a>
+      </nav>
+    </header>
     <h1>Transfer</h1>
     <div class="row">
       <label>Receiver host:</label>

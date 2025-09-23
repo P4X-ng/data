@@ -5,7 +5,7 @@ import pickle
 import struct
 from pathlib import Path
 
-# Planner: emit blueprint.json using {id, xor imm8, add imm8}; 4KB windows, k=4 index.
+# Planner: emit blueprint.json using {id, xor imm8, add imm8}; default 4KB windows.
 
 def rh4(b: bytes) -> int:
     x = struct.unpack('<I', b)[0]
@@ -15,7 +15,7 @@ def rh4(b: bytes) -> int:
     return x
 
 
-def try_match_with_anchor(win: bytes, blob: bytes, anchor: int, cand_offsets: list[int]):
+def try_match_with_anchor(win: bytes, blob: bytes, anchor: int, cand_offsets: list[int], confirm_len: int = 128):
     """Attempt match at a given anchor within the window using candidate blob offsets.
     Returns (off_win, imm8, mode) where off_win is blob offset corresponding to win[0]."""
     if anchor < 0 or anchor + 4 > len(win):
@@ -23,9 +23,9 @@ def try_match_with_anchor(win: bytes, blob: bytes, anchor: int, cand_offsets: li
     # identity
     for off in cand_offsets:
         off_win = off - anchor
-        if off_win < 0 or off_win + 64 > len(blob):
+        if off_win < 0 or off_win + confirm_len > len(blob):
             continue
-        if blob[off_win:off_win+64] == win[:64]:
+        if blob[off_win:off_win+confirm_len] == win[:confirm_len]:
             return (off_win, 0, 'id')
     # xor imm8
     sample_pos = (0, 7, 15, 31)
@@ -35,7 +35,7 @@ def try_match_with_anchor(win: bytes, blob: bytes, anchor: int, cand_offsets: li
             continue
         key0 = win[sample_pos[0]] ^ blob[off_win + sample_pos[0]]
         if all((win[sp] ^ blob[off_win + sp]) == key0 for sp in sample_pos[1:]):
-            limit = min(128, len(win), len(blob) - off_win)
+            limit = min(confirm_len, len(win), len(blob) - off_win)
             if all((win[j] ^ key0) == blob[off_win + j] for j in range(limit)):
                 return (off_win, key0 & 0xFF, 'xor')
     # add imm8
@@ -45,7 +45,7 @@ def try_match_with_anchor(win: bytes, blob: bytes, anchor: int, cand_offsets: li
             continue
         key0 = (win[sample_pos[0]] - blob[off_win + sample_pos[0]]) & 0xFF
         if all(((win[sp] - blob[off_win + sp]) & 0xFF) == key0 for sp in sample_pos[1:]):
-            limit = min(128, len(win), len(blob) - off_win)
+            limit = min(confirm_len, len(win), len(blob) - off_win)
             if all(((blob[off_win + j] + key0) & 0xFF) == win[j] for j in range(limit)):
                 return (off_win, key0 & 0xFF, 'add')
     return None
@@ -74,7 +74,7 @@ def main() -> int:
     n = len(data)
     out = []
     raw_spill = 0
-    anchors = (0, 64, 128, 256)
+    anchors = (0, 16, 32, 64, 128, 256)
     while pos < n:
         win = data[pos:pos+args.win]
         if len(win) < 32:
@@ -107,18 +107,29 @@ def main() -> int:
                     if m:
                         break
         if m is None:
-            out.append({"mode":"raw","offset":None,"len":len(win)})
+            # no match → raw
+            new_seg = {"mode":"raw","offset":None,"len":len(win)}
+            if out and out[-1]['mode'] == 'raw':
+                out[-1]['len'] += new_seg['len']
+            else:
+                out.append(new_seg)
             raw_spill += len(win)
         else:
             off, key, mode = m
-            # grow forward as long as contiguous matches hold to coalesce
             seg_len = len(win)
-            # simple coalesce attempt over next window only
-            # (full coalesce would slide; keep minimal for now)
-            seg = {"mode":mode, "offset":off, "len":seg_len}
+            new_seg = {"mode":mode, "offset":off, "len":seg_len}
             if mode != 'id':
-                seg["imm8"] = key
-            out.append(seg)
+                new_seg["imm8"] = key
+            # coalesce with previous if contiguous and same mode (+imm)
+            if out and out[-1]['mode'] == mode and out[-1]['mode'] != 'raw':
+                prev = out[-1]
+                same_imm = (('imm8' not in prev and 'imm8' not in new_seg) or (prev.get('imm8') == new_seg.get('imm8')))
+                if same_imm and prev['offset'] + prev['len'] == new_seg['offset']:
+                    prev['len'] += new_seg['len']
+                else:
+                    out.append(new_seg)
+            else:
+                out.append(new_seg)
         pos += len(win)
 
     plan = {

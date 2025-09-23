@@ -1,6 +1,8 @@
 # PacketFS root orchestrator (single-target steps, no inline chaining)
 
 # Import split justfiles (network, builds, tests, cleanup, dev) if present
+import ./Justfile.vars
+import ./Justfile.bench
 
 # (Variables imported from Justfile.vars)
 
@@ -216,6 +218,116 @@ reinstall:
 
 # Build WIP native tools into bin/
 build-wip-native:
+    @echo "Building WIP native executables"
+    mkdir -p bin
+    {{CC}} {{CFLAGS}} {{INCLUDES}} -o bin/memory_executor dev/wip/native/memory_executor.c
+    {{CC}} {{CFLAGS}} {{INCLUDES}} -o bin/micro_executor dev/wip/native/micro_executor.c
+    {{CC}} {{CFLAGS}} {{INCLUDES}} -o bin/swarm_coordinator dev/wip/native/swarm_coordinator.c
+    {{CC}} {{CFLAGS}} {{INCLUDES}} -o bin/llvm_parser dev/wip/native/llvm_parser.c dev/wip/native/llvm_cli.c
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Irealsrc/packetfs -o dev/wip/native/pfs_shm_ring_bench \
+      src/dev/wip/native/pfs_shm_ring_bench.c \
+      realsrc/packetfs/ring/pfs_shm_ring.c \
+      realsrc/packetfs/memory/pfs_hugeblob.c \
+      realsrc/packetfs/pcpu/pfs_pcpu.c
+
+# Build pfs_fastpath kernel module (out-of-tree)
+build-fastpath-mod:
+    @echo "Building kernel module pfs_fastpath"
+    @bash -eu -o pipefail -c 'd={{justfile_directory()}}/src/dev/kernel/pfs_fastpath; make -C /lib/modules/$(uname -r)/build M=$$d modules'
+
+# Reload pfs_fastpath (requires sudo)
+reload-fastpath:
+    @echo "Reloading pfs_fastpath (sudo)"
+    -sudo rmmod pfs_fastpath || true
+    sudo insmod {{justfile_directory()}}/src/dev/kernel/pfs_fastpath/pfs_fastpath.ko || sudo modprobe pfs_fastpath
+
+# Build fastpath user tools (TX/RX)
+build-fastpath-tools:
+    @echo "Building fastpath TX/RX user tools"
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o dev/wip/native/pfs_stream_fastpath_tx \
+      dev/wip/native/pfs_stream_fastpath_tx.c \
+      src/packetfs/memory/pfs_hugeblob.c \
+      src/packetfs/gram/pfs_gram.c
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o dev/wip/native/pfs_stream_fastpath_rx \
+      dev/wip/native/pfs_stream_fastpath_rx.c \
+      src/packetfs/memory/pfs_hugeblob.c \
+      src/packetfs/pcpu/pfs_pcpu.c
+
+# Build staging program-carrying fastpath tools
+build-staging-fastpath-prog:
+    @echo "[staging] Building program-carrying fastpath tools"
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o staging/fastpath/pfs_prog_tx \
+      staging/fastpath/pfs_prog_tx.c \
+      src/packetfs/memory/pfs_hugeblob.c \
+      src/packetfs/gram/pfs_gram.c
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o staging/fastpath/pfs_prog_rx \
+      staging/fastpath/pfs_prog_rx.c \
+      src/packetfs/memory/pfs_hugeblob.c \
+      src/packetfs/pcpu/pfs_pcpu.c
+
+# Demo: staging program-carrying TX/RX
+run-staging-fastpath-prog duration="5" prog="xor:255":
+    @echo "[staging] program-carrying RX/TX for {{duration}}s prog={{prog}}"
+    @bash -eu -o pipefail -c '
+      set -m; \
+      ./staging/fastpath/pfs_prog_rx --duration {{duration}} & \
+      rxpid=$$!; \
+      sleep 0.2; \
+      ./staging/fastpath/pfs_prog_tx --duration {{duration}} --prog "{{prog}}"; \
+      wait $$rxpid || true'
+
+# Quick demo: start RX then TX for 5s (local hugeblob)
+run-fastpath-demo duration="5":
+    @echo "[demo] fastpath RX/TX for {{duration}}s"
+    @bash -eu -o pipefail -c '
+      set -m; \
+      dev={{justfile_directory()}}/dev/wip/native; \
+      ( $$dev/pfs_stream_fastpath_rx --duration {{duration}} ) & \
+      rxpid=$$!; \
+      sleep 0.2; \
+      $$dev/pfs_stream_fastpath_tx --duration {{duration}}; \
+      wait $$rxpid || true'
+
+# Build process-per-pcore runner (no VMs)
+build-proc-pcores:
+    @echo "Building process-per-pcore runner"
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o dev/wip/native/pfs_proc_pcores \
+      dev/wip/native/pfs_proc_pcores.c \
+      src/packetfs/memory/pfs_hugeblob.c \
+      src/packetfs/pcpu/pfs_pcpu.c \
+      src/packetfs/gram/pfs_gram.c
+
+# Staging build of pcores runner
+build-staging-pcores:
+    @echo "[staging] Building process-per-pcore runner"
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o staging/pcores/pfs_proc_pcores \
+      staging/pcores/pfs_proc_pcores.c \
+      src/packetfs/memory/pfs_hugeblob.c \
+      src/packetfs/pcpu/pfs_pcpu.c \
+      src/packetfs/gram/pfs_gram.c
+
+# Run process-per-pcore benchmark with CPUpwn reporting
+run-proc-pcores pcores="256" duration="10" blob_mb="4096" dpf="64" align="64" ring_pow2="16" op="xor" imm="255":
+    @echo "[proc] pcores={{pcores}} duration={{duration}}s blob={{blob_mb}}MB dpf={{dpf}} align={{align}} ring=2^{{ring_pow2}} op={{op}} imm={{imm}}"
+    dev/wip/native/pfs_proc_pcores \
+      --pcores {{pcores}} --duration {{duration}} --blob-mb {{blob_mb}} \
+      --dpf {{dpf}} --align {{align}} --ring-pow2 {{ring_pow2}} --op {{op}} --imm {{imm}}
+
+# Run (staging) process-per-pcore benchmark
+run-staging-pcores pcores="256" duration="10" blob_mb="4096" dpf="64" align="64" ring_pow2="16" op="xor" imm="255":
+    @echo "[staging proc] pcores={{pcores}} duration={{duration}}s blob={{blob_mb}}MB dpf={{dpf}} align={{align}} ring=2^{{ring_pow2}} op={{op}} imm={{imm}}"
+    staging/pcores/pfs_proc_pcores \
+      --pcores {{pcores}} --duration {{duration}} --blob-mb {{blob_mb}} \
+      --dpf {{dpf}} --align {{align}} --ring-pow2 {{ring_pow2}} --op {{op}} --imm {{imm}}
+    @echo "[demo] fastpath RX/TX for {{duration}}s"
+    @bash -eu -o pipefail -c '
+      set -m; \
+      dev={{justfile_directory()}}/dev/wip/native; \
+      ( $$dev/pfs_stream_fastpath_rx --duration {{duration}} ) & \
+      rxpid=$$!; \
+      sleep 0.2; \
+      $$dev/pfs_stream_fastpath_tx --duration {{duration}}; \
+      wait $$rxpid || true'
     @echo "Building WIP native executables"
     mkdir -p bin
     {{CC}} {{CFLAGS}} {{INCLUDES}} -o bin/memory_executor dev/wip/native/memory_executor.c
@@ -705,6 +817,28 @@ hugepagess-mount:
     sudo mount -a
     bash scripts/hugepages/verify_hugepages.sh
 
+# =====================
+# Filesystem integration (host block device -> PacketFS via pfsrsync)
+# =====================
+
+# Mount a block device read-only on host and sync into PacketFS cluster
+# Usage:
+#   just add-filesystem device=/dev/sda1 name=data [mnt=/mnt/data_ro] [target={{HOST}}:{{PORT}}]
+add-filesystem device name mnt="" target="":
+    @bash -eu -o pipefail -c '
+    DEV="{{device}}"; \
+    NAME="{{name}}"; \
+    MNT={{ if mnt == "" { MNT_ROOT + "/" + name } else { mnt } }}; \
+    TGT={{ if target == "" { HOST + ":" + PORT } else { target } }}; \
+    echo "[*] add-filesystem: dev=$DEV name=$NAME mnt=$MNT target=$TGT"; \
+    bash scripts/pfs/add_filesystem.sh "$DEV" "$MNT" "$NAME" "$TGT"'
+
+# Unmount host FS (helper)
+fs-unmount mnt:
+    @echo "[*] Unmounting {{mnt}}"
+    sudo umount "{{mnt}}" || true
+    @echo "[+] Unmounted {{mnt}}"
+
 pfs-1g:
     @echo "1GiB hugetlbfs workflow:"
     @echo "  1) just hugepages-status"
@@ -730,25 +864,12 @@ bench-blueprint-fast-1g out="logs/bp_fast_huge1g.csv":
     PYTHONPATH=realsrc {{VENV_PATH}}/bin/python dev/working/tools/bench_blueprint_maxwin.py --size-mb 200 --blob-size-mb 100 --blob-name pfs_vblob_test --pcpu 800000,1300000,2600000 --seg 256,4096 --threads 8,16 --batch 8,16 --modes contig --hugehint --numa auto --ops-per-byte 1 --cpu-baseline --out {{out}} --out-hugefs-dir /mnt/huge1g --blob-hugefs-dir /mnt/huge1g
 
 # AF_PACKET fixed-frame streaming (TX/RX) with arithmetic + CPU pinning
-build-net-pfs-stream-afpacket:
-    @echo "Building AF_PACKET TX/RX (fixed frames)"
-    mkdir -p dev/wip/native
-    {{CC}} -O3 -march=native -DNDEBUG -D_GNU_SOURCE -pthread -o dev/wip/native/pfs_stream_afpacket_tx \
-      realsrc/packetfs/network/pfs_stream_afpacket_tx.c
-    {{CC}} -O3 -march=native -DNDEBUG -D_GNU_SOURCE -pthread -o dev/wip/native/pfs_stream_afpacket_rx \
-      realsrc/packetfs/network/pfs_stream_afpacket_rx.c
 
 # Run AF_PACKET RX
 # usage: just dev-run-pfs-stream-afpacket-rx ifname=enp130s0 frame=4096 duration=10 cpu=0 pcpu_op=fnv imm=0
-dev-run-pfs-stream-afpacket-rx ifname="" frame="4096" duration="10" cpu="0" pcpu_op="fnv" imm="0":
-    @echo "Starting AF_PACKET RX on {{ifname}} (frame={{frame}}, cpu={{cpu}}, op={{pcpu_op}}, imm={{imm}})"
-    taskset -c {{cpu}} sudo -n dev/wip/native/pfs_stream_afpacket_rx --ifname {{ifname}} --frame-size {{frame}} --duration {{duration}} --cpu {{cpu}} --pcpu-op {{pcpu_op}} --imm {{imm}}
 
 # Run AF_PACKET TX
 # usage: just dev-run-pfs-stream-afpacket-tx ifname=enp130s0 dst=<mac> frame=4096 duration=10 cpu=0 pcpu_op=fnv imm=0
-dev-run-pfs-stream-afpacket-tx ifname="" dst="ff:ff:ff:ff:ff:ff" frame="4096" duration="10" cpu="0" pcpu_op="fnv" imm="0":
-    @echo "Starting AF_PACKET TX on {{ifname}} -> {{dst}} (frame={{frame}}, cpu={{cpu}}, op={{pcpu_op}}, imm={{imm}})"
-    taskset -c {{cpu}} sudo -n dev/wip/native/pfs_stream_afpacket_tx --ifname {{ifname}} --dst {{dst}} --frame-size {{frame}} --duration {{duration}} --cpu {{cpu}} --pcpu-op {{pcpu_op}} --imm {{imm}}
 
 # Async single-core helper
 dev-async-core cpu="0":
@@ -855,6 +976,60 @@ dev-shm-maxwin-sweep queues="1,3" cthreads="1,2,4,8" seg_len="80" rp2="19" dpf="
 # =====================
 # Merge service (Podman)
 # =====================
+
+# =====================
+# PacketFS-only container cluster (Containerfile + docker-compose.yml)
+# =====================
+
+# Build the container image (podman preferred)
+dev-cluster-build:
+    ./launch-packetfs.sh build
+
+# Bring up the master + 2 nodes cluster (compose)
+dev-cluster-up:
+    ./launch-packetfs.sh up
+
+# Tear down the cluster
+dev-cluster-down:
+    ./launch-packetfs.sh down
+
+# Tail logs from compose
+dev-cluster-logs:
+    ./launch-packetfs.sh logs
+
+# Quick status summary
+dev-cluster-status:
+    ./launch-packetfs.sh status
+
+# Enter a shell on the master container
+dev-cluster-shell:
+    ./launch-packetfs.sh shell
+
+# Mount pfsfuse inside master (if pfsfuse present)
+dev-fuse-mount mnt="/mnt/packetfs":
+    @echo "[*] Mounting pfsfuse in master at {{mnt}}"
+    podman exec --privileged pfs-master bash -lc 'command -v pfsfuse >/dev/null 2>&1 || { echo "pfsfuse not found"; exit 1; }'
+    podman exec --privileged pfs-master bash -lc 'mkdir -p {{mnt}} && pfsfuse {{mnt}} -o allow_other -o default_permissions -o nonempty -o blob=/var/lib/packetfs/blob/pfs_vblob'
+
+# Unmount pfsfuse from master
+dev-fuse-unmount mnt="/mnt/packetfs":
+    @echo "[*] Unmounting pfsfuse from {{mnt}}"
+    podman exec --privileged pfs-master bash -lc 'fusermount3 -u {{mnt}} || umount {{mnt}} || true'
+
+# Python-based FUSE fallback (inside container) using packetfs.filesystem.pfsfs_mount
+# Mounts IPROG view; creates /var/lib/packetfs/iprog if needed
+# Usage:
+#   just dev-pfsfs-mount-py [mnt=/mnt/packetfs] [iprog=/var/lib/packetfs/iprog] [blob=/var/lib/packetfs/blob/pfs_vblob] [window=65536] [embed=1]
+dev-pfsfs-mount-py mnt="/mnt/packetfs" iprog="/var/lib/packetfs/iprog" blob="/var/lib/packetfs/blob/pfs_vblob" window="65536" embed="1":
+    @echo "[*] Mounting Python FUSE pfsfs at {{mnt}} (iprog={{iprog}} blob={{blob}})"
+    podman exec --privileged pfs-master bash -lc 'mkdir -p {{mnt}} {{iprog}} && nohup /opt/packetfs/venv/bin/python -m packetfs.filesystem.pfsfs_mount --iprog-dir {{iprog}} --mount {{mnt}} --blob-name pfs_vblob --blob-size 1073741824 --blob-seed 1337 --meta-dir /var/lib/packetfs --window {{window}} '$([ "{{embed}}" = "1" ] && echo "--embed-pvrt")' --foreground >/var/lib/packetfs/logs/pfsfs_mount.log 2>&1 & disown'
+    @echo "[+] pfsfs mounted at {{mnt}} (container)"
+
+# Unmount Python FUSE mount (container)
+dev-pfsfs-unmount-py mnt="/mnt/packetfs":
+    @echo "[*] Unmounting Python pfsfs from {{mnt}}"
+    podman exec --privileged pfs-master bash -lc 'fusermount3 -u {{mnt}} || umount {{mnt}} || true'
+    @echo "[+] Unmounted {{mnt}}"
 
 # Build image with Podman (per repo rule: Podman > Docker)
 # Image tag: packetfs/pfs-merge:latest

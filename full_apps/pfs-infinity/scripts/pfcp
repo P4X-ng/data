@@ -21,8 +21,12 @@ import json
 import time
 from pathlib import Path
 
-# Add app to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add app to path for imports (resolve symlink via realpath)
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, ROOT_DIR)
+# Container fallback: ensure /app is importable when script is installed under /usr/local/bin
+if os.path.isdir("/app") and "/app" not in sys.path:
+    sys.path.insert(0, "/app")
 
 def format_bytes(bytes_val, decimals=2):
     """Format bytes in human-readable format."""
@@ -106,11 +110,11 @@ async def send_file(file_path, host, port=8811, mode='ws', verbose=False, show_s
     
     file_path = Path(file_path).resolve()
     if not file_path.exists():
-        print(f"❌ Error: File '{file_path}' not found", file=sys.stderr)
+        print(f"[ERR] File not found: {file_path}", file=sys.stderr)
         return False
     
     if not file_path.is_file():
-        print(f"❌ Error: '{file_path}' is not a file", file=sys.stderr)
+        print(f"[ERR] Not a file: {file_path}", file=sys.stderr)
         return False
     
     file_size = file_path.stat().st_size
@@ -118,9 +122,9 @@ async def send_file(file_path, host, port=8811, mode='ws', verbose=False, show_s
     
     # Progress indicator
     if not verbose:
-        print(f"📦 Sending {file_name} ({format_bytes(file_size)}) to {host}:{port}", end='', flush=True)
+        print(f"[PFS] Sending {file_name} ({format_bytes(file_size)}) to {host}:{port}", end='', flush=True)
     else:
-        print(f"🚀 PacketFS Transfer")
+        print(f"[PFS] PacketFS Transfer")
         print(f"   File: {file_name}")
         print(f"   Size: {format_bytes(file_size)}")
         print(f"   Dest: {host}:{port}")
@@ -184,19 +188,19 @@ async def send_file(file_path, host, port=8811, mode='ws', verbose=False, show_s
                 pfs_time = pfs_size / home_speed
                 speedup_pct = ((trad_time / pfs_time) - 1) * 100 if pfs_time > 0 else 0
                 
-                print(f" ✅ (Effective: {format_speed(effective_speed)}, {speedup_pct:.0f}% faster than raw transfer!)")
+                print(f" [OK] Effective: {format_speed(effective_speed)} ({speedup_pct:.0f}% faster than raw)")
             else:
-                print(f"✅ Transfer complete!")
+                print(f"[OK] Transfer complete")
                 if show_stats:
-                    print(f"\n📊 Transfer Statistics:")
+                    print(f"\n[STATS] Transfer:")
                     print(f"   Duration: {elapsed:.2f}s")
-                    print(f"   🎯 EFFECTIVE Speed: {format_speed(effective_speed)} <- What you experience!")
-                    print(f"   📡 Wire Speed: {format_speed(wire_speed)} (actual network traffic)")
+                    print(f"   EFFECTIVE: {format_speed(effective_speed)}")
+                    print(f"   Wire: {format_speed(wire_speed)} (actual bytes on wire)")
                     print(f"   Protocol: {mode.upper()}")
                     print(f"   Compression: {compression}% smaller with PFS")
-                    print(f"   Original: {format_bytes(file_size)} <- Your file size")
-                    print(f"   Sent: {format_bytes(pfs_size)} <- What went over the wire")
-                    print(f"   Speedup: {file_size/pfs_size:.1f}x faster effective transfer!")
+                    print(f"   Original: {format_bytes(file_size)}")
+                    print(f"   Sent: {format_bytes(pfs_size)}")
+                    print(f"   Speedup: {file_size/pfs_size:.1f}x effective")
                     
                     # Network comparisons
                     print(f"\n🚀 Speed Comparisons (vs traditional transfer):")

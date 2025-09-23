@@ -145,6 +145,35 @@ File placement
 
 ---
 
+pCPU throughput (CPUpwn v2 summary)
+- CPUpwn v2 definition: CPUpwn = pCPU_MB/s ÷ CPU_baseline_MB/s, where CPU_baseline is measured with the same op and hot working set using the same number of CPU threads as pcores (e.g., 64 pcores → 64 CPU threads).
+- Setup that achieved top results on this host (2025-09-22):
+  - 64 logical CPUs; blob=4 GiB; hot working set=1 GiB; ring_pow2=19; slab_mb=32; dpf=64; align=64.
+  - Producer publishes to per-core rings in /dev/shm; each consumer pinned to a CPU; arithmetic ops applied in the consumer.
+- Quick commands:
+  - CPU baselines (reference):
+    - Single-thread: dev/wip/native/cpu_baseline --size-mb 1024 --dumb
+    - Multi-thread:   dev/wip/native/cpu_baseline --size-mb 1024
+  - pcores (1 GiB hot range):
+    - dev/wip/native/pfs_proc_pcores \
+      --pcores $(getconf _NPROCESSORS_ONLN) --duration 10 --blob-mb 4096 \
+      --dpf 64 --align 64 --ring-pow2 19 --slab-mb 32 \
+      --op xor --imm 255 --range-off 0 --range-len $((1024*1024*1024))
+- Results snapshot (64 pcores, 10s):
+  - xor/add: ≈15.5–15.8 GB/s, CPUpwn(=64CPU) ≈ 6.0–6.4×
+  - counteq: ≈50.2 GB/s,     CPUpwn(=64CPU) ≈ 7.15×
+  - fnv:     ≈28.7–29.0 GB/s, CPUpwn(=64CPU) ≈ 24×
+  - crc32c:  ≈8.36 GB/s,      CPUpwn(=64CPU) ≈ 52.8× (will drop with accel baseline; absolute MB/s stays high)
+- How to push further:
+  - Larger rings/slabs (e.g., ring_pow2=20, slab_mb=64), smaller hot range (e.g., 512 MiB), longer steady-state.
+  - NUMA-aware pinning (bind producer+consumers per node), interleave/pin blob accordingly.
+  - Add SSE4.2/PCLMUL CRC32C and tuned SIMD CPU baselines for fair CRC/hot loops.
+- Implementation notes:
+  - pfs_fastpath module updated for modern kernels (vm_flags_set, remap_vmalloc_range fallback) and validated with staging program-carrying TX/RX.
+  - pcores runner uses /dev/shm channel for interprocess visibility; CPUpwn(=NCPU) is logged with baseline(NCPU).
+
+---
+
 Local pCPU fast path and recent results (2025-09-11)
 - Fastest local path (no kernel, no DPDK, no NIC): shared-memory rings on hugepages
   - Tool: dev/wip/native/pfs_shm_ring_bench (producer/consumer SPSC ring; descriptors reference spans in the hugepage blob; consumer applies pCPU ops in-place)

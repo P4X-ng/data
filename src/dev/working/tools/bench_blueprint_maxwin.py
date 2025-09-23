@@ -343,14 +343,15 @@ def main():
             if args.measure_cpu:
                 hdr += ",cpu_user_s,cpu_sys_s,cpu_percent,max_rss_kb,ctx_voluntary,ctx_involuntary"
             if cpu_mbps is not None:
-                hdr += ",cpu_MBps,ops_ratio"
+                hdr += ",cpu_MBps,ops_ratio,cpupwn_time"
             f.write(hdr + "\n")
             for r in results:
                 line = f"{r['mode']},{r['seg_len']},{r['pcpu']},{r['threads']},{r['batch']},{r['elapsed']:.3f},{r['mbps']:.2f},{r['pcpu_units_per_s']:.0f},{r['eff_ops_per_s']:.0f},{r.get('wire_bytes',0)},{r.get('wire_ratio',0):.6f}"
                 if args.measure_cpu:
                     line += f",{r.get('cpu_user_s','')},{r.get('cpu_sys_s','')},{r.get('cpu_percent','')},{r.get('max_rss_kb','')},{r.get('ctx_voluntary','')},{r.get('ctx_involuntary','')}"
                 if cpu_mbps is not None:
-                    line += f",{cpu_mbps:.2f},{r.get('ops_ratio',0):.3f}"
+                    cpupwn_time = (cpu_mbps / r['mbps']) if r['mbps'] > 0 else 0.0
+                    line += f",{cpu_mbps:.2f},{r.get('ops_ratio',0):.3f},{cpupwn_time:.3f}"
                 f.write(line + "\n")
         print(f"[maxwin] Wrote {len(results)} rows to {os.path.abspath(args.out)}")
     except Exception as e:

@@ -18,17 +18,28 @@ import sys
 import time
 from urllib.parse import urljoin, urlparse
 
+import os
 import requests
 
 
-def load_json(url: str) -> dict:
-    r = requests.get(url, timeout=20)
+def get_session() -> requests.Session:
+    s = requests.Session()
+    token = os.environ.get('GITHUB_TOKEN')
+    if token:
+        s.headers.update({'Authorization': f'token {token}'})
+    # Accept raw/json from Pages/Gist
+    s.headers.update({'Accept': 'application/json, text/plain, */*'})
+    return s
+
+
+def load_json(sess: requests.Session, url: str) -> dict:
+    r = sess.get(url, timeout=20)
     r.raise_for_status()
     return r.json()
 
 
-def fetch_chunk_lines(url: str):
-    r = requests.get(url, timeout=30)
+def fetch_chunk_lines(sess: requests.Session, url: str):
+    r = sess.get(url, timeout=30)
     r.raise_for_status()
     data = r.content
     try:
@@ -53,7 +64,9 @@ def main():
     super_url = args.manifest_url
     base_super = super_url.rsplit('/', 1)[0] + '/'
 
-    super_manifest = load_json(super_url)
+    sess = get_session()
+
+    super_manifest = load_json(sess, super_url)
 
     providers = super_manifest.get('providers', [])
     if not providers:
@@ -69,7 +82,7 @@ def main():
         if not man_url:
             continue
         man_url_abs = man_url if man_url.startswith('http') else urljoin(base_super, man_url)
-        prov = load_json(man_url_abs)
+        prov = load_json(sess, man_url_abs)
 
         wm = prov.get('window_map', {})
         chunks = wm.get('chunks', [])
@@ -80,7 +93,7 @@ def main():
             if not cu:
                 continue
             cu_abs = cu if cu.startswith('http') else urljoin(base_super, cu)
-            for rec in fetch_chunk_lines(cu_abs):
+            for rec in fetch_chunk_lines(sess, cu_abs):
                 off = int(rec['offset'])
                 # Prefer first-seen entry per offset
                 if off not in windows:

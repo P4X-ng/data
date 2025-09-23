@@ -1,50 +1,132 @@
-# Central variables include
-import "../../Justfile.vars"
+# PacketFS Fast File Transfer
+# Clean, simple, fast - real PacketFS compression
 
-# Focused imports: only core file transfer
-import "Justfile.dev"
-import "Justfile.transfer"
+set export
 
-# Optional concepts (uncomment to enable)
-# import "Justfile.prod"    # container image build/run
-# import "Justfile.kube"    # kubernetes / podman play kube
-# import "Justfile.ui"      # UI tooling and tests
-# import "Justfile.spider"  # spider/crawler coordinator
-# import "Justfile.swarm"   # VMKit swarm/agents
-# import "Justfile.redis"   # local redis lifecycle
-# import "Justfile.vm"      # VMKit single runner
+# Variables
+VENV_PATH := "/home/punk/.venv"
+PYTHON := VENV_PATH + "/bin/python"
+PIP := VENV_PATH + "/bin/pip"
+CONTAINER := "pfs-infinity"
+IMAGE := "packetfs/pfs-infinity:latest"
+TRANSFER_DIR := "/var/pfs/transfers"
+PORT := "8811"
 
-# Default shows help
-help:
-    @echo "pfs-infinity Just commands (core: dev, transfer)"
-    just --list
-
-# Convenience alias: quick send (WS)
-send iprog="" host="127.0.0.1" port="{{WS_PORT}}":
-    @bash -eu -o pipefail -c '
-    if [ -z "{{iprog}}" ]; then echo "usage: just send iprog=PATH [host=H port=P]" >&2; exit 2; fi; \
-    just transfer send iprog="{{iprog}}" host="{{host}}" port="{{port}}"'
-
-# Install pfcp command
-install-pfcp:
-    just transfer install-pfcp
-
-# Install the universal PFS wrapper
-install-pfs:
-    @echo "🚀 Installing PFS universal wrapper..."
-    @ln -sf $(pwd)/scripts/pfs {{VENV_PATH}}/bin/pfs 2>/dev/null || true
-    @ln -sf $(pwd)/scripts/pfcp {{VENV_PATH}}/bin/pfcp 2>/dev/null || true
-    @ln -sf $(pwd)/scripts/pfcp-ssh {{VENV_PATH}}/bin/pfcp-ssh 2>/dev/null || true
-    @ln -sf $(pwd)/scripts/pfcp-smart {{VENV_PATH}}/bin/pfcp-smart 2>/dev/null || true
-    @ln -sf $(pwd)/scripts/pfsshfs {{VENV_PATH}}/bin/pfsshfs 2>/dev/null || true
-    @echo "✅ PFS tools installed!"
-    @echo ""
-    @echo "Usage examples:"
-    @echo "  pfs rsync -avz source/ dest/     # 95% less bandwidth"
-    @echo "  pfs git clone https://...         # Clone with compression"
-    @echo "  pfs docker pull ubuntu            # Compressed containers"
-    @echo "  pfs ssh user@server               # SSH with compression"
-    @echo "  pfcp file.txt server:             # SCP replacement"
-    @echo "  pfsshfs user@server:/path /mnt   # Mount with compression"
-
+# Default
 default: help
+
+help:
+    @echo "PacketFS Fast File Transfer"
+    @echo "==========================="
+    @echo ""
+    @echo "QUICK START:"
+    @echo "  just up         - Start transfer service (Podman container)"
+    @echo "  just down       - Stop transfer service"
+    @echo "  just logs       - View container logs"
+    @echo "  just ui         - Open transfer UI in browser"
+    @echo ""
+    @echo "DEVELOPMENT:"
+    @echo "  just dev        - Run in dev mode (local Python)"
+    @echo "  just test       - Test the upload/download"
+    @echo "  just build      - Build container image"
+    @echo ""
+    @echo "STATUS:"
+    @echo "  just status     - Check if running"
+    @echo "  just health     - Health check"
+    @echo ""
+
+# Create transfer directory with correct permissions
+setup-dirs:
+    @echo "Setting up directories..."
+    @sudo mkdir -p {{TRANSFER_DIR}}
+    @sudo chown -R $USER:$USER {{TRANSFER_DIR}}
+    @chmod 755 {{TRANSFER_DIR}}
+    @mkdir -p {{TRANSFER_DIR}}/uploads {{TRANSFER_DIR}}/downloads {{TRANSFER_DIR}}/blobs
+    @echo "Directories ready at {{TRANSFER_DIR}}"
+
+# Start the container with real PacketFS
+up: setup-dirs
+    @echo "Starting PacketFS transfer service..."
+    @podman rm -f {{CONTAINER}} 2>/dev/null || true
+    @podman run -d --name {{CONTAINER}} \
+        --net=host \
+        -v {{TRANSFER_DIR}}:/srv/pfs-share:Z \
+        -v /dev/shm:/dev/shm:Z \
+        -e PFS_BROWSE_ROOT=/srv/pfs-share \
+        -e PFS_BLOB_DIR=/srv/pfs-share/blobs \
+        -e PFS_META_DIR=/srv/pfs-share/meta \
+        -e WS_PORT={{PORT}} \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=1 \
+        -e PFS_TLS_INSECURE=1 \
+        -e PFS_BLOB_AUTO=1 \
+        -e PFS_QUIC_ENABLE=0 \
+        -e PFS_BLOB_NAME=pfs_vblob \
+        -e PFS_BLOB_SIZE_BYTES=1073741824 \
+        -e PFS_BLOB_SEED=1337 \
+        {{IMAGE}}
+    @echo "✓ PacketFS running at https://localhost:{{PORT}}"
+    @echo "✓ Files stored at {{TRANSFER_DIR}}"
+    @echo ""
+    @echo "Open UI: just ui"
+
+# Stop the container
+down:
+    @echo "Stopping PacketFS..."
+    @podman stop {{CONTAINER}} 2>/dev/null || true
+    @podman rm {{CONTAINER}} 2>/dev/null || true
+    @echo "✓ Stopped"
+
+# View logs
+logs:
+    @podman logs -f {{CONTAINER}}
+
+# Open the UI
+ui:
+    @echo "Opening PacketFS Transfer UI..."
+    @xdg-open "https://localhost:{{PORT}}/static/transfer-v2.html" 2>/dev/null || \
+        open "https://localhost:{{PORT}}/static/transfer-v2.html" 2>/dev/null || \
+        echo "Open in browser: https://localhost:{{PORT}}/static/transfer-v2.html"
+
+# Check status
+status:
+    @podman ps | grep {{CONTAINER}} || echo "Not running"
+
+# Health check
+health:
+    @curl -ks https://localhost:{{PORT}}/health | jq . || echo "Service not responding"
+
+# Run in development mode (local Python, no container)
+dev: setup-dirs
+    @echo "Starting in dev mode..."
+    cd app && {{PYTHON}} -m uvicorn main:app \
+        --host 0.0.0.0 \
+        --port {{PORT}} \
+        --ssl-certfile /tmp/dev.crt \
+        --ssl-keyfile /tmp/dev.key \
+        --reload
+
+# Test upload and download
+test:
+    @echo "Testing PacketFS upload..."
+    @echo "Test content $(date)" > /tmp/test.txt
+    @curl -ks -X POST https://localhost:{{PORT}}/objects \
+        -F "file=@/tmp/test.txt" | jq .
+    @echo ""
+    @echo "Check UI at: https://localhost:{{PORT}}/static/transfer-v2.html"
+
+# Build container image
+build:
+    @echo "Building container..."
+    @podman build -t {{IMAGE}} -f containers/backend/Containerfile ../../../
+    @echo "✓ Built {{IMAGE}}"
+
+# Restart
+restart: down up
+
+# Clean up
+clean:
+    @echo "Cleaning up..."
+    @podman rm -f {{CONTAINER}} 2>/dev/null || true
+    @rm -rf /tmp/pfs-infinity 2>/dev/null || true
+    @echo "✓ Cleaned"

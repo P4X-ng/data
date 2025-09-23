@@ -18,10 +18,20 @@ from urllib.parse import urljoin
 
 import aiohttp
 import requests
+import os
 
 
-def load_json(url: str) -> dict:
-    r = requests.get(url, timeout=20)
+def get_session() -> requests.Session:
+    s = requests.Session()
+    token = os.environ.get('GITHUB_TOKEN')
+    if token:
+        s.headers.update({'Authorization': f'token {token}'})
+    s.headers.update({'Accept': 'application/json, text/plain, */*'})
+    return s
+
+
+def load_json(sess: requests.Session, url: str) -> dict:
+    r = sess.get(url, timeout=20)
     r.raise_for_status()
     return r.json()
 
@@ -33,7 +43,8 @@ async def post_batch(session, endpoint: str, data_url: str, instr_batch: list[di
 
 
 async def main_async(args):
-    super_manifest = load_json(args.manifest_url)
+    sess = get_session()
+    super_manifest = load_json(sess, args.manifest_url)
     base_super = args.manifest_url.rsplit('/', 1)[0] + '/'
 
     # Choose provider
@@ -48,7 +59,7 @@ async def main_async(args):
 
     prov_url = prov_entry['manifest_url']
     prov_url_abs = prov_url if prov_url.startswith('http') else urljoin(base_super, prov_url)
-    prov = load_json(prov_url_abs)
+    prov = load_json(sess, prov_url_abs)
 
     data_url = prov['base_url']
     seg_bytes = int(prov.get('segment_bytes', 1048576))
@@ -64,7 +75,7 @@ async def main_async(args):
     chunk_abs = chunk_url if chunk_url.startswith('http') else urljoin(base_super, chunk_url)
 
     # Fetch and parse windows (jsonl+gzip or plain jsonl)
-    r = requests.get(chunk_abs, timeout=30)
+    r = sess.get(chunk_abs, timeout=30)
     r.raise_for_status()
     content = r.content
     import gzip, io

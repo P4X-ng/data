@@ -147,13 +147,15 @@ class VirtualBlob:
     # --- Orchard profile helpers ---
     def _fill_orchard(self, mv: memoryview, start: int) -> None:
         """Fill using a composed dictionary of banks engineered for matchability.
-        Banks (approx proportions):
-          - exec padding/codelets (0x00/0xCC/NOP-ish): ~15%
-          - ascii tokens (JSON-like): ~10%
-          - numeric stride (LE uint32++): ~15%
-          - periodic modulo stripes (64/128/512/4096): ~20%
-          - coverage tile (0..255 repeat): ~15%
-          - prand tail: ~25%
+        Banks (approx proportions), tuned for ELF-heavy workloads + general coverage:
+          - exec padding/codelets (0x00/0xCC/NOP-ish)
+          - ELF markers and common strings ("\x7fELF", ".text", ".rodata", "GLIBC", etc.)
+          - rodata-ish ASCII and English words
+          - numeric stride (LE uint32++)
+          - periodic modulo stripes (64/128/512/4096)
+          - coverage: 0..255 repeat, de Bruijn nibble tile (k≈4) to guarantee short k-grams
+          - long runs of 0x00 and 0xFF
+          - prand tail
         """
         total = self.size
         pos = start
@@ -165,14 +167,18 @@ class VirtualBlob:
             return max(0, min(want, end - pos))
 
         sizes = [
-            ("execpad", take(0.10)),
-            ("code",    take(0.12)),
-            ("rodata",  take(0.12)),
-            ("ascii",   take(0.10)),
-            ("words",   take(0.06)),
-            ("numeric", take(0.14)),
-            ("period",  take(0.20)),
-            ("cover",   take(0.10)),
+            ("execpad",   take(0.08)),
+            ("code",      take(0.10)),
+            ("elf",       take(0.08)),
+            ("rodata",    take(0.10)),
+            ("ascii",     take(0.08)),
+            ("words",     take(0.06)),
+            ("numeric",   take(0.12)),
+            ("period",    take(0.16)),
+            ("cover",     take(0.06)),
+            ("debruijn",  take(0.04)),
+            ("zeros",     take(0.03)),
+            ("ff",        take(0.03)),
         ]
         used = sum(s for _, s in sizes)
         tail = max(0, end - pos - used)
@@ -185,6 +191,8 @@ class VirtualBlob:
                 self._bank_execpad(mv, pos, length)
             elif name == "code":
                 self._bank_codelets(mv, pos, length)
+            elif name == "elf":
+                self._bank_elf_markers(mv, pos, length)
             elif name == "rodata":
                 self._bank_rodata_ascii(mv, pos, length)
             elif name == "ascii":
@@ -197,6 +205,12 @@ class VirtualBlob:
                 self._bank_periodic(mv, pos, length)
             elif name == "cover":
                 self._bank_coverage(mv, pos, length)
+            elif name == "debruijn":
+                self._bank_debruijn_nibble(mv, pos, length)
+            elif name == "zeros":
+                mv[pos:pos+length] = bytes([0x00]) * length
+            elif name == "ff":
+                mv[pos:pos+length] = bytes([0xFF]) * length
             else:
                 self._bank_prand(mv, pos, length)
             pos += length
@@ -224,7 +238,7 @@ class VirtualBlob:
             off += n
 
     def _bank_codelets(self, mv: memoryview, start: int, length: int) -> None:
-        # Common x86-64 codelets: prologue/epilogue, NOPs, short rel branches
+        # Common x86-64 codelets: prologue/epilogue, NOPs, short rel branches, PLT-like stubs
         seqs = [
             b"\x55\x48\x89\xe5",        # push rbp; mov rbp,rsp
             b"\x48\x83\xec\x10",        # sub rsp,0x10
@@ -324,3 +338,63 @@ class VirtualBlob:
             n = min(blen, end - off)
             mv[off:off+n] = block[:n]
             off += n
+
+    def _bank_elf_markers(self, mv: memoryview, start: int, length: int) -> None:
+        # ELF signatures and common strings/section names
+        tokens = [
+            b"\x7fELF", b".text\x00", b".rodata\x00", b".data\x00", b".bss\x00",
+            b".plt\x00", b".got\x00", b".got.plt\x00", b".dynsym\x00", b".dynstr\x00",
+            b"GNU\x00", b"GLIBC\x00", b"libc.so.6\x00", b"/lib64/ld-linux-x86-64.so.2\x00",
+            b"__libc_start_main\x00", b"main\x00", b"/bin/bash\x00",
+        ]
+        tile = b"".join(tokens)
+        # Simulate relocation-like structures (strided 8 or 16 bytes)
+        rel = bytes.fromhex("0000000000000000 0100000000000000 0200000000000000 0300000000000000")
+        pad = b"\x00" * 32
+        mix = tile + rel + pad
+        off = start
+        end = start + length
+        while off < end:
+            n = min(len(mix), end - off)
+            mv[off:off+n] = mix[:n]
+            off += n
+
+    def _bank_debruijn_nibble(self, mv: memoryview, start: int, length: int) -> None:
+        # Generate a de Bruijn sequence over nibbles (alphabet 0..15) of order k=4 (~64 Ki nibbles)
+        # Encode two nibbles per byte.
+        k = 4
+        alphabet = list(range(16))
+        n = len(alphabet)
+        a = [0] * (n * k)
+        seq = []
+        def db(t: int, p: int):
+            if t > k:
+                if k % p == 0:
+                    seq.extend(a[1:p+1])
+            else:
+                a[t] = a[t-p]
+                db(t+1, p)
+                for j in range(a[t-p]+1, n):
+                    a[t] = j
+                    db(t+1, t)
+        db(1,1)
+        # seq is a list of nibbles; pack into bytes
+        def pack_nibbles(nibs):
+            out = bytearray((len(nibs)+1)//2)
+            i = 0
+            bi = 0
+            while i < len(nibs):
+                hi = nibs[i] & 0xF
+                lo = nibs[i+1] & 0xF if i+1 < len(nibs) else 0
+                out[bi] = (hi << 4) | lo
+                bi += 1
+                i += 2
+            return bytes(out)
+        tile = pack_nibbles(seq)
+        off = start
+        end = start + length
+        tlen = len(tile)
+        while off < end:
+            nbytes = min(tlen, end - off)
+            mv[off:off+nbytes] = tile[:nbytes]
+            off += nbytes

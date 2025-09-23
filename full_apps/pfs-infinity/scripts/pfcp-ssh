@@ -57,7 +57,7 @@ def send_via_ssh(local_file, remote_dest):
         remote_path = '~/'
     
     # Compress with PFS
-    print(f"📦 Compressing with PacketFS...", end='', flush=True)
+    print(f"[PFS] Compressing with PacketFS...", end='', flush=True)
     compressed, metadata = compress_file_pfs(local_file)
     compression_ratio = (1 - len(compressed) / metadata['original_size']) * 100
     print(f" {compression_ratio:.1f}% smaller!")
@@ -79,7 +79,7 @@ def send_via_ssh(local_file, remote_dest):
         local_name = Path(local_file).name
         remote_pfs = f"/tmp/{local_name}.pfs.{os.getpid()}"
         
-        print(f"📡 Transferring {len(compressed)/1024:.1f} KB via SSH (was {metadata['original_size']/1024:.1f} KB)...")
+        print(f"[PFS] Transferring {len(compressed)/1024:.1f} KB via SSH (was {metadata['original_size']/1024:.1f} KB)...")
         
         # Use scp to transfer the compressed file
         result = subprocess.run(
@@ -92,7 +92,7 @@ def send_via_ssh(local_file, remote_dest):
             return False
         
         # Decompress on remote side using SSH
-        print("🔓 Decompressing on remote...", end='', flush=True)
+        print("[PFS] Decompressing on remote...", end='', flush=True)
         
         # Python one-liner to decompress on remote
         decompress_script = f'''
@@ -122,11 +122,11 @@ print("OK")
             print(f"Error: {result.stderr}", file=sys.stderr)
             return False
         
-        print(f" ✅ Success!")
+        print(f" [OK] Success")
         
         # Calculate effective speed
         file_size = metadata['original_size']
-        print(f"\n✨ PacketFS Magic:")
+        print(f"\n[PFS] Transfer summary:")
         print(f"   • Original: {file_size/1024:.1f} KB")
         print(f"   • Sent: {len(compressed)/1024:.1f} KB ({compression_ratio:.1f}% smaller)")
         print(f"   • Speedup: {file_size/len(compressed):.1f}x effective transfer")

@@ -59,7 +59,7 @@ mkdir -p "$(dirname "$OUT")"
 TMP_OUT=$(mktemp)
 TMP_ERR=$(mktemp)
 
-printf "ring_pow2,ports,queues,pcpu_threads,dpf,seg_len,mbps_cpu,mbps_pcpu,cpupwn,frames_prod_cpu,frames_cons_cpu,frames_prod_pcpu,frames_cons_pcpu\n" > "$OUT"
+printf "ring_pow2,ports,queues,pcpu_threads,dpf,seg_len,mbps_cpu,mbps_pcpu,cpupwn,cpupwn_time,frames_prod_cpu,frames_cons_cpu,frames_prod_pcpu,frames_cons_pcpu\n" > "$OUT"
 
 IFS=',' read -r -a Qs <<< "$QUEUES_LIST"
 IFS=',' read -r -a CTs <<< "$PCPU_THREADS_LIST"
@@ -85,9 +85,12 @@ for q in "${Qs[@]}"; do
       --arith "$ARITH" --vstream "$VSTREAM" \
       --ports "$PORTS" --queues "$q" --mode contig --seg-len "$SEG_LEN" --reuse-frames "$REUSE_FRAMES" \
       --pcpu 0 --pcpu-op fnv --imm 0 --payload-max "$PAYLOAD_MAX" >"$TMP_OUT") 2>"$TMP_ERR" || true
-    MBPS_CPU=$(awk '/\[SHM DONE\]/{if (match($0,/avg=([0-9.]+) MB\/s/,m)) v=m[1]} END{if (v) print v; else print "NA"}' "$TMP_ERR")
-    FP_CPU=$(awk '/\[SHM DONE\]/{if (match($0,/frames_prod=([0-9]+)/,m)) v=m[1]} END{if (v) print v; else print "NA"}' "$TMP_ERR")
-    FC_CPU=$(awk '/\[SHM DONE\]/{if (match($0,/frames_cons=([0-9]+)/,m)) v=m[1]} END{if (v) print v; else print "NA"}' "$TMP_ERR")
+    MBPS_CPU=$(grep -F '[SHM DONE]' "$TMP_ERR" | sed -n 's/.*avg=\([0-9.][0-9.]*\) MB\/s.*/\1/p' | tail -n1)
+    if [[ -z "$MBPS_CPU" ]]; then MBPS_CPU="NA"; fi
+    FP_CPU=$(grep -F '[SHM DONE]' "$TMP_ERR" | sed -n 's/.*frames_prod=\([0-9][0-9]*\).*/\1/p' | tail -n1)
+    if [[ -z "$FP_CPU" ]]; then FP_CPU="NA"; fi
+    FC_CPU=$(grep -F '[SHM DONE]' "$TMP_ERR" | sed -n 's/.*frames_cons=\([0-9][0-9]*\).*/\1/p' | tail -n1)
+    if [[ -z "$FC_CPU" ]]; then FC_CPU="NA"; fi
 
     # pCPU run
     : > "$TMP_OUT"; : > "$TMP_ERR"
@@ -97,18 +100,43 @@ for q in "${Qs[@]}"; do
       --arith "$ARITH" --vstream "$VSTREAM" \
       --ports "$PORTS" --queues "$q" --mode contig --seg-len "$SEG_LEN" --reuse-frames "$REUSE_FRAMES" \
       --pcpu 1 --pcpu-op "$PCPU_OP" --imm "$IMM" --payload-max "$PAYLOAD_MAX" >"$TMP_OUT") 2>"$TMP_ERR" || true
-    MBPS_PCPU=$(awk '/\[SHM DONE\]/{if (match($0,/avg=([0-9.]+) MB\/s/,m)) v=m[1]} END{if (v) print v; else print "NA"}' "$TMP_ERR")
-    FP_PCPU=$(awk '/\[SHM DONE\]/{if (match($0,/frames_prod=([0-9]+)/,m)) v=m[1]} END{if (v) print v; else print "NA"}' "$TMP_ERR")
-    FC_PCPU=$(awk '/\[SHM DONE\]/{if (match($0,/frames_cons=([0-9]+)/,m)) v=m[1]} END{if (v) print v; else print "NA"}' "$TMP_ERR")
+    MBPS_PCPU=$(grep -F '[SHM DONE]' "$TMP_ERR" | sed -n 's/.*avg=\([0-9.][0-9.]*\) MB\/s.*/\1/p' | tail -n1)
+    if [[ -z "$MBPS_PCPU" ]]; then MBPS_PCPU="NA"; fi
+    FP_PCPU=$(grep -F '[SHM DONE]' "$TMP_ERR" | sed -n 's/.*frames_prod=\([0-9][0-9]*\).*/\1/p' | tail -n1)
+    if [[ -z "$FP_PCPU" ]]; then FP_PCPU="NA"; fi
+    FC_PCPU=$(grep -F '[SHM DONE]' "$TMP_ERR" | sed -n 's/.*frames_cons=\([0-9][0-9]*\).*/\1/p' | tail -n1)
+    if [[ -z "$FC_PCPU" ]]; then FC_PCPU="NA"; fi
 
     CPUPWN="NA"
-    if [[ "$MBPS_CPU" != "NA" && "$MBPS_PCPU" != "NA" ]]; then
-      CPUPWN=$(awk -v a="$MBPS_PCPU" -v b="$MBPS_CPU" 'BEGIN{ if(b>0) printf "%.3f", a/b; else print "NA" }')
+    CPUPWN_T="NA"
+    if [[ "$MBPS_CPU" =~ ^[0-9]+(\.[0-9]+)?$ && "$MBPS_PCPU" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+      PY=${PY:-/home/punk/.venv/bin/python}
+      if [[ ! -x "$PY" ]]; then PY=$(command -v python3 || true); fi
+      if [[ -n "${PY:-}" ]]; then
+        CPUPWN=$("$PY" - "$MBPS_PCPU" "$MBPS_CPU" <<'PY'
+import sys
+try:
+ a=float(sys.argv[1]); b=float(sys.argv[2])
+ print(f"{a/b:.3f}" if b>0 else "NA")
+except Exception:
+ print("NA")
+PY
+)
+        CPUPWN_T=$("$PY" - "$MBPS_PCPU" "$MBPS_CPU" <<'PY'
+import sys
+try:
+ a=float(sys.argv[1]); b=float(sys.argv[2])
+ print(f"{b/a:.3f}" if a>0 else "NA")
+except Exception:
+ print("NA")
+PY
+)
+      fi
     fi
 
-    printf "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" \
+    printf "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" \
       "$RING_POW2" "$PORTS" "$q" "$ct" "$DPF" "$SEG_LEN" \
-      "$MBPS_CPU" "$MBPS_PCPU" "$CPUPWN" "$FP_CPU" "$FC_CPU" "$FP_PCPU" "$FC_PCPU" | tee -a "$OUT"
+      "$MBPS_CPU" "$MBPS_PCPU" "$CPUPWN" "$CPUPWN_T" "$FP_CPU" "$FC_CPU" "$FP_PCPU" "$FC_PCPU" | tee -a "$OUT"
   done
 done
 

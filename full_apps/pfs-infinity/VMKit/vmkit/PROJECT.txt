@@ -1,1 +1,22 @@
-[PROJECT.txt missing – add high-level summary]
+VMKit (subproject) — high-level summary
+
+Purpose
+- Provide a minimal, testable toolkit for secure microVM workflows used by pfs-infinity.
+- Emphasize reproducibility (secureboot=1, tpm=1 where applicable), deterministic configs, and no demo code mixed with production.
+
+What’s here
+- Tests covering VM lifecycle, resource allocation, device passthrough, networks, and storage.
+- A thin Justfile at this path to run tests and cleanup helpers.
+
+Conventions
+- Central Python venv: /home/punk/.venv
+- Prefer Podman over Docker (repo-wide rule).
+- Keep complex logic in scripts/; keep Just recipes small and declarative.
+
+Common actions
+- Run tests: /home/punk/.venv/bin/pytest -v
+- Clean test VMs: python -c "from vmkit import SecureVM; SecureVM.cleanup_test_vms()"
+
+Integration
+- The parent VMKit/Justfile handles Quickemu flows and NOTKUBERNETES orchestration used by pfs-infinity swarms.
+- This vmkit/ package focuses on Python-side helpers and test coverage.

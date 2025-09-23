@@ -8,7 +8,11 @@ from pathlib import Path
 # Ensure realsrc on path
 import sys
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "realsrc"))
+# Prefer realsrc if present, else fallback to src
+if (ROOT / "realsrc").exists():
+    sys.path.insert(0, str(ROOT / "realsrc"))
+else:
+    sys.path.insert(0, str(ROOT / "src"))
 
 from packetfs.filesystem.virtual_blob import VirtualBlob  # type: ignore
 

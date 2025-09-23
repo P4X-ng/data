@@ -74,18 +74,25 @@ async def start_transfer(req: TransferRequest):
     obj = BLUEPRINTS.get(req.object_id)
     if not obj:
         raise HTTPException(status_code=404, detail="object not found")
+    # Prefer IPROG blueprint when available; else fall back to legacy plan/bytes
+    iprog = obj.get("iprog")
     plan = obj.get("plan")
-    if not plan:
-        raise HTTPException(status_code=400, detail="no plan for object")
-    payload = json.dumps(plan).encode("utf-8")
+    if not (iprog or plan):
+        raise HTTPException(status_code=400, detail="no blueprint or plan for object")
+    # Prefer real bytes if present; fall back to plan JSON
+    payload_bytes: bytes
+    if isinstance(obj.get("bytes"), (bytes, bytearray)):
+        payload_bytes = bytes(obj["bytes"])  # type: ignore[index]
+    else:
+        payload_bytes = json.dumps(plan).encode("utf-8")
 
     tid = hashlib.sha256((req.object_id + req.peer.host).encode()).hexdigest()[:16]
     status = TransferStatus(transfer_id=tid, state="running", details={})
     TRANSFERS[tid] = status
 
     # Metrics context
-    plan_bytes = len(payload)
-    object_size = int(plan.get("size", 0))
+    plan_bytes = len(payload_bytes)
+    object_size = int((iprog or plan).get("size", 0)) if (iprog or plan) else 0
     t0 = time.time()
     path_sel = "unknown"
 
@@ -97,11 +104,11 @@ async def start_transfer(req: TransferRequest):
                 done, pending = await asyncio.wait(
                     {
                         asyncio.create_task(
-                            _send_quic_plan(req.peer.host, req.peer.udp_port, payload, tid, plan.get("sha256", ""))
+                            _send_quic_plan(req.peer.host, req.peer.udp_port, payload_bytes, tid, plan.get("sha256", ""))
                         ),
                         asyncio.create_task(
                             _send_webrtc_plan(
-                                req.peer.host, req.peer.https_port, payload, tid, plan.get("sha256", "")
+                                req.peer.host, req.peer.https_port, payload_bytes, tid, plan.get("sha256", "")
                             )
                         ),
                     },
@@ -117,18 +124,32 @@ async def start_transfer(req: TransferRequest):
                     p.cancel()
             except Exception:
                 ok = False
-            if not ok:
+            # Prefer IPROG WS path (blueprint/PVRT) for PacketFS fast-transfer
+            if not ok and iprog:
+                try:
+                    from app.services.transports.ws_proxy import send_iprog_ws
+                    ws_port = req.peer.ws_port or req.peer.https_port
+                    res = await send_iprog_ws(req.peer.host, ws_port, iprog, tid)
+                    ok = bool(res.get("ok"))
+                    if ok:
+                        path_sel = "ws-iprog"
+                        status.details.update({
+                            "bytes_sent": int(res.get("bytes_sent", 0)),
+                            "elapsed_s": float(res.get("elapsed_s", 0.0)),
+                            "tx_ratio": float(iprog.get("metrics",{}).get("tx_ratio", 0.0)),
+                        })
+                except Exception:
+                    ok = False
+            # Fallback WS raw plan (legacy)
+            if not ok and plan:
                 ws_port = req.peer.ws_port or req.peer.https_port
-                ok = await _send_ws_plan_multi(req.peer.host, ws_port, payload, tid, plan.get("sha256", ""), channels=4)
-                if ok:
-                    path_sel = "ws-multi"
-            if not ok:
-                ws_port = req.peer.ws_port or req.peer.https_port
-                ok = await _send_ws_plan(req.peer.host, ws_port, payload, tid, plan.get("sha256", ""))
+                res = await _send_ws_plan(req.peer.host, ws_port, payload_bytes, tid, plan.get("sha256", ""))
+                ok = bool(res.get("ok"))
                 if ok:
                     path_sel = "ws"
+                    status.details.update({"bytes_sent": int(res.get("bytes_sent", 0)), "elapsed_s": float(res.get("elapsed_s", 0.0))})
             if not ok:
-                ok = await _send_tcp_grams(req.peer.host, req.peer.tcp_port, payload)
+                ok = await _send_tcp_grams(req.peer.host, req.peer.tcp_port, payload_bytes)
                 if ok:
                     path_sel = "tcp"
             if not ok:
@@ -136,7 +157,7 @@ async def start_transfer(req: TransferRequest):
                     import httpx
 
                     async def agen():
-                        yield payload
+                        yield payload_bytes
 
                     url = f"https://{req.peer.host}:{req.peer.https_port}/arith/{req.object_id}"
                     async with httpx.AsyncClient(verify=False, timeout=req.timeout_s) as client:
@@ -148,25 +169,41 @@ async def start_transfer(req: TransferRequest):
                     ok = False
         else:
             if req.mode == "quic":
-                ok = await _send_quic_plan(req.peer.host, req.peer.udp_port, payload, tid, plan.get("sha256", ""))
+                ok = await _send_quic_plan(req.peer.host, req.peer.udp_port, payload_bytes, tid, plan.get("sha256", ""))
                 if ok:
                     path_sel = "quic"
             elif req.mode == "webrtc":
-                ok = await _send_webrtc_plan(req.peer.host, req.peer.https_port, payload, tid, plan.get("sha256", ""))
+                ok = await _send_webrtc_plan(req.peer.host, req.peer.https_port, payload_bytes, tid, plan.get("sha256", ""))
                 if ok:
                     path_sel = "webrtc"
             elif req.mode == "ws":
-                ws_port = req.peer.ws_port or req.peer.https_port
-                ok = await _send_ws_plan(req.peer.host, ws_port, payload, tid, plan.get("sha256", ""))
-                if ok:
-                    path_sel = "ws"
+                if iprog:
+                    from app.services.transports.ws_proxy import send_iprog_ws
+                    ws_port = req.peer.ws_port or req.peer.https_port
+                    res = await send_iprog_ws(req.peer.host, ws_port, iprog, tid)
+                    ok = bool(res.get("ok"))
+                    if ok:
+                        path_sel = "ws-iprog"
+                        status.details.update({
+                            "bytes_sent": int(res.get("bytes_sent", 0)),
+                            "elapsed_s": float(res.get("elapsed_s", 0.0)),
+                            "tx_ratio": float(iprog.get("metrics",{}).get("tx_ratio", 0.0)),
+                        })
+                if not ok and plan:
+                    ws_port = req.peer.ws_port or req.peer.https_port
+                    res = await _send_ws_plan(req.peer.host, ws_port, payload_bytes, tid, plan.get("sha256", ""))
+                    ok = bool(res.get("ok"))
+                    if ok:
+                        path_sel = "ws"
+                        status.details.update({"bytes_sent": int(res.get("bytes_sent", 0)), "elapsed_s": float(res.get("elapsed_s", 0.0))})
             elif req.mode == "ws-multi":
                 ws_port = req.peer.ws_port or req.peer.https_port
-                ok = await _send_ws_plan_multi(req.peer.host, ws_port, payload, tid, plan.get("sha256", ""), channels=4)
+                res = await _send_ws_plan_multi(req.peer.host, ws_port, payload_bytes, tid, plan.get("sha256", ""), channels=4)
+                ok = bool(res.get("ok"))
                 if ok:
                     path_sel = "ws-multi"
             elif req.mode == "tcp":
-                ok = await _send_tcp_grams(req.peer.host, req.peer.tcp_port, payload)
+                ok = await _send_tcp_grams(req.peer.host, req.peer.tcp_port, payload_bytes)
                 if ok:
                     path_sel = "tcp"
             elif req.mode == "bytes":
@@ -174,7 +211,7 @@ async def start_transfer(req: TransferRequest):
                     import httpx
 
                     async def agen():
-                        yield payload
+                        yield payload_bytes
 
                     url = f"https://{req.peer.host}:{req.peer.https_port}/arith/{req.object_id}"
                     async with httpx.AsyncClient(verify=False, timeout=req.timeout_s) as client:
@@ -184,15 +221,19 @@ async def start_transfer(req: TransferRequest):
                     ok = False
         # Finalize metrics
         elapsed = max(time.time() - t0, 1e-6)
+        # Prefer measured bytes_sent if available
+        bytes_sent = int(status.details.get("bytes_sent", 0)) if isinstance(status.details, dict) else 0
+        if bytes_sent <= 0:
+            bytes_sent = int(plan_bytes)
         eff_bps = (object_size / elapsed) if object_size else 0.0
-        plan_bps = (plan_bytes / elapsed) if plan_bytes else 0.0
-        speedup = (float(object_size) / float(plan_bytes)) if plan_bytes else None
+        sent_bps = (bytes_sent / elapsed) if bytes_sent else 0.0
+        speedup = (float(object_size) / float(bytes_sent)) if bytes_sent else None
         status.details = {
             "object_size": int(object_size),
-            "plan_bytes": int(plan_bytes),
+            "bytes_sent": int(bytes_sent),
             "elapsed_s": float(elapsed),
             "eff_bytes_per_s": float(eff_bps),
-            "plan_bytes_per_s": float(plan_bps),
+            "sent_bytes_per_s": float(sent_bps),
             "speedup_vs_raw": float(speedup) if speedup is not None else None,
             "path": path_sel,
         }
@@ -208,3 +249,24 @@ async def get_transfer(transfer_id: str):
     if not st:
         raise HTTPException(status_code=404, detail="not found")
     return st
+
+@router.get("/transfers/{transfer_id}/progress")
+async def get_transfer_progress(transfer_id: str):
+    # Count ACKs recorded by receiver as progress proxy
+    try:
+        acks = 0
+        total = 0
+        for k, v in list(BLUEPRINTS.items()):
+            if k.startswith(f"ack:{transfer_id}:") and isinstance(v, dict):
+                acks += 1
+        # Try to infer total windows from CRCs or mfst
+        for k, v in list(BLUEPRINTS.items()):
+            if k.startswith(f"crc:{transfer_id}:"):
+                total = max(total, 1)
+        # Fallback to details
+        st = TRANSFERS.get(transfer_id)
+        if st and isinstance(st.details, dict):
+            total = max(total, int(st.details.get("windows", 0)))
+        return {"transfer_id": transfer_id, "acks": int(acks), "total": int(total), "ratio": (float(acks)/float(total) if total else 0.0)}
+    except Exception:
+        return {"transfer_id": transfer_id, "acks": 0, "total": 0, "ratio": 0.0}

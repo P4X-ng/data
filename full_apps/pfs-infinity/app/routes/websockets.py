@@ -5,6 +5,7 @@ import hashlib
 from typing import Dict
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import os, hmac
 
 from app.core.state import BLUEPRINTS, TRANSFER_WS_AGG, TRANSFER_WS_LOCK, WINDOW_HASHES, CURRENT_BLOB
 
@@ -19,6 +20,13 @@ def register_ws_handlers(app: FastAPI) -> None:
             preface_msg = await ws.receive()
             preface_bytes = preface_msg.get("bytes") or preface_msg.get("text", "").encode()
             pre = parse_preface(preface_bytes)
+            # Optional PSK gating (set PFS_WS_PSK to enforce)
+            psk_env = os.environ.get("PFS_WS_PSK")
+            if psk_env:
+                psk_client = str(pre.get("psk", ""))
+                if not hmac.compare_digest(psk_env, psk_client):
+                    await ws.close()
+                    return
             tid = str(pre.get("transfer_id", ""))
             ch = int(pre.get("channels", 1))
             cid = int(pre.get("channel_id", 0))
@@ -123,39 +131,37 @@ def register_ws_handlers(app: FastAPI) -> None:
                                 windows.setdefault(current_win, bytearray()).extend(payload)
 
                     for widx, buf in list(windows.items()):
-                        secs = extract_sections(bytes(buf))
-                        raw = secs.get(SEC_RAW)
-                        proto = secs.get(SEC_PROTO)
-                        win_bytes = bytes(raw or b"")
-
+                        # Prefer PVRT+BREF reconstruction from VirtualBlob
+                        win_bytes = b""
                         try:
-                            if proto is not None and CURRENT_BLOB:
-                                vb_meta = {
-                                    "name": CURRENT_BLOB.get("name"),
-                                    "size": CURRENT_BLOB.get("size"),
-                                    "seed": CURRENT_BLOB.get("seed"),
-                                }
-                                recon = execute_proto_window(bytes(buf), vb_meta)
-                                if recon is not None and len(recon) > 0:
-                                    win_bytes = recon
-                            if proto is not None:
-                                dec = ProtocolDecoder(SyncConfig(window_pow2=16, window_crc16=True))
-                                win_crc = dec.scan_for_sync(proto)
-                                if win_crc is not None:
-                                    _win, expect_crc = win_crc
-                                    got_crc = crc16_ccitt(win_bytes)
-                                    BLUEPRINTS[f"crc:{tid}:{widx}"] = {
-                                        "expect": int(expect_crc),
-                                        "got": int(got_crc),
-                                        "ok": int(expect_crc) == int(got_crc),
-                                    }
-                                if CURRENT_BLOB and proto is not None:
-                                    blob_meta = {k: CURRENT_BLOB.get(k) for k in ("name", "size", "seed", "id")}
-                                    outb = execute_proto_window(proto, blob_meta)
-                                    if outb is not None:
-                                        win_bytes = bytes(outb)
+                            from packetfs.filesystem.iprog_recon import reconstruct_window_from_pvrt  # type: ignore
+                            vb = CURRENT_BLOB.get("vb") if isinstance(CURRENT_BLOB, dict) else None
+                            if vb is not None:
+                                outb = reconstruct_window_from_pvrt(bytes(buf), vb)
+                                if outb is not None:
+                                    win_bytes = bytes(outb)
                         except Exception:
-                            pass
+                            win_bytes = b""
+                        # Fallback: legacy section decode (RAW/PROTO)
+                        if not win_bytes:
+                            secs = extract_sections(bytes(buf))
+                            raw = secs.get(SEC_RAW)
+                            proto = secs.get(SEC_PROTO)
+                            win_bytes = bytes(raw or b"")
+                            try:
+                                if proto is not None:
+                                    dec = ProtocolDecoder(SyncConfig(window_pow2=16, window_crc16=True))
+                                    win_crc = dec.scan_for_sync(proto)
+                                    if win_crc is not None:
+                                        _win, expect_crc = win_crc
+                                        got_crc = crc16_ccitt(win_bytes)
+                                        BLUEPRINTS[f"crc:{tid}:{widx}"] = {
+                                            "expect": int(expect_crc),
+                                            "got": int(got_crc),
+                                            "ok": int(expect_crc) == int(got_crc),
+                                        }
+                            except Exception:
+                                pass
 
                         windows[widx] = bytearray(win_bytes)
 
@@ -177,6 +183,7 @@ def register_ws_handlers(app: FastAPI) -> None:
                         "size": len(assembled),
                         "sha256": hashlib.sha256(assembled).hexdigest(),
                         "windows": sorted(list(windows.keys())),
+                        "bytes": bytes(assembled),
                     }
                     try:
                         for (_s, fl, pl) in frames[::-1]:

@@ -11,23 +11,6 @@ from fastapi.staticfiles import StaticFiles
 from app.core.state import APP_STATE, CURRENT_BLOB
 
 
-def _maybe_mount_spider(app: FastAPI, enable_spider: bool) -> None:
-    if not enable_spider:
-        return
-    try:
-        from app.spider.coordinator import router as spider_router  # type: ignore
-    except Exception:
-        spider_router = None  # type: ignore
-    if spider_router is None:
-        return
-    app.include_router(spider_router)
-    try:
-        from app.spider import coordinator as _spider_coord  # type: ignore
-        if hasattr(_spider_coord, "attach_to_app"):
-            _spider_coord.attach_to_app(app)  # type: ignore[attr-defined]
-    except Exception:
-        pass
-
 
 def _startup_tasks(app: FastAPI) -> None:
     @app.on_event("startup")
@@ -119,7 +102,7 @@ def _startup_tasks(app: FastAPI) -> None:
             pass
 
 
-def create_app(enable_spider: Optional[bool] = None) -> FastAPI:
+def create_app() -> FastAPI:
     app = FastAPI(title="pfs-infinity", version="0.2.0")
 
     # CORS (dev: allow all)
@@ -137,30 +120,89 @@ def create_app(enable_spider: Optional[bool] = None) -> FastAPI:
     if os.path.isdir(static_dir):
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+    # Security headers (TLS only)
+    if os.environ.get("PFS_TLS", "1") in ("1", "true", "TRUE", "True"):
+        @app.middleware("http")
+        async def _hsts_header(request, call_next):
+            resp = await call_next(request)
+            resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            return resp
+
     # Routers
     from app.routes.health import router as health_router
     from app.routes.objects import router as objects_router
     from app.routes.transfers import router as transfers_router
+    from app.routes.gpu import router as gpu_router
     from app.routes.blob import router as blob_router
     from app.routes.debug import router as debug_router
     from app.routes.ingress import router as ingress_router
+    from app.routes.compute import router as compute_router
     from app.routes.websockets import register_ws_handlers
+    from app.routes.browse import router as browse_router
+    from app.routes.browse_ws import register_browse_ws
+    from app.routes.cluster import router as cluster_router
+    from app.routes.cluster_ws import register_cluster_ws, start_background_tasks
+    from app.routes.xfer import router as xfer_router
+    from app.routes.fs import router as fs_router
+    from app.routes.whoami import router as whoami_router
+    from app.routes.discovery_ws import register_discovery_routes
+    from app.routes.terminal_ws import register_terminal_routes
+    from app.routes.transfer_ws import router as transfer_ws_router
+    from app.routes.files import router as files_router
 
     app.include_router(health_router)
     app.include_router(objects_router)
     app.include_router(transfers_router)
+    app.include_router(gpu_router)
     app.include_router(blob_router)
     app.include_router(debug_router)
     app.include_router(ingress_router)
+    app.include_router(compute_router)
+    app.include_router(browse_router)
+    app.include_router(cluster_router)
+    app.include_router(xfer_router)
+    app.include_router(fs_router)
+    app.include_router(whoami_router)
+    app.include_router(files_router)
     register_ws_handlers(app)
-
-    # Optional spider coordinator (disabled by default)
-    if enable_spider is None:
-        # Enable only if explicitly set true
-        enable_spider = os.environ.get("PFS_ENABLE_SPIDER", "0") in ("1", "true", "TRUE", "True")
-    _maybe_mount_spider(app, bool(enable_spider))
+    app.include_router(transfer_ws_router)
+    # Register persistent remote browse WS
+    try:
+        register_browse_ws(app)
+    except Exception:
+        pass
+    # Register cluster WebSocket handler
+    try:
+        register_cluster_ws(app)
+        # Start background tasks on startup
+        @app.on_event("startup")
+        async def start_cluster_background():
+            start_background_tasks()
+    except Exception:
+        pass
+    
+    # Register discovery WebSocket handler
+    try:
+        register_discovery_routes(app)
+    except Exception:
+        pass
+    
+    # Register terminal WebSocket handler
+    try:
+        register_terminal_routes(app)
+    except Exception:
+        pass
 
     # Startup tasks
     _startup_tasks(app)
+
+    # Home redirect
+    try:
+        from fastapi.responses import RedirectResponse
+        @app.get("/")
+        async def _home_redirect():
+            return RedirectResponse(url="/static/transfer-v2.html")
+    except Exception:
+        pass
 
     return app

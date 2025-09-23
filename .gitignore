@@ -91,3 +91,8 @@ fake_trash/**/.cache/
 
 # Never auto-run or package dangerous testing area
 DANGER_ONLY_FOR_TESTING_PURPOSES/**/.cache/
+
+# VFIO & virtual device artifacts
+packetfs_vfio/
+*device_info.json
+DANGER_ONLY_FOR_TESTING_PURPOSES/**/device_info.json

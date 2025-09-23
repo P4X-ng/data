@@ -1,0 +1,23 @@
+# PacketFS ignore
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.so
+build/
+dist/
+.eggs/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+reports/
+logs/
+DANGER_ONLY_FOR_TESTING_PURPOSES/
+packetfs_vfio/
+*device_info.json
+*.ll.tmp
+dev/working/tools/__pycache__/

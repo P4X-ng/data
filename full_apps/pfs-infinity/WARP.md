@@ -9,17 +9,20 @@ Core ideas
 - Storage is formulas: the filesystem is packets. PacketFS translates reads/writes into packet programs and arithmetic proofs rather than bulk bytes.
 
 Quickstart (local)
-- Start local edge server (already added):
-  - python path: /home/punk/.venv
-  - Run: nohup /home/punk/.venv/bin/python edge-compute/pfs_edge_server.py > server.log 2>&1 &
+- Start local dev server (Hypercorn; WS_PORT=8811 by default):
+  - Run: just dev up
+  - Note: endpoint base http://127.0.0.1:8811 unless you override WS_PORT
+
+- Alternative edge server (port 5000) if you prefer the standalone script:
+  - nohup /home/punk/.venv/bin/python edge-compute/pfs_edge_server.py > server.log 2>&1 &
   - Health: curl -s localhost:5000/health | jq .
 
-- Generate a fast tmpfs blob and bench locally (for raw streaming):
+- Generate a fast tmpfs blob and bench locally:
   - just dev-data-blob /dev/shm/pfs_blob.bin 256 zero
   - just dev-bench-local /dev/shm/pfs_blob.bin 8 256 counteq 0
 
 - Run a compute job against the local server:
-  - just dev-vpcpu-compute kind=edge_http endpoint=http://localhost:5000 data_url=file:///dev/shm/pfs_blob.bin instructions='[{"op":"counteq","imm":0,"offset":0,"length":1048576}]'
+  - just dev-vpcpu-compute kind=edge_http endpoint=http://localhost:8811 data_url=file:///dev/shm/pfs_blob.bin instructions='[{"op":"counteq","imm":0,"offset":0,"length":1048576}]'
 
 Edge compute — Cloudflare Worker
 - Code: edge-compute/cloudflare-worker.js (streaming + Range)

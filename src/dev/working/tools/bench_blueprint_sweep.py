@@ -360,7 +360,7 @@ def main():
         if args.measure_cpu:
             hdr += ",cpu_user_s,cpu_sys_s,cpu_percent,max_rss_kb,ctx_voluntary,ctx_involuntary"
         if cpu_mbps is not None:
-            hdr += ",cpu_MBps,cpu_ops_per_s,ops_ratio"
+            hdr += ",cpu_MBps,cpu_ops_per_s,ops_ratio,cpupwn_time"
         print(hdr)
         out_lines = [hdr]
         BYTES = float(1 << 20)
@@ -374,7 +374,8 @@ def main():
             if cpu_mbps is not None:
                 cpu_ops = cpu_mbps * BYTES * args.ops_per_byte
                 ratio = (eff_ops / cpu_ops) if cpu_ops > 0 else 0.0
-                line += f",{cpu_mbps:.2f},{cpu_ops:.0f},{ratio:.3f}"
+                cpupwn_time = (cpu_mbps / r['mbps']) if r['mbps'] > 0 else 0.0
+                line += f",{cpu_mbps:.2f},{cpu_ops:.0f},{ratio:.3f},{cpupwn_time:.3f}"
             print(line)
             out_lines.append(line)
     finally:

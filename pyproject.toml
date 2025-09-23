@@ -9,10 +9,10 @@ description = "PacketFS production package with native bitstream codec"
 requires-python = ">=3.8"
 
 [tool.setuptools]
-package-dir = {"" = "realsrc"}
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
-where = ["realsrc"]
+where = ["src"]
 exclude = [
   "dev*",
   "demo*",

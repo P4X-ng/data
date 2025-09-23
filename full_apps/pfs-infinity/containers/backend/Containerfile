@@ -9,11 +9,34 @@ RUN python -m venv $VIRTUAL_ENV && \
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install runtime deps
-COPY containers/backend/requirements.txt /tmp/requirements.txt
+COPY full_apps/pfs-infinity/containers/backend/requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 
+# Build tools and system deps needed for native extension (_bitpack) and SSH client
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      openssh-client build-essential python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install PacketFS (from repo root src/)
+COPY pyproject.toml setup.py /tmp/pfsbuild/
+# Keep src for dev-only modules if present; synthesize realsrc layout if missing
+COPY src /tmp/pfsbuild/src
+RUN pip install -e /tmp/pfsbuild
+RUN python -c 'import packetfs, packetfs.protocol, packetfs.filesystem.virtual_blob'
+
 # Copy app
-COPY app /app/app
+COPY full_apps/pfs-infinity/app /app/app
+
+# Install client tools into image
+COPY full_apps/pfs-infinity/scripts/pfcp /usr/local/bin/pfcp
+COPY full_apps/pfs-infinity/scripts/pfcp-ssh /usr/local/bin/pfcp-ssh
+COPY full_apps/pfs-infinity/scripts/pfcp-rsync /usr/local/bin/pfcp-rsync
+RUN chmod +x /usr/local/bin/pfcp /usr/local/bin/pfcp-ssh /usr/local/bin/pfcp-rsync
+
+# Backend startup wrapper honoring BIND and WS_PORT/PORT
+COPY full_apps/pfs-infinity/containers/backend/start-backend.sh /usr/local/bin/start-backend
+RUN chmod +x /usr/local/bin/start-backend
 
 EXPOSE 8811
-CMD ["hypercorn", "-b", "0.0.0.0:8811", "app.main:app"]
+CMD ["/usr/local/bin/start-backend"]
