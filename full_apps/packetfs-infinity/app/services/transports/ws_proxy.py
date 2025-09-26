@@ -17,6 +17,28 @@ async def send_iprog_ws(host: str, port: int, iprog: dict, transfer_id: str) -> 
     import base64
     import json as _json
     debug = os.environ.get('PFS_DEBUG','0') in ('1','true','TRUE','True')
+    tx_mode = os.environ.get('PFS_TX_MODE','pvrt').lower()  # 'pvrt' or 'offs'
+
+    def _build_offs_payload(bref, anchor: int, use_arith: bool) -> bytes:
+        # OFFS format: magic 'OFFS' + u16 count + [off64 len32 fl8]*
+        out = bytearray()
+        out += b'OFFS'
+        cnt = len(bref) & 0xFFFF
+        out += cnt.to_bytes(2,'big')
+        for (o,l,f) in (bref or []):
+            off = int(o)
+            fl = int(f)
+            if use_arith:
+                fl |= 0x01
+                delta = (off - anchor) & ((1<<64)-1)
+                out += int(delta).to_bytes(8,'big', signed=False)
+            else:
+                fl &= ~0x01
+                out += int(off).to_bytes(8,'big', signed=False)
+            out += int(l).to_bytes(4,'big')
+            out += int(fl & 0xFF).to_bytes(1,'big')
+        return bytes(out)
+
     for uri in uris:
         try:
             kw = {"max_size": None}
@@ -74,21 +96,23 @@ async def send_iprog_ws(host: str, port: int, iprog: dict, transfer_id: str) -> 
                     # Use binary WIN/END to reduce overhead
                     from app.services.pvrt_framing import build_ctrl_bin_win, build_ctrl_bin_end
                     frames += build_ctrl_bin_win(idx)
-                    # Always build PVRT using relative BREF to the negotiated anchor
+                    # Build payload as PVRT (BREF-only) or OFFS depending on mode
                     bref = w.get("bref") or []
-                    pvrt = b""
-                    if bref:
+                    payload = b""
+                    if tx_mode == 'offs':
+                        payload = _build_offs_payload(bref, anchor=anchor, use_arith=use_arith)
+                    else:
                         from packetfs.filesystem.pvrt_container import build_container  # type: ignore
                         if use_arith:
                             rel_chunks = []
                             for (o,l,f) in bref:
                                 delta = int(o) - anchor
                                 rel_chunks.append((int(delta) & ((1<<64)-1), int(l), int(f) | 0x01))
-                            pvrt = build_container(proto=None, bref_chunks=rel_chunks)
+                            payload = build_container(proto=None, bref_chunks=rel_chunks)
                         else:
-                            pvrt = build_container(proto=None, bref_chunks=[(int(o), int(l), int(f) & ~0x01) for (o,l,f) in bref])
-                    if pvrt:
-                        frames += build_frames_from_data(pvrt, window_size=1024)
+                            payload = build_container(proto=None, bref_chunks=[(int(o), int(l), int(f) & ~0x01) for (o,l,f) in bref])
+                    if payload:
+                        frames += build_frames_from_data(payload, window_size=1024)
                     h16 = bytes.fromhex(w.get("hash16", "")) if w.get("hash16") else None
                     frames += build_ctrl_bin_end(idx, h16)
                 frames += build_ctrl_json_frame("DONE", {"sha": sha, "tw": total_windows, "ws": window_size})
@@ -259,9 +283,12 @@ async def send_iprog_ws_multi(host: str, port: int, iprog: dict, transfer_id: st
                         for widx in my_idxs:
                             frames += build_ctrl_bin_win(widx)
                             w = windows[widx]
-                            pvrt = _build_pvrt(w.get("bref") or [])
-                            if pvrt:
-                                frames += build_frames_from_data(pvrt, window_size=1024)
+                            if tx_mode == 'offs':
+                                payload = _build_offs_payload((w.get("bref") or []), anchor=anchor, use_arith=use_arith)
+                            else:
+                                payload = _build_pvrt((w.get("bref") or []))
+                            if payload:
+                                frames += build_frames_from_data(payload, window_size=1024)
                             h16 = bytes.fromhex(w.get("hash16", "")) if w.get("hash16") else None
                             frames += build_ctrl_bin_end(widx, h16)
                         await ws.send(bytes(frames))

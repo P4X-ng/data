@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <sched.h>
 #include <stdatomic.h>
+#include <sys/stat.h>
 
 #include "../../src/packetfs/memory/pfs_hugeblob.h"
 #include "../../src/packetfs/ring/pfs_shm_ring.h"
@@ -47,6 +48,9 @@ typedef struct {
     uint32_t seg_len;         // if nonzero and mode_contig, fixed segment length
     int mode_contig;          // 1: contiguous spans; 0: pseudo-random scatter
     double duration_s;        // total run time
+    // pacing
+    double pps;               // frames per second (per producer thread)
+    uint32_t burst;           // max burst tokens
     // blob
     size_t blob_bytes;        // backing blob size
     const char* huge_dir;     // hugepage mount (e.g., /mnt/huge1G or /dev/hugepages)
@@ -62,17 +66,21 @@ typedef struct {
     uint32_t nic_threads;     // producer threads
     uint32_t pcpu_threads;    // consumer threads
     int pin_first_cpu;        // first CPU to pin workers to (round-robin)
+    // nic-like extras
+    int cq_enable;            // 1: enable completion rings
+    const char* metrics_path; // JSONL metrics path
 } Cfg;
 
 typedef struct {
     // resources
     PfsHugeBlob blob;
     PfsSpscRing* rings;     // [rings_n]
+    PfsSpscRing* cqs;       // [rings_n] completion rings (optional)
     uint32_t    rings_n;
     uint32_t    ring_sz;    // entries per ring
     // frame store
     PfsGramDesc* frames;    // frames[rings_n * ring_sz * dpf]
-    uint64_t*    frame_eff; // effective bytes per slot (touch count)
+    uint64_t*    frame_eff; // effective bytes per frame slot (size = rings_n * ring_sz)
     atomic_uint* prod_idx;  // per-ring producer cursor
     // contig state per ring
     uint64_t* contig_off;   // tracked by producers
@@ -82,6 +90,8 @@ typedef struct {
     _Atomic uint64_t frames_prod;
     _Atomic uint64_t frames_cons;
     _Atomic uint64_t bytes_eff;
+    _Atomic uint64_t cq_push;
+    _Atomic uint64_t cq_drop;
     _Atomic int stop;
 } Ctx;
 
@@ -110,6 +120,10 @@ static void init_ctx(Ctx* c, const Cfg* cfg){
     c->ring_sz = 1u << cfg->ring_pow2;
     c->rings = (PfsSpscRing*)calloc(c->rings_n, sizeof(PfsSpscRing));
     for(uint32_t r=0;r<c->rings_n;r++){ if(pfs_spsc_create(&c->rings[r], c->ring_sz)!=0){ fprintf(stderr,"ring create failed: %s\n", strerror(errno)); exit(2);} }
+    if(cfg->cq_enable){
+        c->cqs = (PfsSpscRing*)calloc(c->rings_n, sizeof(PfsSpscRing));
+        for(uint32_t r=0;r<c->rings_n;r++){ if(pfs_spsc_create(&c->cqs[r], c->ring_sz)!=0){ fprintf(stderr,"cq create failed: %s\n", strerror(errno)); exit(2);} }
+    }
     size_t frames_n = (size_t)c->rings_n * c->ring_sz * cfg->dpf;
     c->frames = (PfsGramDesc*)calloc(frames_n, sizeof(PfsGramDesc));
     c->frame_eff = (uint64_t*)calloc((size_t)c->rings_n * c->ring_sz, sizeof(uint64_t));
@@ -120,6 +134,8 @@ static void init_ctx(Ctx* c, const Cfg* cfg){
 static void destroy_ctx(Ctx* c){
     if(!c) return;
     for(uint32_t r=0;r<c->rings_n;r++){ pfs_spsc_destroy(&c->rings[r]); }
+    if(c->cqs){ for(uint32_t r=0;r<c->rings_n;r++){ pfs_spsc_destroy(&c->cqs[r]); } }
+    free(c->cqs);
     free(c->rings); free(c->frames); free(c->frame_eff); free(c->prod_idx); free(c->contig_off);
     memset(c,0,sizeof(*c));
 }
@@ -132,8 +148,25 @@ static void* producer_fn(void* arg){
     ProdArgs* pa=(ProdArgs*)arg; Ctx* c=pa->ctx; const Cfg* cfg=&c->cfg; if(pa->cpu>=0) pin_cpu(pa->cpu);
     const uint32_t dpf = cfg->dpf; const uint32_t rs=c->ring_sz; const uint32_t rf=pa->ring_first; const uint32_t rl=pa->ring_last; const uint32_t rn = rl>rf? rl-rf : 0;
     uint64_t x = 0x9e3779b97f4a7c15ULL ^ now_ns();
+    // simple token bucket pacing per producer
+    double tokens = cfg->burst ? (double)cfg->burst : 0.0;
+    uint64_t last = now_ns();
     while(!atomic_load_explicit(&c->stop, memory_order_relaxed)){
+        // refill tokens
+        if(cfg->pps > 0.0){
+            uint64_t now = now_ns();
+            double dt = (double)(now - last) / 1e9;
+            last = now;
+            tokens += cfg->pps * dt;
+            if(tokens > (double)(cfg->burst ? cfg->burst : (rs))) tokens = (double)(cfg->burst ? cfg->burst : (rs));
+        } else {
+            tokens = 1.0e9; // effectively unlimited
+        }
         for(uint32_t i=0;i<rn;i++){
+            if(cfg->pps > 0.0){
+                if(tokens < 1.0){ struct timespec ts={0,1000000}; nanosleep(&ts,NULL); break; }
+                tokens -= 1.0;
+            }
             uint32_t r = rf + i; // ring index
             uint32_t idx_local = atomic_fetch_add_explicit(&c->prod_idx[r], 1, memory_order_relaxed) & (rs - 1);
             size_t abs = (size_t)r * rs + idx_local;
@@ -173,8 +206,8 @@ static void* consumer_fn(void* arg){
     const uint32_t dpf = cfg->dpf; const uint32_t rs=c->ring_sz; const uint32_t rf=ca->ring_first; const uint32_t rl=ca->ring_last; const uint32_t rn = rl>rf? rl-rf : 0;
     uint32_t rr = 0;
     while(!atomic_load_explicit(&c->stop, memory_order_relaxed)){
-        uint32_t idx_local; int got=0; size_t abs=0;
-        for(uint32_t t=0;t<rn; ++t){ uint32_t r = rf + ((rr++) % rn); if(pfs_spsc_pop(&c->rings[r], &idx_local)){ abs = (size_t)r * rs + idx_local; got=1; break; } }
+        uint32_t idx_local; int got=0; size_t abs=0; uint32_t ring_idx=0;
+        for(uint32_t t=0;t<rn; ++t){ uint32_t r = rf + ((rr++) % rn); if(pfs_spsc_pop(&c->rings[r], &idx_local)){ abs = (size_t)r * rs + idx_local; ring_idx=r; got=1; break; } }
         if(!got){ struct timespec ts={0, 200000}; nanosleep(&ts,NULL); continue; }
         PfsGramDesc* d = &c->frames[abs * dpf];
         if(cfg->pcpu_enable){
@@ -185,6 +218,8 @@ static void* consumer_fn(void* arg){
             uint64_t eff = c->frame_eff[abs]; (void)eff;
             // Optionally add a very light checksum here if desired
         }
+        // completion ring (best-effort)
+        if(cfg->cq_enable && c->cqs){ if(!pfs_spsc_push(&c->cqs[ring_idx], idx_local)) { atomic_fetch_add_explicit(&c->cq_drop, 1, memory_order_relaxed); } else { atomic_fetch_add_explicit(&c->cq_push, 1, memory_order_relaxed); } }
         atomic_fetch_add_explicit(&c->bytes_eff, c->frame_eff[abs], memory_order_relaxed);
         atomic_fetch_add_explicit(&c->frames_cons, 1, memory_order_relaxed);
     }
@@ -205,9 +240,11 @@ int main(int argc, char** argv){
     Cfg cfg = {
         .ports=1, .queues=2, .ring_pow2=16, .dpf=64, .align=64,
         .seg_len=256, .mode_contig=0, .duration_s=5.0,
+        .pps=0.0, .burst=0,
         .blob_bytes=(size_t)1<<30, .huge_dir="/mnt/huge1G", .blob_name="pnic_blob",
         .pcpu_enable=1, .prog_n=0, .single_op=PFS_PCPU_OP_XOR_IMM8, .single_imm=255,
-        .nic_threads=1, .pcpu_threads=2, .pin_first_cpu=0
+        .nic_threads=1, .pcpu_threads=2, .pin_first_cpu=0,
+        .cq_enable=0, .metrics_path="logs/pnic_pcpu_metrics.jsonl"
     };
     const char* prog_s = NULL; const char* op_s = "xor";
 
@@ -218,6 +255,8 @@ int main(int argc, char** argv){
         else if(!strcmp(argv[i],"--dpf")&&i+1<argc) cfg.dpf=(uint32_t)strtoul(argv[++i],NULL,10);
         else if(!strcmp(argv[i],"--align")&&i+1<argc) cfg.align=(uint32_t)strtoul(argv[++i],NULL,10);
         else if(!strcmp(argv[i],"--duration")&&i+1<argc) cfg.duration_s=strtod(argv[++i],NULL);
+        else if(!strcmp(argv[i],"--pps")&&i+1<argc) cfg.pps=strtod(argv[++i],NULL);
+        else if(!strcmp(argv[i],"--burst")&&i+1<argc) cfg.burst=(uint32_t)strtoul(argv[++i],NULL,10);
         else if(!strcmp(argv[i],"--blob-mb")&&i+1<argc) cfg.blob_bytes=(size_t)strtoull(argv[++i],NULL,10)<<20;
         else if(!strcmp(argv[i],"--huge-dir")&&i+1<argc) cfg.huge_dir=argv[++i];
         else if(!strcmp(argv[i],"--blob-name")&&i+1<argc) cfg.blob_name=argv[++i];
@@ -230,6 +269,8 @@ int main(int argc, char** argv){
         else if(!strcmp(argv[i],"--mode")&&i+1<argc){ const char* m=argv[++i]; cfg.mode_contig = (!strcmp(m,"contig")) ? 1 : 0; }
         else if(!strcmp(argv[i],"--seg-len")&&i+1<argc) cfg.seg_len=(uint32_t)strtoul(argv[++i],NULL,10);
         else if(!strcmp(argv[i],"--pin-first")&&i+1<argc) cfg.pin_first_cpu=atoi(argv[++i]);
+        else if(!strcmp(argv[i],"--cq")&&i+1<argc) cfg.cq_enable=atoi(argv[++i]);
+        else if(!strcmp(argv[i],"--metrics")&&i+1<argc) cfg.metrics_path=argv[++i];
         else { usage(argv[0]); return 2; }
     }
 
@@ -272,19 +313,32 @@ int main(int argc, char** argv){
         pthread_create(&ct[i], NULL, consumer_fn, ca);
     }
 
+    // Ensure logs directory exists if metrics enabled
+    if(cfg.metrics_path && *cfg.metrics_path){ mkdir("logs", 0755); }
+
     // Periodic stats
-    double t0 = now_s(); double next = t0 + 0.5; double tend = t0 + cfg.duration_s; uint64_t last_bytes=0, last_frames=0;
+    double t0 = now_s(); double next = t0 + 0.5; double tend = t0 + cfg.duration_s; uint64_t last_bytes=0, last_frames=0, last_cqp=0, last_cqd=0;
     while(now_s() < tend){
         struct timespec ts={0, 200000000L}; nanosleep(&ts,NULL);
         double t=now_s(); if(t < next) continue; next += 0.5;
         uint64_t b = atomic_load_explicit(&ctx.bytes_eff, memory_order_relaxed);
         uint64_t f = atomic_load_explicit(&ctx.frames_cons, memory_order_relaxed);
+        uint64_t cqp = atomic_load_explicit(&ctx.cq_push, memory_order_relaxed);
+        uint64_t cqd = atomic_load_explicit(&ctx.cq_drop, memory_order_relaxed);
         double dt = 0.5; double mbps = ((double)(b - last_bytes)/1e6) / dt; double fps = ((double)(f - last_frames)/dt);
-        fprintf(stdout, "[pnic/pcpu] bytes=%.1f MB (%.1f MB/s) frames=%llu (%.0f/s) rings=%u x %u dpf=%u op=%s%s\n",
-            (double)b/1e6, mbps, (unsigned long long)f, fps, cfg.ports, cfg.queues, cfg.dpf,
+        fprintf(stdout, "[pnic/pcpu] bytes=%.1f MB (%.1f MB/s) frames=%llu (%.0f/s) cq={push=%llu,drop=%llu} rings=%u x %u dpf=%u op=%s%s\n",
+            (double)b/1e6, mbps, (unsigned long long)f, fps, (unsigned long long)(cqp), (unsigned long long)(cqd),
+            cfg.ports, cfg.queues, cfg.dpf,
             (cfg.prog_n? "prog" : (cfg.single_op==PFS_PCPU_OP_XOR_IMM8? "xor": cfg.single_op==PFS_PCPU_OP_ADD_IMM8? "add": cfg.single_op==PFS_PCPU_OP_CHECKSUM_CRC32C? "crc32c": cfg.single_op==PFS_PCPU_OP_CHECKSUM_FNV64? "fnv": "counteq")),
             (cfg.prog_n? "": ""));
-        last_bytes=b; last_frames=f;
+        if(cfg.metrics_path && *cfg.metrics_path){
+            FILE* fp=fopen(cfg.metrics_path, "a"); if(fp){
+                fprintf(fp, "{\"ts\":%.3f,\"secs\":%.3f,\"bytes\":%llu,\"mbps\":%.1f,\"frames\":%llu,\"fps\":%.0f,\"cq_push\":%llu,\"cq_drop\":%llu}\n",
+                    t, t - t0, (unsigned long long)b, mbps, (unsigned long long)f, fps, (unsigned long long)cqp, (unsigned long long)cqd);
+                fclose(fp);
+            }
+        }
+        last_bytes=b; last_frames=f; last_cqp=cqp; last_cqd=cqd;
     }
 
     atomic_store_explicit(&ctx.stop, 1, memory_order_relaxed);

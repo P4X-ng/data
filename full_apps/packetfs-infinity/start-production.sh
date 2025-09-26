@@ -30,19 +30,22 @@ echo "  - Workers: 4"
 echo "  - Max blob size: 1GB"
 echo "  - WebSocket channels: 10"
 echo "  - Large file support: Enabled"
+echo "  - SaaS preflight: DISABLED (PFS_BLOB_PREFLIGHT=0)"
+echo "  - Blob: name=pfs_vblob_palette size=1GiB seed=1337"
 echo ""
 
-# Run with elevated privileges for port 443
+# Run with elevated privileges for port 443 (SaaS: disable preflight; palette blob)
 sudo -E env PATH=$PATH \
-    PFS_AUTH_ENABLED=0 \
+    PFS_AUTH_ENABLED=1 \
     PFS_TLS=1 \
     PFS_WS_CHANNELS=10 \
-    PFS_BLOB_NAME=pfs_production_blob \
+    PFS_BLOB_PREFLIGHT=0 \
+    PFS_BLOB_NAME=pfs_vblob_palette \
     PFS_BLOB_SIZE_BYTES=1073741824 \
-    PFS_BLOB_SEED=42 \
+    PFS_BLOB_SEED=1337 \
     PFS_BLOB_AUTO=1 \
     PFS_BLOB_PROGRESSIVE_FILL=1 \
-    PFS_COMPRESSION_DEBUG=1 \
+    PFS_COMPRESSION_DEBUG=0 \
     PYTHONPATH=/home/punk/Projects/packetfs/src:. \
     /home/punk/.venv/bin/hypercorn \
         --bind 0.0.0.0:443 \

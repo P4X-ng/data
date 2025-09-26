@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PacketFS Infinity - Arithmetic Mode</title>
-    <script src="/static/js/packetfs-core.js"></script>
     <style>
         * {
             margin: 0;
@@ -432,33 +431,31 @@
             fileList.insertBefore(fileItem, fileList.firstChild);
             
             try {
-                // Client-side PacketFS compression
                 const progressBar = document.getElementById(`file-${file.name}-progress`);
-                progressBar.style.width = '30%';
-                
-                // Compress file to IPROG using client-side PacketFS
-                const iprog = await pfsClient.compressFile(file);
-                
-                progressBar.style.width = '60%';
-                
-                // Calculate IPROG size
-                const iprogJson = JSON.stringify(iprog);
-                const iprogSize = new Blob([iprogJson]).size;
-                
-                console.log('IPROG generated:', {
-                    original_size: file.size,
-                    iprog_size: iprogSize,
-                    compression_ratio: iprog.metadata.compression_ratio
-                });
-                
-                // Send only the IPROG to server
-                const response = await fetch(`${API_BASE}/objects/from-iprog`, {
+                progressBar.style.width = '10%';
+                console.log('Starting palette compilation for:', file.name, 'Size:', file.size);
+
+                // Build multipart request and stream file to server-side palette compiler
+                const formData = new FormData();
+                formData.append('file', file);
+
+                progressBar.style.width = '35%';
+                const response = await fetch(`${API_BASE}/objects/from-palette`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: iprogJson
+                    body: formData
                 });
+
+                if (!response.ok) {
+                    const txt = await response.text();
+                    throw new Error(`Palette compile failed: ${response.status} ${txt}`);
+                }
+
+                progressBar.style.width = '65%';
+                const result = await response.json();
+                const uploadTime = (Date.now() - startTime) / 1000;
+
+                // Estimate blueprint size from metrics if available
+                const iprogSize = result.compressed_size || Math.ceil(file.size * (result.tx_ratio || 0));
                 
                 if (!response.ok) {
                     throw new Error(`Upload failed: ${response.status}`);
@@ -472,13 +469,13 @@
                 
                 // Update compression stats
                 const compressionSpan = document.getElementById(`file-${file.name}-compression`);
-                const compressionRatio = parseFloat(iprog.metadata.compression_ratio) || 1;
-                const compressedSize = iprogSize; // Use IPROG size as compressed size
+                const compressedSize = iprogSize || 0;
+                const compressionRatio = compressedSize > 0 ? (file.size / compressedSize) : 0;
                 const speedup = compressionRatio;
                 
                 compressionSpan.innerHTML = `
-                    Compression: ${formatPercent(compressionRatio)} | 
-                    Speedup: ${speedup.toFixed(0)}x | 
+                    IPROG: ${formatBytes(iprogSize)} | 
+                    Ratio: ${compressionRatio.toFixed(1)}x | 
                     Time: ${uploadTime.toFixed(2)}s
                 `;
                 
@@ -493,7 +490,7 @@
                 transferStats.style.display = 'block';
                 document.getElementById('statOriginal').textContent = formatBytes(file.size);
                 document.getElementById('statCompressed').textContent = formatBytes(compressedSize);
-                document.getElementById('statRatio').textContent = formatPercent(compressionRatio);
+                document.getElementById('statRatio').textContent = `${compressionRatio.toFixed(1)}x (${formatPercent(1 - (compressedSize/file.size))})`;
                 document.getElementById('statTime').textContent = uploadTime.toFixed(2) + 's';
                 document.getElementById('statSpeed').textContent = formatBytes(file.size / uploadTime) + '/s';
                 
@@ -549,35 +546,9 @@
             });
         }
         
-        // Initialize PacketFS client
+        // No client-side PacketFS; server does matching. Keep this as a no-op initializer for UI consistency.
         async function initPacketFS() {
-            try {
-                // Get blob parameters from server
-                const response = await fetch(`${API_BASE}/blob/status`);
-                const blobInfo = await response.json();
-                
-                if (blobInfo.attached) {
-                    // Use same blob parameters as server
-                    const blobName = blobInfo.name || 'pfs_vblob';
-                    const blobSize = blobInfo.size || 1073741824; // 1GB default
-                    const blobSeed = blobInfo.seed || 1337;
-                    
-                    console.log('Initializing PacketFS client with blob:', {blobName, blobSize, blobSeed});
-                    
-                    // Create and initialize client
-                    pfsClient = new PacketFSClient(blobName, blobSize, blobSeed);
-                    await pfsClient.initialize();
-                    
-                    console.log('PacketFS client initialized successfully');
-                    showAlert('PacketFS client ready - blob synchronized with server');
-                } else {
-                    console.error('Server blob not attached');
-                    showAlert('Server blob not ready - uploads will use fallback mode', 'error');
-                }
-            } catch (error) {
-                console.error('Failed to initialize PacketFS client:', error);
-                showAlert('Failed to initialize PacketFS client', 'error');
-            }
+            console.log('PacketFS: server-side palette compiler will be used.');
         }
         
         // Initialize

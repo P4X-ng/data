@@ -99,7 +99,9 @@ class VirtualBlob:
         return bytes(out)
 
     def ensure_filled(self) -> None:
-        """Fill the shared memory region deterministically if not already filled for this (name,size,seed,profile)."""
+        """Fill the shared memory region deterministically if not already filled for this (name,size,seed,profile).
+        Adds a fixed 256 KiB palette immediately after the header with deterministic tiles that both sides can reference.
+        """
         if self._shm is None:
             raise RuntimeError("VirtualBlob is not attached")
         # Defensive: if requested size is larger than actual shared memory size, clamp
@@ -124,24 +126,32 @@ class VirtualBlob:
             # Extremely unlikely; fallback to bytes interface
             mv = memoryview(bytes(buf))
         mv[:header_len] = want
-        # Choose fill strategy
-        if self.profile == "orchard":
-            self._fill_orchard(mv, header_len)
-        else:
-            # Default: prand
-            block = self._fill_block(1 << 20)
-            pos = header_len
-            end = self.size
-            blen = len(block)
-            # Write in safe chunks to reduce chance of partial mapping issues
-            while pos < end:
-                n = min(blen, end - pos)
-                try:
-                    mv[pos:pos + n] = block[:n]
-                except BufferError:
-                    # Fallback: zero fill remainder to avoid crash
-                    mv[pos:pos + n] = b"\x00" * n
-                pos += n
+
+        # Deterministic palette region: 256 KiB after header
+        palette_start = header_len
+        palette_size = min(256 * 1024, max(0, self.size - palette_start))
+        palette_end = palette_start + palette_size
+        self._fill_palette(mv, palette_start, palette_end)
+
+        # Choose fill strategy for remainder
+        if palette_end < self.size:
+            if self.profile == "orchard":
+                self._fill_orchard(mv, palette_end)
+            else:
+                # Default: prand
+                block = self._fill_block(1 << 20)
+                pos = palette_end
+                end = self.size
+                blen = len(block)
+                # Write in safe chunks to reduce chance of partial mapping issues
+                while pos < end:
+                    n = min(blen, end - pos)
+                    try:
+                        mv[pos:pos + n] = block[:n]
+                    except BufferError:
+                        # Fallback: zero fill remainder to avoid crash
+                        mv[pos:pos + n] = b"\x00" * n
+                    pos += n
 
     def read(self, offset: int, length: int) -> bytes:
         if self._shm is None:
@@ -160,6 +170,68 @@ class VirtualBlob:
         return first + second
 
     # --- Orchard profile helpers ---
+    def _fill_palette(self, mv: memoryview, start: int, end: int) -> None:
+        """Fill a deterministic palette region with 256-byte tiles.
+        Layout:
+          - Tiles[0..255]: constant tiles value=tile_index (guarantees all constant bytes)
+          - Remaining tiles: cycle through a mix of structured banks
+            (ramp, gray, lfsr, periodic stripes, numeric stride, ascii tokens, debruijn-like)
+        """
+        tile = 256
+        off = start
+        idx = 0
+        # First 256 tiles: exact constants 0..255
+        while off + tile <= end and idx < 256:
+            val = idx & 0xFF
+            mv[off:off+tile] = bytes([val]) * tile
+            off += tile
+            idx += 1
+        # Mixed banks thereafter
+        while off + tile <= end:
+            fam = (idx // 1) % 6  # 6 families cycling
+            if fam == 0:
+                # ramp with step depending on idx
+                step = ((idx + 1) * 5) & 0xFF or 1
+                mv[off:off+tile] = bytes(((i * step) & 0xFF) for i in range(tile))
+            elif fam == 1:
+                # gray code
+                mv[off:off+tile] = bytes(((i ^ (i >> 1)) & 0xFF) for i in range(tile))
+            elif fam == 2:
+                # lfsr
+                lfsr = (idx * 37 + 1) & 0xFF
+                arr = bytearray(tile)
+                for i in range(tile):
+                    lfsr = ((lfsr >> 1) ^ (-(lfsr & 1) & 0xB8)) & 0xFF
+                    arr[i] = lfsr
+                mv[off:off+tile] = bytes(arr)
+            elif fam == 3:
+                # periodic stripes: period depends on idx (2,4,8,16)
+                period = 1 << (((idx // 4) % 4) + 1)  # 2,4,8,16
+                arr = bytearray(tile)
+                for i in range(tile):
+                    arr[i] = 0xFF if (i % period) < (period // 2) else 0x00
+                mv[off:off+tile] = bytes(arr)
+            elif fam == 4:
+                # numeric stride (LE 32-bit counter)
+                base = (idx * 97) & 0xFFFFFFFF
+                arr = bytearray(tile)
+                for i in range(0, tile, 4):
+                    w = (base + (i // 4)) & 0xFFFFFFFF
+                    arr[i+0] = (w >> 0) & 0xFF
+                    arr[i+1] = (w >> 8) & 0xFF
+                    arr[i+2] = (w >> 16) & 0xFF
+                    arr[i+3] = (w >> 24) & 0xFF
+                mv[off:off+tile] = bytes(arr)
+            else:
+                # ascii tokens / punctuation common in JSON/text
+                tokens = (b"{}[]:\", \\n true false null : , \t \r \n ")
+                arr = bytearray(tile)
+                for i in range(tile):
+                    arr[i] = tokens[i % len(tokens)]
+                mv[off:off+tile] = bytes(arr)
+            off += tile
+            idx += 1
+
     def _fill_orchard(self, mv: memoryview, start: int) -> None:
         """Fill using a composed dictionary of banks engineered for matchability.
         Banks (approx proportions):

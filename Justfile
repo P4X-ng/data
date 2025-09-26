@@ -2,7 +2,6 @@
 
 # Import split justfiles (network, builds, tests, cleanup, dev) if present
 import "./Justfile.vars"
-import "./Justfile.bench"
 
 # (Variables imported from Justfile.vars)
 
@@ -19,6 +18,7 @@ help:
     @echo "Usage: just <recipe>. Categories: tests, dev-builds, staging/prod builds, experimental, env"
     just --list
     @echo ""
+    @echo "Bench and sweeps are in Justfile.bench. List with: just -f Justfile.bench --list"
     @echo "Merge service (Podman):"
     @echo "  just dev-build-pfs-merge      # Build Podman image"
     @echo "  just dev-run-pfs-merge        # Run local service container"
@@ -295,10 +295,22 @@ dev-pnic-smoke duration="5" blob_mb="1024" ports="1" queues="2" ring_pow2="16" d
 dev-pnic-agg-sim n="4" duration="5" ring_pow2="14" dpf="64" align="64" blob_mb="1024" threads_n="4":
     @bash -eu -o pipefail -c 'paths=""; for i in $(seq -f "%03g" 1 {{n}}); do p=/dev/shm/pnic_vm_$i; rm -f "$p"; (staging/pnic/pnic_tx_shm --path "$p" --ring-pow2 {{ring_pow2}} --dpf {{dpf}} --align {{align}} --duration {{duration}} --blob-mb {{blob_mb}} >/dev/null 2>&1 &); paths="$paths${paths:+,}$p"; done; sleep 0.2; staging/pnic/pnic_agg --endpoints "$paths" --threads {{threads_n}} --duration {{duration}} --blob-mb {{blob_mb}} --op xor --imm 255'
 
+# Aggregator scaling sweep up to N logical cores
+# Exported parameters are provided to the script as environment variables
+dev-pnic-agg-sweep $NPROD="16" $THREADS_LIST="1,2,4,8,16,32,64,96,128" $DURATION="4" $RING_POW2="16" $DPF="64" $ALIGN="64" $BLOB_MB="1024" $OP="xor" $IMM="255" $OUT="logs/pnic_agg_sweep.csv":
+    @echo "[sweep] pNIC agg: NPROD=${NPROD} THREADS_LIST=${THREADS_LIST} DUR=${DURATION}s blob=${BLOB_MB}MB"
+    just dev-pnic-build
+    scripts/benchmarks/pnic_agg_sweep.sh
+
 # Demo: staging program-carrying TX/RX
 run-staging-fastpath-prog duration="5" prog="xor:255":
     @echo "[staging] program-carrying RX/TX for {{duration}}s prog={{prog}}"
     @bash -eu -o pipefail -c 'set -m; ./staging/fastpath/pfs_prog_rx --duration {{duration}} & rxpid=$!; sleep 0.2; ./staging/fastpath/pfs_prog_tx --duration {{duration}} --prog "{{prog}}"; wait $rxpid || true'
+
+# Real device sanity run (requires pfs_fastpath loaded)
+dev-fastpath-sanity duration cpu_rx cpu_tx prog:
+    @echo "[sanity] real /dev/pfs_fastpath RX/TX for {{duration}}s (cpu_rx={{cpu_rx}} cpu_tx={{cpu_tx}} prog={{prog}})"
+    @bash -eu -o pipefail -c 'set -m; ./staging/fastpath/pfs_prog_rx --duration {{duration}} --cpu {{cpu_rx}} & rxpid=$!; sleep 0.2; ./staging/fastpath/pfs_prog_tx --duration {{duration}} --cpu {{cpu_tx}} --prog "{{prog}}"; wait $rxpid || true'
 
 # Quick demo: start RX then TX for 5s (local hugeblob)
 run-fastpath-demo duration="5":
@@ -984,13 +996,25 @@ dev-shm-maxwin-sweep queues="1,3" cthreads="1,2,4,8" seg_len="80" rp2="19" dpf="
     bash scripts/benchmarks/shm_maxwin_sweep.sh --ring-pow2 "{{rp2}}" --queues-list "{{queues}}" --pcpu-threads-list "{{cthreads}}" --seg-len "{{seg_len}}" --dpf "{{dpf}}" --duration "{{duration}}" --out "{{out}}"
 
 # CPU baseline (multi-core aggregation)
-build-cpu-baseline:
-    @echo "Building CPU baseline tool"
+build-pfs-cpu-baseline:
+    @echo "Building CPU baseline tool (pfs_cpu_baseline)"
     {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o dev/wip/native/pfs_cpu_baseline src/dev/wip/native/pfs_cpu_baseline.c
 
 dev-cpu-multi-baseline threads="16" size_mb="4096" op="xor8" imm="255":
     @echo "[cpu-multi] threads={{threads}} size_mb={{size_mb}} op={{op}} imm={{imm}}"
+    just build-pfs-cpu-baseline
     bash scripts/benchmarks/cpu_multi_baseline.sh --threads "{{threads}}" --size-mb "{{size_mb}}" --op "{{op}}" --imm "{{imm}}"
+
+# CPU baseline scaling sweep and CPUpwn summarizer
+# Exported parameters are provided to the script as environment variables
+dev-cpu-baseline-sweep $THREADS_LIST="1,2,4,8,16,32,64,96,128" $SIZE_MB="4096" $OP="xor8" $IMM="255" $OUT="logs/cpu_baseline_sweep.csv":
+    @echo "[sweep] CPU baseline: THREADS_LIST=${THREADS_LIST} SIZE_MB=${SIZE_MB}"
+    just build-pfs-cpu-baseline
+    scripts/benchmarks/cpu_baseline_sweep.sh
+
+dev-cpupwn-summarize pnic_csv="logs/pnic_agg_sweep.csv" cpu_csv="logs/cpu_baseline_sweep.csv" out="logs/cpupwn_summary.csv":
+    @echo "[cpupwn] summarizing {{pnic_csv}} vs {{cpu_csv}} -> {{out}}"
+    {{VENV_PATH}}/bin/python scripts/benchmarks/cpupwn_summarize.py --pnic "{{pnic_csv}}" --cpu "{{cpu_csv}}" --out "{{out}}"
 
 # =====================
 # Merge service (Podman)

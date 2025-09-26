@@ -213,6 +213,7 @@ def create_app() -> FastAPI:
     from app.routes.debug import router as debug_router
     from app.routes.ingress import router as ingress_router
     from app.routes.iprog import router as iprog_router
+    from app.routes.palette_build import router as palette_router
     from app.routes.compute import router as compute_router
     from app.routes.websockets import register_ws_handlers
     from app.routes.browse import router as browse_router
@@ -255,6 +256,7 @@ def create_app() -> FastAPI:
     app.include_router(debug_router)
     app.include_router(ingress_router)
     app.include_router(iprog_router)
+    app.include_router(palette_router)
     app.include_router(compute_router)
     app.include_router(browse_router)
     app.include_router(cluster_router)

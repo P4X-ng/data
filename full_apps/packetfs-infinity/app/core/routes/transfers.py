@@ -48,6 +48,33 @@ async def start_transfer(req: TransferRequest):
     async def _run_transfer():
         """Execute the PacketFS arithmetic transfer"""
         try:
+            # Preflight: verify remote blob fingerprint matches exactly (can be disabled for SaaS central)
+            import os as _os
+            if _os.environ.get("PFS_BLOB_PREFLIGHT", "1") in ("1","true","TRUE","True"):
+                # Preflight enabled
+                try:
+                    import ssl, http.client, json as _json
+                    scheme_port = req.peer.https_port
+                    ctx = ssl.create_default_context()
+                    import os as _os
+                    if _os.environ.get("PFS_TLS_INSECURE", "0") in ("1","true","TRUE","True"):
+                        ctx.check_hostname = False
+                        ctx.verify_mode = ssl.CERT_NONE
+                    conn = http.client.HTTPSConnection(req.peer.host, scheme_port, context=ctx, timeout=3.0)
+                    conn.request("GET", "/blob/status")
+                    resp = conn.getresponse()
+                    body = resp.read()
+                    conn.close()
+                    if resp.status != 200:
+                        raise RuntimeError(f"peer /blob/status {resp.status}")
+                    info = _json.loads(body.decode("utf-8"))
+                    from app.core.state import CURRENT_BLOB as _CB  # type: ignore
+                    if not (info.get("name") == _CB.get("name") and int(info.get("size",0)) == int(_CB.get("size",0)) and int(info.get("seed",0)) == int(_CB.get("seed",0))):
+                        raise RuntimeError("peer blob fingerprint mismatch")
+                except Exception as pre:
+                    raise HTTPException(status_code=428, detail=f"Preflight failed: {pre}")
+            # else: preflight disabled for SaaS central
+
             from app.services.transports.ws_proxy import send_iprog_ws_multi
             
             windows = iprog.get("windows", [])

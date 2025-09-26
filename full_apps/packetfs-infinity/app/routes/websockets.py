@@ -141,38 +141,83 @@ def register_ws_handlers(app: FastAPI) -> None:
                                 windows.setdefault(current_win, bytearray()).extend(payload)
 
                     for widx, buf in list(windows.items()):
-                        # Prefer PVRT+BREF reconstruction from VirtualBlob (with optional relative anchor)
+                        # Prefer OFFS decoding (offset lists) or PVRT+BREF reconstruction from VirtualBlob
                         win_bytes = b""
                         try:
-                            from packetfs.filesystem.pvrt_container import parse_container, SEC_BREF  # type: ignore
                             vb = CURRENT_BLOB.get("vb") if isinstance(CURRENT_BLOB, dict) else None
                             anchor = int(pre.get("anchor", 0))
-                            if vb is not None:
-                                secs = parse_container(bytes(buf))
-                                bref = secs.get(SEC_BREF)
-                                if bref:
-                                    out = bytearray()
-                                    if len(bref) >= 2:
-                                        cnt = int.from_bytes(bref[0:2], 'big')
-                                        i2 = 2
-                                        for _ in range(cnt):
-                                            if i2 + 13 > len(bref):
-                                                break
-                                            off_b = bref[i2:i2+8]; i2 += 8
-                                            ln = int.from_bytes(bref[i2:i2+4], 'big'); i2 += 4
-                                            fl = bref[i2]; i2 += 1
-                                            if ln <= 0:
-                                                continue
-                                            if (fl & 0x01) != 0:
-                                                # relative delta (signed 64-bit)
-                                                delta = int.from_bytes(off_b, 'big', signed=True)
-                                                off = (anchor + delta) % int(CURRENT_BLOB.get("size", vb.size))
-                                            else:
-                                                off = int.from_bytes(off_b, 'big', signed=False)
-                                            out += vb.read(off, ln)
-                                    win_bytes = bytes(out)
+                            if vb is not None and len(buf) >= 6 and bytes(buf[:4]) == b'OFFS':
+                                # OFFS format: 'OFFS' + u16 count + entries(off64,len32,fl8)*
+                                cnt = int.from_bytes(bytes(buf[4:6]), 'big')
+                                i2 = 6
+                                out = bytearray()
+                                for _ in range(cnt):
+                                    if i2 + 13 > len(buf):
+                                        break
+                                    off_b = bytes(buf[i2:i2+8]); i2 += 8
+                                    ln = int.from_bytes(bytes(buf[i2:i2+4]), 'big'); i2 += 4
+                                    fl = buf[i2]; i2 += 1
+                                    if ln <= 0:
+                                        continue
+                                    if (fl & 0x01) != 0:
+                                        delta = int.from_bytes(off_b, 'big', signed=True)
+                                        off = (anchor + delta) % int(CURRENT_BLOB.get("size", vb.size))
+                                    else:
+                                        off = int.from_bytes(off_b, 'big', signed=False)
+                                    seg = bytearray(vb.read(off, ln))
+                                    op = (fl >> 1) & 0x03
+                                    imm = (fl >> 3) & 0x1F
+                                    if op == 1:
+                                        for j in range(len(seg)):
+                                            seg[j] ^= imm
+                                    elif op == 2:
+                                        for j in range(len(seg)):
+                                            seg[j] = (seg[j] + imm) & 0xFF
+                                    out += seg
+                                win_bytes = bytes(out)
                         except Exception:
                             win_bytes = b""
+                        if not win_bytes:
+                            try:
+                                from packetfs.filesystem.pvrt_container import parse_container, SEC_BREF  # type: ignore
+                                vb = CURRENT_BLOB.get("vb") if isinstance(CURRENT_BLOB, dict) else None
+                                anchor = int(pre.get("anchor", 0))
+                                if vb is not None:
+                                    secs = parse_container(bytes(buf))
+                                    bref = secs.get(SEC_BREF)
+                                    if bref:
+                                        out = bytearray()
+                                        if len(bref) >= 2:
+                                            cnt = int.from_bytes(bref[0:2], 'big')
+                                            i2 = 2
+                                            for _ in range(cnt):
+                                                if i2 + 13 > len(bref):
+                                                    break
+                                                off_b = bref[i2:i2+8]; i2 += 8
+                                                ln = int.from_bytes(bref[i2:i2+4], 'big'); i2 += 4
+                                                fl = bref[i2]; i2 += 1
+                                                if ln <= 0:
+                                                    continue
+                                                if (fl & 0x01) != 0:
+                                                    # relative delta (signed 64-bit)
+                                                    delta = int.from_bytes(off_b, 'big', signed=True)
+                                                    off = (anchor + delta) % int(CURRENT_BLOB.get("size", vb.size))
+                                                else:
+                                                    off = int.from_bytes(off_b, 'big', signed=False)
+                                                seg = bytearray(vb.read(off, ln))
+                                                # Apply imm5 transforms: bits1-2 op, bits3-7 imm
+                                                op = (fl >> 1) & 0x03
+                                                imm = (fl >> 3) & 0x1F
+                                                if op == 1:
+                                                    for j in range(len(seg)):
+                                                        seg[j] ^= imm
+                                                elif op == 2:
+                                                    for j in range(len(seg)):
+                                                        seg[j] = (seg[j] + imm) & 0xFF
+                                                out += seg
+                                        win_bytes = bytes(out)
+                            except Exception:
+                                win_bytes = b""
                         # Fallback: legacy section decode (RAW/PROTO)
                         if not win_bytes:
                             secs = extract_sections(bytes(buf))

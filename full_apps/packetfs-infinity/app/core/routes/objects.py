@@ -82,7 +82,7 @@ async def create_object(file: UploadFile = File(...)):
             blob_size = int(CURRENT_BLOB.get("size", 0))
             blob_seed = int(CURRENT_BLOB.get("seed", 0))
         else:
-            # Fallback to env (mirror startup clamp logic to avoid size mismatch RuntimeError)
+            # Resolve from env (mirror startup clamp logic to avoid size mismatch RuntimeError)
             blob_name = os.environ.get("PFS_BLOB_NAME", "pfs_vblob")
             raw_size = int(os.environ.get("PFS_BLOB_SIZE_BYTES", str(1 << 30)))
             # Default clamp to 1 GiB to match app startup and Justfile docs
@@ -101,23 +101,8 @@ async def create_object(file: UploadFile = File(...)):
         iprog = build_iprog_for_file_bytes(data, file.filename or obj_id, fp, segs, window_size=65536, include_pvrt=True)
         fs.close()
     except Exception as e:
-        fallback_error = e
-        if not allow_fallback:
-            # Strict mode: require PacketFS; surface clear error
-            raise HTTPException(status_code=500, detail=f"PacketFS pipeline error: {e.__class__.__name__}: {e}")
-        # Legacy fallback: minimal plan when explicitly allowed
-        iprog = {
-            "type": "iprog",
-            "version": 1,
-            "file": file.filename or obj_id,
-            "size": len(data),
-            "sha256": sha256,
-            "window_size": 65536,
-            "blob": {"name": os.environ.get("PFS_BLOB_NAME", "pfs_vblob"), "size": int(os.environ.get("PFS_BLOB_SIZE_BYTES", str(1<<30))), "seed": int(os.environ.get("PFS_BLOB_SEED", "1337"))},
-            "windows": [],
-            "done": {"sha256": sha256, "total_windows": 0},
-            "metrics": {"pvrt_total": len(data), "tx_ratio": 1.0, "fallback_reason": f"{e.__class__.__name__}: {e}"},
-        }
+        # Strict mode: require PacketFS; surface clear error (no raw fallback)
+        raise HTTPException(status_code=500, detail=f"PacketFS pipeline error: {e.__class__.__name__}: {e}")
 
     BLUEPRINTS[obj_id] = {
         "version": 1,
@@ -125,8 +110,6 @@ async def create_object(file: UploadFile = File(...)):
         "sha256": sha256,
         "iprog": iprog,
         "filename": file.filename or "unknown",
-        # Keep raw bytes for dev-only download path
-        "bytes": data,
     }
     try:
         from app.services.pvrt_framing import compute_window_hashes

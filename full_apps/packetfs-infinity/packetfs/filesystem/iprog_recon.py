@@ -8,6 +8,17 @@ from .virtual_blob import VirtualBlob
 from .pvrt_container import parse_container, SEC_RAW, SEC_PROTO, SEC_BREF
 
 
+def _apply_transform(buf: bytearray, fl: int) -> None:
+    op = (fl >> 1) & 0x03
+    imm = (fl >> 3) & 0x1F
+    if op == 1:  # XOR imm5
+        for j in range(len(buf)):
+            buf[j] ^= imm
+    elif op == 2:  # ADD imm5
+        for j in range(len(buf)):
+            buf[j] = (buf[j] + imm) & 0xFF
+
+
 def read_bref_from_blob(bref: bytes, vb: VirtualBlob) -> bytes:
     if len(bref) < 2:
         return b""
@@ -21,7 +32,9 @@ def read_bref_from_blob(bref: bytes, vb: VirtualBlob) -> bytes:
         ln = int.from_bytes(bref[i:i+4], 'big'); i += 4
         fl = bref[i]; i += 1
         if ln > 0:
-            out += vb.read(off, ln)
+            seg = bytearray(vb.read(off, ln))
+            _apply_transform(seg, fl)
+            out += seg
     return bytes(out)
 
 

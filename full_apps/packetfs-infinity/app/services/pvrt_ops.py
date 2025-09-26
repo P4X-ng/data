@@ -18,8 +18,7 @@ SEC_BREF = 0x03
 
 def encode_window_ops(window_bytes: bytes, bref_chunks: list[tuple[int,int,int]] | None = None) -> bytes:
     sections = []
-    # RAW section
-    sections.append((SEC_RAW, window_bytes))
+    # No RAW section: raw fallback is forbidden in production
     # PROTO section (best effort)
     try:
         from packetfs.protocol import ProtocolEncoder, SyncConfig  # type: ignore
@@ -101,7 +100,7 @@ def execute_proto_window(proto: bytes, blob_meta: dict) -> bytes | None:
                 off = int.from_bytes(bref[i:i+8], 'big'); i += 8
                 ln = int.from_bytes(bref[i:i+4], 'big'); i += 4
                 fl = bref[i]; i += 1
-                chunks.append((off, ln, fl))
+            chunks.append((off, ln, fl))
             # Read from VirtualBlob
             from packetfs.filesystem.virtual_blob import VirtualBlob  # type: ignore
             vb = VirtualBlob(name=str(blob_meta["name"]), size_bytes=int(blob_meta.get("size", 0) or 0), seed=int(blob_meta.get("seed", 0) or 0))
@@ -110,7 +109,17 @@ def execute_proto_window(proto: bytes, blob_meta: dict) -> bytes | None:
             for off, ln, fl in chunks:
                 if ln <= 0:
                     continue
-                out += vb.read(off, ln)
+                seg = bytearray(vb.read(off, ln))
+                # apply transforms consistent with iprog_recon
+                op = (fl >> 1) & 0x03
+                imm = (fl >> 3) & 0x1F
+                if op == 1:  # XOR imm5
+                    for j in range(len(seg)):
+                        seg[j] ^= imm
+                elif op == 2:  # ADD imm5
+                    for j in range(len(seg)):
+                        seg[j] = (seg[j] + imm) & 0xFF
+                out += seg
             vb.close()
             return bytes(out)
     except Exception:

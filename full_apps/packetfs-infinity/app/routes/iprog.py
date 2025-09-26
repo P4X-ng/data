@@ -28,6 +28,13 @@ async def create_object_from_iprog(payload: dict = Body(...)):
         windows = payload.get("windows", [])
         blob_info = payload.get("blob", {})
         metadata = payload.get("metadata", {})
+
+        # Enforce BREF-only: if any window embeds RAW in PVRT or lacks BREF entirely, reject
+        try:
+            from packetfs.filesystem.pvrt_container import parse_container, SEC_RAW  # type: ignore
+        except Exception:
+            parse_container = None  # type: ignore
+            SEC_RAW = 0x01  # type: ignore
         
         if not sha256 or not size:
             raise HTTPException(status_code=400, detail="Missing required fields: sha256 or size")
@@ -50,6 +57,26 @@ async def create_object_from_iprog(payload: dict = Body(...)):
             print(f"Blob mismatch - Server: {server_blob}, Client: {blob_info}")
             # For now, continue anyway as the reconstruction will handle it
         
+        # Validate windows are BREF-only
+        for w in windows:
+            # PVRT present? ensure no RAW section
+            pvrt_b64 = w.get("pvrt")
+            if pvrt_b64 and parse_container is not None:
+                import base64
+                try:
+                    pvrt_buf = base64.b64decode(str(pvrt_b64))
+                    secs = parse_container(pvrt_buf)
+                    if SEC_RAW in secs:
+                        raise HTTPException(status_code=422, detail="IPROG contains RAW in PVRT; raw fallback is not permitted")
+                except HTTPException:
+                    raise
+                except Exception:
+                    raise HTTPException(status_code=400, detail="Invalid PVRT payload in IPROG")
+            # BREF list must exist
+            bref = w.get("bref") or []
+            if not isinstance(bref, list) or len(bref) == 0:
+                raise HTTPException(status_code=422, detail="IPROG windows must contain BREF; raw fallback is not permitted")
+
         # Generate object ID
         obj_id = f"sha256:{sha256}"
         
