@@ -96,3 +96,39 @@ DANGER_ONLY_FOR_TESTING_PURPOSES/**/.cache/
 packetfs_vfio/
 *device_info.json
 DANGER_ONLY_FOR_TESTING_PURPOSES/**/device_info.json
+
+# === Repo bloat control (generated artifacts) ===
+# Generated logs and artifacts (massive)
+logs/
+logs/patterns/
+experiment-logs/
+
+# Pattern blobs and snapshots
+src/patterns/
+
+# Plans and sidecars
+plans/
+iprog/
+pfsmeta/
+
+# VM images and mounts
+.vm/
+
+# Build outputs
+dev/wip/native/
+# dev/working/tools build artifact
+dev/working/tools/pfs_afpkt_rx
+
+# Large binary formats
+*.bin
+*.tar
+*.tar.gz
+*.zip
+*.xz
+*.pbb
+*.pbb.xz
+*.pkl
+*.jsonl
+
+# Allow small CSV summaries if not under ignored dirs
+!*.csv
