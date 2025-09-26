@@ -47,3 +47,110 @@ task agg_sim
   shell sleep 0.2
   shell staging/pnic/pnic_agg --endpoints "$paths" --threads "${THREADS:-4}" --duration "${DURATION:-5}" --blob-mb "${BLOB_MB:-1024}" --op "${OP:-xor}" --imm "${IMM:-255}"
 end
+
+# =====================
+# Categorized developer tasks (dev-*, fs-*, net-*)
+# =====================
+
+# --- dev: environment & builds ---
+
+task dev-setup
+  describe Setup central venv tools (pip/setuptools/wheel)
+  shell /home/punk/.venv/bin/python -m pip -q -U pip setuptools wheel
+end
+
+task dev-build-bitpack
+  describe Build C extension and install package (editable)
+  shell /home/punk/.venv/bin/python -m pip -q -U pip setuptools wheel
+  shell /home/punk/.venv/bin/python -m pip -q install -e .
+  shell /home/punk/.venv/bin/python - <<'PY'
+import importlib
+m = importlib.import_module("packetfs._bitpack")
+print("bitpack import OK:", m.__name__)
+PY
+end
+
+# --- dev: test/lint/format/clean ---
+
+task dev-test
+  describe Run unit tests (src/)
+  shell /home/punk/.venv/bin/python -m pytest -q tests
+end
+
+task dev-test-dev
+  describe Run dev/prototype tests (PYTHONPATH=realsrc)
+  shell bash -lc 'PYTHONPATH=realsrc /home/punk/.venv/bin/python -m pytest -q dev/working/tests'
+end
+
+task dev-lint
+  describe Lint (black --check, flake8)
+  shell /home/punk/.venv/bin/python -m black --check src realsrc dev/working/tools
+  shell /home/punk/.venv/bin/python -m flake8 src realsrc dev/working/tools
+end
+
+task dev-format
+  describe Auto-format (black)
+  shell /home/punk/.venv/bin/python -m black src realsrc dev/working/tools
+end
+
+task dev-clean
+  describe Clean pyc and __pycache__
+  shell bash -lc "find . -name '__pycache__' -type d -prune -exec rm -rf {} +"
+  shell bash -lc "find . -name '*.pyc' -delete"
+end
+
+# --- fs: translate + mount ---
+
+task fs-trans-daemon
+  describe Translate files on arrival -> IPROGs in ./iprog (watch ./ingest)
+  directory ./ingest
+  directory ./iprog
+  directory ./pfsmeta
+  shell /home/punk/.venv/bin/python -m packetfs.tools.translate_daemon \
+        --watch-dir ./ingest \
+        --out-dir ./iprog \
+        --blob-name pfs_vblob \
+        --blob-size 1073741824 \
+        --blob-seed 1337 \
+        --meta-dir ./pfsmeta \
+        --window 65536
+end
+
+task fs-mount
+  describe Mount PacketFS (rw) -> ./pfs.mnt using ./iprog + virtual blob (foreground)
+  directory ./pfs.mnt
+  shell /home/punk/.venv/bin/python -m packetfs.filesystem.pfsfs_mount \
+        --iprog-dir ./iprog \
+        --mount ./pfs.mnt \
+        --blob-name pfs_vblob \
+        --blob-size 1073741824 \
+        --blob-seed 1337 \
+        --meta-dir ./pfsmeta \
+        --window 65536 \
+        --embed-pvrt \
+        --foreground
+end
+
+task fs-mount-ro
+  describe Mount PacketFS read-only -> ./pfs.mnt (foreground)
+  directory ./pfs.mnt
+  shell /home/punk/.venv/bin/python -m packetfs.filesystem.pfsfs_mount \
+        --iprog-dir ./iprog \
+        --mount ./pfs.mnt \
+        --blob-name pfs_vblob \
+        --blob-size 1073741824 \
+        --blob-seed 1337 \
+        --meta-dir ./pfsmeta \
+        --window 65536 \
+        --read-only \
+        --foreground
+end
+
+# --- net: AF_PACKET smoke ---
+
+task net-afpkt-smoke
+  describe AF_PACKET RX 2s on lo (plan -> logs/plan_afpkt_smoke.json)
+  directory logs
+  shell bash -lc "if ! [ -x bin/pfs_afpkt_rx ]; then echo 'bin/pfs_afpkt_rx not found (build it first)'; exit 1; fi"
+  shell bash -lc "taskset -c 0 bin/pfs_afpkt_rx --iface lo --duration 2 --blob-size $((64<<20)) --huge-dir /dev/hugepages --llvm-opt 1 --llvm-hint network/crc --peek-mmio 1 --plan-out logs/plan_afpkt_smoke.json --snaplen 64 --align 64 --pin-cpu-list 0"
+end
