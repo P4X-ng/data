@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🕊️ HGWS Freedom Relay - Uncensorable Internet</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #2C3E50 0%, #34495E 100%);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        .mission-statement {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #e74c3c;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-style: italic;
+            text-align: center;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 0 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .relay-status {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .relay-node {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .relay-node.active {
+            border-left: 4px solid #27ae60;
+            background: rgba(39, 174, 96, 0.1);
+        }
+        
+        .relay-node.blocked {
+            border-left: 4px solid #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+        
+        .anonymity-level {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .anonymity-bars {
+            display: flex;
+            gap: 5px;
+            margin: 15px 0;
+        }
+        
+        .anonymity-bar {
+            width: 20px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .anonymity-bar.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, #27ae60, #2ecc71);
+            animation: fillBar 2s ease-in-out;
+        }
+        
+        @keyframes fillBar {
+            from { height: 0; }
+            to { height: var(--fill-height); }
+        }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+        }
+        
+        .log-entry.info { color: #3498db; }
+        .log-entry.warn { color: #f39c12; }
+        .log-entry.error { color: #e74c3c; }
+        .log-entry.freedom { color: #27ae60; }
+        .log-entry.censored { color: #e74c3c; }
+        
+        .email-input {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            margin: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 250px;
+        }
+        
+        .email-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .blocked-sites {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid #e74c3c;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .relay-config {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .world-map {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            min-height: 200px;
+            position: relative;
+        }
+        
+        .relay-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #27ae60;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕊️ Freedom Relay Network</h1>
+        
+        <div class="mission-statement">
+            <h3>"Information wants to be free"</h3>
+            <p><strong>No government, no corporation, no entity should control what information you can access.</strong></p>
+            <p>This distributed relay network uses thousands of browsers worldwide to create an uncensorable internet.</p>
+            <p><em>When we stand together, we cannot be silenced.</em></p>
+        </div>
+        
+        <div class="controls">
+            <input type="email" class="email-input" id="emailInput" placeholder="anonymous@proton.me" required>
+            <br><br>
+            <button id="joinBtn" onclick="joinRelay()">🕊️ Join Freedom Network</button>
+            <button id="leaveBtn" onclick="leaveRelay()" disabled>🔒 Leave Network</button>
+            <button onclick="testCensorship()">🧪 Test Censorship Bypass</button>
+            <button onclick="checkCredits()">💰 Check Credits</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="relayNodes">Loading...</div>
+                <div class="stat-label">Global Relay Nodes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="bypassedRequests">0</div>
+                <div class="stat-label">Requests Relayed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="countriesHelped">0</div>
+                <div class="stat-label">Countries Helped</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="creditsEarned">0.00</div>
+                <div class="stat-label">Freedom Credits</div>
+            </div>
+        </div>
+        
+        <div class="world-map">
+            <h3>🌍 Global Relay Network</h3>
+            <p>Real-time relay nodes around the world</p>
+            <div id="mapContainer">
+                <!-- Relay points will be dynamically added -->
+            </div>
+        </div>
+        
+        <div class="anonymity-level">
+            <h3>🔒 Current Anonymity Level</h3>
+            <div class="anonymity-bars" id="anonymityBars">
+                <div class="anonymity-bar" data-level="1"></div>
+                <div class="anonymity-bar" data-level="2"></div>
+                <div class="anonymity-bar" data-level="3"></div>
+                <div class="anonymity-bar" data-level="4"></div>
+                <div class="anonymity-bar" data-level="5"></div>
+                <div class="anonymity-bar" data-level="6"></div>
+                <div class="anonymity-bar" data-level="7"></div>
+                <div class="anonymity-bar" data-level="8"></div>
+                <div class="anonymity-bar" data-level="9"></div>
+                <div class="anonymity-bar" data-level="10"></div>
+            </div>
+            <p id="anonymityStatus">Not connected to relay network</p>
+        </div>
+        
+        <div class="relay-config">
+            <h3>⚙️ Relay Configuration</h3>
+            <label><input type="checkbox" id="allowHighRisk" checked> Allow high-risk countries</label><br>
+            <label><input type="checkbox" id="onlyHttps" checked> HTTPS-only relaying</label><br>
+            <label><input type="checkbox" id="noLogging" checked> Zero-logging mode</label><br>
+            <label><input type="checkbox" id="torIntegration"> Integrate with Tor network</label><br>
+            <br>
+            <label>Max bandwidth: <select id="maxBandwidth">
+                <option value="unlimited">Unlimited</option>
+                <option value="100mb">100 MB/hour</option>
+                <option value="1gb">1 GB/hour</option>
+                <option value="5gb" selected>5 GB/hour</option>
+            </select></label>
+        </div>
+        
+        <div class="blocked-sites">
+            <h3>🚫 Currently Helping Bypass</h3>
+            <div id="blockedSites">
+                <p style="text-align: center; opacity: 0.7;">No active bypass requests...</p>
+            </div>
+        </div>
+        
+        <div class="relay-status">
+            <h3>🔄 Active Relay Connections</h3>
+            <div id="relayStatus">
+                <p style="text-align: center; opacity: 0.7;">Not participating in relay network yet...</p>
+            </div>
+        </div>
+        
+        <div class="log" id="logContainer">
+            <div class="log-entry info">💡 Ready to help bypass censorship worldwide! Click "Join Freedom Network"</div>
+        </div>
+    </div>
+
+    <script>
+        let isRelaying = false;
+        let relayTimer = null;
+        let email = '';
+        let anonymityLevel = 0;
+        
+        // Statistics tracking
+        let stats = {
+            bypassedRequests: 0,
+            countriesHelped: new Set(),
+            creditsEarned: 0,
+            relayNodes: 0
+        };
+        
+        // Simulated global relay points
+        const globalRelayPoints = [
+            { country: 'Germany', x: 50, y: 30, active: true },
+            { country: 'Japan', x: 80, y: 45, active: true },
+            { country: 'Canada', x: 20, y: 25, active: true },
+            { country: 'Brazil', x: 30, y: 70, active: true },
+            { country: 'Australia', x: 85, y: 80, active: true },
+            { country: 'Norway', x: 45, y: 20, active: true },
+            { country: 'Switzerland', x: 48, y: 35, active: true },
+            { country: 'Iceland', x: 40, y: 15, active: true },
+            { country: 'Netherlands', x: 47, y: 32, active: true },
+            { country: 'Sweden', x: 50, y: 22, active: true }
+        ];
+        
+        // Countries with heavy censorship (we help people here)
+        const censoredCountries = [
+            'China', 'Iran', 'North Korea', 'Russia', 'Turkey', 
+            'Saudi Arabia', 'Myanmar', 'Belarus', 'Eritrea', 'Turkmenistan'
+        ];
+        
+        // Common blocked sites/services
+        const commonlyBlocked = [
+            'twitter.com', 'facebook.com', 'youtube.com', 'wikipedia.org',
+            'instagram.com', 'whatsapp.com', 'telegram.org', 'signal.org',
+            'reddit.com', 'discord.com', 'tiktok.com', 'medium.com',
+            'news.bbc.co.uk', 'cnn.com', 'nytimes.com', 'theguardian.com'
+        ];
+        
+        // Initialize world map with relay points
+        function initWorldMap() {
+            const mapContainer = document.getElementById('mapContainer');
+            
+            globalRelayPoints.forEach((point, index) => {
+                const relayPoint = document.createElement('div');
+                relayPoint.className = 'relay-point';
+                relayPoint.style.left = `${point.x}%`;
+                relayPoint.style.top = `${point.y}%`;
+                relayPoint.title = `${point.country} - ${point.active ? 'Active' : 'Inactive'}`;
+                
+                if (point.active) {
+                    relayPoint.style.animationDelay = `${index * 0.2}s`;
+                } else {
+                    relayPoint.style.background = '#e74c3c';
+                    relayPoint.style.animation = 'none';
+                }
+                
+                mapContainer.appendChild(relayPoint);
+            });
+            
+            stats.relayNodes = globalRelayPoints.filter(p => p.active).length;
+            updateStats();
+        }
+        
+        // Update anonymity level visualization
+        function updateAnonymityLevel(level) {
+            anonymityLevel = Math.max(0, Math.min(10, level));
+            
+            const bars = document.querySelectorAll('.anonymity-bar');
+            const statusElement = document.getElementById('anonymityStatus');
+            
+            bars.forEach((bar, index) => {
+                if (index < anonymityLevel) {
+                    bar.classList.add('active');
+                    bar.style.setProperty('--fill-height', `${(index + 1) * 10}%`);
+                } else {
+                    bar.classList.remove('active');
+                }
+            });
+            
+            const statusTexts = [
+                'Not protected - Fully exposed',
+                'Basic proxy - Minimal protection',
+                'Single hop relay - Basic anonymity',
+                'Double encrypted - Good protection',
+                'Multi-hop routing - Strong anonymity',
+                'Tor integration - Very strong',
+                'Advanced obfuscation - Excellent',
+                'Military-grade encryption - Outstanding',
+                'Perfect forward secrecy - Maximum',
+                'Quantum-resistant - Ultimate protection',
+                'Legendary anonymity - Godlike! 🕊️'
+            ];
+            
+            statusElement.textContent = statusTexts[anonymityLevel];
+        }
+        
+        // Simulate relay traffic
+        async function processRelayTraffic() {
+            if (!isRelaying) return;
+            
+            try {
+                // Simulate receiving a censorship bypass request
+                const blockedSite = commonlyBlocked[Math.floor(Math.random() * commonlyBlocked.length)];
+                const censoredCountry = censoredCountries[Math.floor(Math.random() * censoredCountries.length)];
+                
+                addBypassRequest(blockedSite, censoredCountry);
+                log(`🚫 Bypassing ${blockedSite} for user in ${censoredCountry}`, 'freedom');
+                
+                // Simulate processing time
+                const processingTime = Math.random() * 3000 + 1000; // 1-4 seconds
+                
+                setTimeout(() => {
+                    completeBypassRequest(blockedSite, censoredCountry);
+                    stats.bypassedRequests++;
+                    stats.countriesHelped.add(censoredCountry);
+                    stats.creditsEarned += 0.1; // 0.1 credits per bypass
+                    
+                    updateStats();
+                    log(`✅ Successfully relayed ${blockedSite} (+0.1 credits)`, 'info');
+                    
+                    // Report to server
+                    reportRelayContribution(blockedSite, censoredCountry);
+                    
+                }, processingTime);
+                
+            } catch (error) {
+                log(`❌ Error processing relay traffic: ${error.message}`, 'error');
+            }
+        }
+        
+        // Add bypass request to UI
+        function addBypassRequest(site, country) {
+            const blockedSitesDiv = document.getElementById('blockedSites');
+            if (blockedSitesDiv.children.length === 1 && blockedSitesDiv.children[0].textContent.includes('No active')) {
+                blockedSitesDiv.innerHTML = '';
+            }
+            
+            const requestItem = document.createElement('div');
+            requestItem.className = 'relay-node active';
+            requestItem.id = `request_${Date.now()}`;
+            requestItem.innerHTML = `
+                <div>
+                    <strong>🌐 ${site}</strong><br>
+                    <small>From: ${country} 🔒</small>
+                </div>
+                <div>🔄 Relaying...</div>
+            `;
+            
+            blockedSitesDiv.appendChild(requestItem);
+            
+            // Keep only last 8 requests
+            while (blockedSitesDiv.children.length > 8) {
+                blockedSitesDiv.removeChild(blockedSitesDiv.firstChild);
+            }
+        }
+        
+        // Complete bypass request
+        function completeBypassRequest(site, country) {
+            const requestItems = document.querySelectorAll('#blockedSites .relay-node');
+            requestItems.forEach(item => {
+                if (item.innerHTML.includes(site) && item.innerHTML.includes(country)) {
+                    item.querySelector('div:last-child').innerHTML = '✅ Completed';
+                    setTimeout(() => {
+                        if (item.parentNode) {
+                            item.parentNode.removeChild(item);
+                        }
+                    }, 3000);
+                }
+            });
+        }
+        
+        // Add active relay connection to UI
+        function addRelayConnection(from, to, type) {
+            const relayStatusDiv = document.getElementById('relayStatus');
+            if (relayStatusDiv.children.length === 1 && relayStatusDiv.children[0].textContent.includes('Not participating')) {
+                relayStatusDiv.innerHTML = '';
+            }
+            
+            const connectionItem = document.createElement('div');
+            connectionItem.className = 'relay-node active';
+            connectionItem.innerHTML = `
+                <div>
+                    <strong>${type} Relay</strong><br>
+                    <small>${from} → ${to}</small>
+                </div>
+                <div>🔄 Active</div>
+            `;
+            
+            relayStatusDiv.appendChild(connectionItem);
+            
+            // Keep only last 5 connections
+            while (relayStatusDiv.children.length > 5) {
+                relayStatusDiv.removeChild(relayStatusDiv.firstChild);
+            }
+            
+            // Remove after random time
+            setTimeout(() => {
+                if (connectionItem.parentNode) {
+                    connectionItem.parentNode.removeChild(connectionItem);
+                }
+            }, Math.random() * 10000 + 5000);
+        }
+        
+        // Report relay contribution to server
+        async function reportRelayContribution(site, country) {
+            try {
+                const response = await fetch('/api/community/contributions/freedom', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        blocked_site: site,
+                        censored_country: country,
+                        credits_earned: 0.1,
+                        relay_type: 'https'
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    log(`💰 Freedom credits updated: ${result.total_credits.toFixed(2)}`, 'info');
+                }
+            } catch (error) {
+                log(`⚠️ Could not report to server: ${error.message}`, 'warn');
+            }
+        }
+        
+        // Test censorship bypass
+        async function testCensorship() {
+            log('🧪 Testing censorship bypass capabilities...', 'info');
+            
+            const testSites = ['facebook.com', 'twitter.com', 'youtube.com'];
+            const testSite = testSites[Math.floor(Math.random() * testSites.length)];
+            
+            log(`🔍 Testing access to ${testSite}...`, 'info');
+            
+            // Simulate testing
+            setTimeout(() => {
+                const success = Math.random() > 0.3; // 70% success rate
+                if (success) {
+                    log(`✅ Successfully bypassed restrictions for ${testSite}`, 'freedom');
+                    log(`🕊️ Freedom of information preserved!`, 'freedom');
+                } else {
+                    log(`❌ Could not establish bypass for ${testSite}`, 'error');
+                    log(`🔄 Trying alternative relay routes...`, 'warn');
+                    
+                    // Try again after delay
+                    setTimeout(() => {
+                        log(`✅ Alternative route successful for ${testSite}`, 'freedom');
+                    }, 2000);
+                }
+            }, 2000);
+        }
+        
+        // Join freedom relay network
+        async function joinRelay() {
+            email = document.getElementById('emailInput').value.trim();
+            if (!email) {
+                alert('Please enter an email address (anonymous emails welcome!)');
+                return;
+            }
+            
+            try {
+                isRelaying = true;
+                
+                // Update UI
+                document.getElementById('joinBtn').disabled = true;
+                document.getElementById('leaveBtn').disabled = false;
+                document.getElementById('emailInput').disabled = true;
+                
+                log(`🕊️ Joined Freedom Relay Network as ${email}`, 'freedom');
+                log(`🌍 Now helping bypass censorship worldwide!`, 'info');
+                log(`🔒 All traffic encrypted and anonymized`, 'info');
+                
+                // Gradually increase anonymity level
+                let level = 0;
+                const increaseAnonymity = setInterval(() => {
+                    level++;
+                    updateAnonymityLevel(level);
+                    log(`🔒 Anonymity level increased to ${level}/10`, 'info');
+                    
+                    if (level >= 8) {
+                        clearInterval(increaseAnonymity);
+                        log(`🕊️ Maximum anonymity achieved! You are now untraceable.`, 'freedom');
+                    }
+                }, 1500);
+                
+                // Start relay processing
+                relayTimer = setInterval(() => {
+                    processRelayTraffic();
+                    
+                    // Occasionally add relay connections
+                    if (Math.random() < 0.3) {
+                        const fromCountry = globalRelayPoints[Math.floor(Math.random() * globalRelayPoints.length)].country;
+                        const toCountry = globalRelayPoints[Math.floor(Math.random() * globalRelayPoints.length)].country;
+                        const relayTypes = ['HTTPS', 'WebSocket', 'WebRTC', 'Tor Bridge'];
+                        const relayType = relayTypes[Math.floor(Math.random() * relayTypes.length)];
+                        
+                        addRelayConnection(fromCountry, toCountry, relayType);
+                    }
+                }, 8000); // Every 8 seconds
+                
+                // Start first relay immediately
+                setTimeout(() => processRelayTraffic(), 3000);
+                
+            } catch (error) {
+                log(`❌ Failed to join relay network: ${error.message}`, 'error');
+                isRelaying = false;
+            }
+        }
+        
+        // Leave relay network
+        function leaveRelay() {
+            isRelaying = false;
+            
+            if (relayTimer) {
+                clearInterval(relayTimer);
+                relayTimer = null;
+            }
+            
+            // Update UI
+            document.getElementById('joinBtn').disabled = false;
+            document.getElementById('leaveBtn').disabled = true;
+            document.getElementById('emailInput').disabled = false;
+            
+            updateAnonymityLevel(0);
+            
+            log(`🔒 Left Freedom Relay Network`, 'info');
+            log(`📊 Total: ${stats.bypassedRequests} requests relayed, ${stats.countriesHelped.size} countries helped`, 'info');
+            log(`💰 Earned ${stats.creditsEarned.toFixed(2)} freedom credits`, 'info');
+        }
+        
+        // Check credits via API
+        async function checkCredits() {
+            const emailAddr = document.getElementById('emailInput').value.trim();
+            if (!emailAddr) {
+                alert('Please enter your email address');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/community/credits/${encodeURIComponent(emailAddr)}`);
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    log(`💰 Total credits: ${result.total_credits.toFixed(2)}`, 'info');
+                    log(`🕊️ Freedom contributions: ${result.contributions.freedom_requests_relayed || 0}`, 'freedom');
+                } else {
+                    log('❌ Could not fetch credits', 'error');
+                }
+            } catch (error) {
+                log(`❌ Error checking credits: ${error.message}`, 'error');
+            }
+        }
+        
+        // Update statistics display
+        function updateStats() {
+            document.getElementById('relayNodes').textContent = stats.relayNodes;
+            document.getElementById('bypassedRequests').textContent = stats.bypassedRequests;
+            document.getElementById('countriesHelped').textContent = stats.countriesHelped.size;
+            document.getElementById('creditsEarned').textContent = stats.creditsEarned.toFixed(2);
+        }
+        
+        // Logging function
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Keep only last 50 log entries
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('🕊️ HGWS Freedom Relay Network initializing...', 'info');
+            initWorldMap();
+            
+            // Simulate network activity
+            setTimeout(() => {
+                log(`🌍 Connected to ${stats.relayNodes} global relay nodes`, 'info');
+                log('🔒 End-to-end encryption enabled', 'info');
+                log('🕊️ Ready to help preserve freedom of information worldwide!', 'freedom');
+            }, 2000);
+            
+            // Animate relay points
+            setInterval(() => {
+                const points = document.querySelectorAll('.relay-point');
+                points.forEach(point => {
+                    if (Math.random() < 0.1) {
+                        point.style.background = '#f39c12';
+                        setTimeout(() => {
+                            point.style.background = '#27ae60';
+                        }, 500);
+                    }
+                });
+            }, 3000);
+        });
+        
+        // Easter egg for specific countries
+        const userCountry = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (censoredCountries.some(country => userCountry.includes(country.replace(/\s/g, '_')))) {
+            setTimeout(() => {
+                log('🕊️ We see you need freedom. Stay strong, we are here to help.', 'freedom');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+# F3 Transfer Utility - Lightning Fast File Transfer
+# =====================================================
+# A powerful standalone transfer utility with 95% compression
+
+set export
+
+# Container-first includes
+import "./justfile.vars"
+import "../../Justfile.vars"
+import "./Justfile.podman"
+import "./Justfile.prod"
+import "./Justfile.run"
+import "./Justfile.app"
+
+# Variables
+PROJECT_NAME := "F3-Transfer"
+PYTHON := VENV_PATH + "/bin/python"
+PIP := VENV_PATH + "/bin/pip"
+HOST := env_var_or_default("F3_HOST", "localhost")
+PORT := env_var_or_default("F3_PORT", "8811")
+DATA_DIR := env_var_or_default("F3_DATA_DIR", "/tmp/pfs-infinity")
+
+# Colors (ASCII only)
+RESET := ""
+BOLD := ""
+INFO := "[*]"
+SUCCESS := "[+]"
+ERROR := "[!]"
+ARROW := "-->"
+
+# Default: Show help
+default: help
+
+# Help - Show all available commands
+help:
+    echo "{{INFO}} F3 Transfer Utility Commands"
+    echo "======================================"
+    echo ""
+    echo "QUICK START:"
+    echo "  just run              {{ARROW}} Start F3 (container, TLS) and print URL"
+    echo "  just up               {{ARROW}} Build + run backend (TLS; default)"
+    echo "  just down             {{ARROW}} Stop backend"
+    echo "  just send FILE        {{ARROW}} Send a file"
+    echo "  just receive          {{ARROW}} Start receiver mode"
+    echo ""
+    echo "CORE COMMANDS:"
+    echo "  just bootstrap        {{ARROW}} Pull container & setup cluster"
+    echo "  just start            {{ARROW}} Start containerized backend (TLS)"
+    echo "  just stop             {{ARROW}} Stop containerized backend"
+    echo "  just restart          {{ARROW}} Restart containerized backend"
+    echo "  just status           {{ARROW}} Check container status"
+    echo "  just logs [LINES]     {{ARROW}} View container logs (tail; default 200)"
+    echo "  just build-container-image {{ARROW}} Build backend container image"
+    echo "  just rebuild          {{ARROW}} Clean rebuild (no cache) and run"
+    echo "  just debug            {{ARROW}} Start container and follow logs"
+    echo ""
+    echo "TRANSFER OPERATIONS:"
+    echo "  just send FILE [TARGET]     {{ARROW}} Send file to target"
+    echo "  just send-folder DIR [TARGET] {{ARROW}} Send folder using pfsrsync"
+    echo "  just receive [DIR]          {{ARROW}} Receive incoming files"
+    echo "  just download ID            {{ARROW}} Download by file ID"
+    echo "  just relay [PEERS]          {{ARROW}} Start relay mode"
+    echo "  just list-transfers         {{ARROW}} Show recent transfers"
+    echo "  just stats                  {{ARROW}} Display statistics"
+    echo ""
+    echo "WEB INTERFACE:"
+    echo "  just web                    {{ARROW}} Open transfer web UI"
+    echo "  just web-dev                {{ARROW}} Start dev web server"
+    echo ""
+    echo "DEVELOPMENT:"
+    echo "  just dev                    {{ARROW}} Run in development mode"
+    echo "  just build                  {{ARROW}} Build production version"
+    echo "  just test [SUITE]           {{ARROW}} Run tests"
+    echo "  just bench                  {{ARROW}} Run benchmarks"
+    echo ""
+    echo "UTILITIES:"
+    echo "  just logs [SERVICE]         {{ARROW}} View service logs"
+    echo "  just clean                  {{ARROW}} Clean temporary files"
+    echo "  just reset                  {{ARROW}} Full reset (dangerous)"
+    echo ""
+    echo "CLUSTER MANAGEMENT:"
+    echo "  just cluster-init           {{ARROW}} Initialize cluster"
+    echo "  just cluster-join NODE      {{ARROW}} Join existing cluster"
+    echo "  just cluster-status         {{ARROW}} Show cluster status"
+    echo ""
+    echo "CONFIGURATION:"
+    echo "  HOST={{HOST}} PORT={{PORT}}"
+    echo "  DATA_DIR={{DATA_DIR}}"
+
+# ============== QUICK START ==============
+
+# Run - Start F3 transfer service (container, TLS)
+run:
+    just prod-image-up
+    echo "{{SUCCESS}} F3 (container, TLS) ready at https://{{HOST}}:{{WS_PORT}}"
+    echo "{{INFO}} Web UI: https://{{HOST}}:{{WS_PORT}}/static/transfer-v2.html"
+    echo "{{INFO}} Logs: just logs"
+
+# Send a file
+send FILE TARGET="":
+    echo "{{INFO}} Sending {{FILE}}..."
+    {{PYTHON}} f3transfer.py send "{{FILE}}" \
+        {{ if TARGET != "" { "--target " + TARGET } else { "" } }} \
+        --host {{HOST}} --port {{PORT}}
+
+# Send a folder using pfsrsync
+send-folder DIR TARGET="":
+    echo "{{INFO}} Syncing folder {{DIR}} with pfsrsync..."
+    if [ -z "{{TARGET}}" ]; then \
+        pfsrsync "{{DIR}}" "{{HOST}}:{{PORT}}:{{DIR}}" --compress; \
+    else \
+        pfsrsync "{{DIR}}" "{{TARGET}}:{{DIR}}" --compress; \
+    fi
+
+# Receive files
+receive DIR="./received":
+    echo "{{INFO}} Starting receiver mode..."
+    echo "{{INFO}} Files will be saved to: {{DIR}}"
+    {{PYTHON}} f3transfer.py receive --save-dir "{{DIR}}" \
+        --host {{HOST}} --port {{PORT}}
+
+# ============== CORE OPERATIONS ==============
+
+# Bootstrap - Pull container and setup
+bootstrap:
+    echo "{{INFO}} Bootstrapping F3 PacketFS..."
+    # Check for podman (preferred) or docker
+    if command -v podman >/dev/null 2>&1; then \
+        echo "{{SUCCESS}} Using podman"; \
+        podman pull packetfs/pfs-infinity:latest || true; \
+    elif command -v docker >/dev/null 2>&1; then \
+        echo "{{INFO}} Using docker"; \
+        docker pull packetfs/pfs-infinity:latest || true; \
+    else \
+        echo "{{ERROR}} Neither podman nor docker found!"; \
+        exit 1; \
+    fi
+    # Create necessary directories
+    mkdir -p {{DATA_DIR}}/{uploads,downloads,logs,cache}
+    echo "{{SUCCESS}} Bootstrap complete"
+
+# Start containerized backend (TLS)
+start:
+    just prod-image-up
+
+# Simple aliases
+up:
+    just prod-image-up
+
+down:
+    just prod-down
+
+# Start services (alias)
+start-services: start
+
+# Restart containerized backend
+restart:
+    just stop
+    just start
+
+# Stop containerized backend
+stop:
+    just prod-down
+
+# Check container status
+status:
+    just pod-status
+
+# ============== TRANSFER OPERATIONS ==============
+
+# Download a file by ID
+download ID SAVE_AS="":
+    echo "{{INFO}} Downloading {{ID}}..."
+    {{PYTHON}} f3transfer.py download "{{ID}}" \
+        {{ if SAVE_AS != "" { "--save-as " + SAVE_AS } else { "" } }} \
+        --host {{HOST}} --port {{PORT}}
+
+# Start relay mode
+relay PEERS="":
+    echo "{{INFO}} Starting relay mode..."
+    {{PYTHON}} f3transfer.py relay \
+        {{ if PEERS != "" { "--peers " + PEERS } else { "" } }} \
+        --host {{HOST}} --port {{PORT}}
+
+# List recent transfers
+list-transfers:
+    {{PYTHON}} f3transfer.py list --host {{HOST}} --port {{PORT}}
+
+# Show transfer statistics
+stats:
+    {{PYTHON}} f3transfer.py stats --host {{HOST}} --port {{PORT}}
+
+# ============== WEB INTERFACE ==============
+
+# Open web UI in browser (TLS)
+web:
+    echo "{{INFO}} Opening F3 Transfer web interface (TLS)..."
+    xdg-open "https://{{HOST}}:{{WS_PORT}}/static/transfer-v2.html" 2>/dev/null || \
+    open "https://{{HOST}}:{{WS_PORT}}/static/transfer-v2.html" 2>/dev/null || \
+    echo "{{INFO}} Open in browser: https://{{HOST}}:{{WS_PORT}}/static/transfer-v2.html"
+
+# Start development web server
+web-dev:
+    echo "{{INFO}} Starting development server (Hypercorn, reload)..."
+    {{PYTHON}} -m hypercorn app.main:app --bind {{HOST}}:{{PORT}} --reload
+
+# ============== DEVELOPMENT ==============
+
+# Run in development mode
+dev:
+    echo "{{INFO}} Starting in development mode..."
+    export FLASK_ENV=development && \
+    export FLASK_DEBUG=1 && \
+    just web-dev
+
+# Build production version
+build:
+    echo "{{INFO}} Building production version..."
+    # Install dependencies (reuse backend requirements)
+    {{PIP}} install -r containers/backend/requirements.txt --quiet
+    # Compile any assets if needed
+    echo "{{SUCCESS}} Build complete"
+
+# Run tests
+test SUITE="all":
+    echo "{{INFO}} Running tests: {{SUITE}}"
+    if [ "{{SUITE}}" = "all" ]; then \
+        {{PYTHON}} -m pytest tests/ -v; \
+    elif [ "{{SUITE}}" = "unit" ]; then \
+        {{PYTHON}} -m pytest tests/unit/ -v; \
+    elif [ "{{SUITE}}" = "integration" ]; then \
+        {{PYTHON}} -m pytest tests/integration/ -v; \
+    elif [ "{{SUITE}}" = "compression" ]; then \
+        just test-compression; \
+    elif [ "{{SUITE}}" = "transfer" ]; then \
+        just test-transfer; \
+    else \
+        {{PYTHON}} -m pytest tests/test_{{SUITE}}.py -v; \
+    fi
+
+# UI test (Playwright headless)
+# Usage: just test-ui [url]
+# Example: just test-ui url="https://127.0.0.1:8811/static/transfer-v2.html"
+test-ui url="https://127.0.0.1:8811/static/transfer-v2.html":
+    @bash -eu -o pipefail -c '\
+    PV=/home/punk/.venv/bin/python; \
+    PIP=/home/punk/.venv/bin/pip; \
+    if ! $PV -c "import playwright" >/dev/null 2>&1; then \
+      echo "[ui] installing playwright..."; \
+      $PIP install --quiet playwright; \
+      $PV -m playwright install chromium; \
+    fi; \
+    $PV tests/ui/test_upload.py "{{url}}"'
+
+# Test compression
+test-compression:
+    echo "{{INFO}} Testing compression ratios..."
+    # Create test file
+    dd if=/dev/urandom of=/tmp/test_1mb.bin bs=1M count=1 2>/dev/null
+    # Test compression
+    {{PYTHON}} f3transfer.py send /tmp/test_1mb.bin --host {{HOST}} --port {{PORT}}
+    rm /tmp/test_1mb.bin
+
+# Test transfer speed
+test-transfer:
+    echo "{{INFO}} Testing transfer speeds..."
+    # Create test files of various sizes
+    for size in 1 10 100; do \
+        dd if=/dev/zero of=/tmp/test_${size}mb.bin bs=1M count=$size 2>/dev/null; \
+        echo "{{INFO}} Testing ${size}MB file..."; \
+        time {{PYTHON}} f3transfer.py send /tmp/test_${size}mb.bin --host {{HOST}} --port {{PORT}}; \
+        rm /tmp/test_${size}mb.bin; \
+    done
+
+# Run benchmarks
+bench:
+    echo "{{INFO}} Running benchmarks..."
+    just test-compression
+    just test-transfer
+    echo "{{SUCCESS}} Benchmarks complete"
+
+# ============== CLUSTER MANAGEMENT ==============
+
+# Initialize cluster
+cluster-init:
+    echo "{{INFO}} Initializing F3 cluster..."
+    # Start seed node
+    if command -v podman >/dev/null 2>&1; then \
+        podman run -d --name f3-seed \
+            -p {{PORT}}:{{PORT}} \
+            -v {{DATA_DIR}}:/data \
+            packetfs/pfs-infinity:latest \
+            --seed --bind 0.0.0.0:{{PORT}}; \
+    else \
+        docker run -d --name f3-seed \
+            -p {{PORT}}:{{PORT}} \
+            -v {{DATA_DIR}}:/data \
+            packetfs/pfs-infinity:latest \
+            --seed --bind 0.0.0.0:{{PORT}}; \
+    fi
+    echo "{{SUCCESS}} Cluster initialized as seed node"
+
+# Join existing cluster
+cluster-join NODE:
+    echo "{{INFO}} Joining cluster at {{NODE}}..."
+    if command -v podman >/dev/null 2>&1; then \
+        podman run -d --name f3-node \
+            -p {{PORT}}:{{PORT}} \
+            -v {{DATA_DIR}}:/data \
+            packetfs/pfs-infinity:latest \
+            --join {{NODE}} --bind 0.0.0.0:{{PORT}}; \
+    else \
+        docker run -d --name f3-node \
+            -p {{PORT}}:{{PORT}} \
+            -v {{DATA_DIR}}:/data \
+            packetfs/pfs-infinity:latest \
+            --join {{NODE}} --bind 0.0.0.0:{{PORT}}; \
+    fi
+    echo "{{SUCCESS}} Joined cluster"
+
+# Show cluster status
+cluster-status:
+    echo "{{INFO}} Cluster Status"
+    echo "==============="
+    curl -s http://{{HOST}}:{{PORT}}/api/cluster/status | jq . || \
+    echo "{{ERROR}} Could not retrieve cluster status"
+
+# ============== UTILITIES ==============
+
+# View container logs (tail)
+logs lines="200":
+    just pod-logs "{{lines}}"
+
+# Build container image
+build-container-image:
+    just prod-image-build
+
+# Clean rebuild (no cache) and run
+rebuild:
+    just prod-up-rebuild
+
+# Debug: start container and follow logs
+debug:
+    just pod-up
+    just pod-logs "200"
+
+# Clean temporary files
+clean:
+    echo "{{INFO}} Cleaning temporary files..."
+    rm -rf {{DATA_DIR}}/{uploads,downloads}/tmp_*
+    rm -rf {{DATA_DIR}}/cache/*
+    find {{DATA_DIR}}/logs -name "*.log" -mtime +7 -delete 2>/dev/null || true
+    echo "{{SUCCESS}} Cleanup complete"
+
+# Full reset (dangerous!)
+reset:
+    echo "{{ERROR}} WARNING: This will delete all data!"
+    echo "Press Ctrl+C to cancel, or wait 5 seconds to continue..."
+    sleep 5
+    just stop
+    rm -rf {{DATA_DIR}}
+    echo "{{SUCCESS}} Reset complete"
+
+# ============== HELPER FUNCTIONS ==============
+
+# Check dependencies
+check-deps:
+    echo "{{INFO}} Checking dependencies..."
+    # Check Python
+    if ! {{PYTHON}} --version >/dev/null 2>&1; then \
+        echo "{{ERROR}} Python not found at {{PYTHON}}"; \
+        exit 1; \
+    fi
+    # Check required Python packages
+    {{PYTHON}} -c "import flask, requests, tqdm, websocket" 2>/dev/null || { \
+        echo "{{INFO}} Installing missing Python packages..."; \
+        {{PIP}} install flask requests tqdm websocket-client requests-toolbelt; \
+    }
+    # Check for pfsrsync (optional)
+    if ! command -v pfsrsync >/dev/null 2>&1; then \
+        echo "{{INFO}} pfsrsync not found (folder sync will be unavailable)"; \
+    fi
+    echo "{{SUCCESS}} Dependencies OK"
+
+# Install dependencies
+install-deps:
+    echo "{{INFO}} Installing dependencies..."
+    {{PIP}} install flask requests tqdm websocket-client requests-toolbelt aiohttp
+    echo "{{SUCCESS}} Dependencies installed"
+
+# Quick health check
+health:
+    @curl -s http://{{HOST}}:{{PORT}}/health || echo "{{ERROR}} Service not responding"
+
+# Show version info
+version:
+    echo "{{INFO}} F3 Transfer Utility"
+    echo "  Version: 1.0.0"
+    echo "  Python: $({{PYTHON}} --version)"
+    echo "  Host: {{HOST}}:{{PORT}}"
+    echo "  Data: {{DATA_DIR}}"

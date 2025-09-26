@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pfs-infinity-coordinator
+  labels:
+    app: pfs-infinity-coordinator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pfs-infinity-coordinator
+  template:
+    metadata:
+      labels:
+        app: pfs-infinity-coordinator
+    spec:
+      containers:
+        - name: api
+          image: packetfs/pfs-infinity:latest
+          imagePullPolicy: IfNotPresent
+          command: ["hypercorn"]
+          args: ["app.main:app", "--bind", "0.0.0.0:8811", "--workers", "2", "--access-log", "-"]
+          ports:
+            - containerPort: 8811
+              protocol: TCP
+          env:
+            - name: PFS_BLOB_DIR
+              value: /mnt/huge1G
+            - name: REDIS_URL
+              value: redis://redis:6389/0
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pfs-infinity-coordinator
+spec:
+  type: ClusterIP
+  selector:
+    app: pfs-infinity-coordinator
+  ports:
+    - name: http
+      port: 8811
+      targetPort: 8811
+      protocol: TCP

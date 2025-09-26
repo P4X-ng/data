@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 HGWS Community Dashboard - Your Contribution Hub</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        .hero-section {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .contribution-tools {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .tool-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .tool-card:hover::before {
+            left: 100%;
+        }
+        
+        .tool-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .tool-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .tool-description {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 15px;
+        }
+        
+        .tool-earnings {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 0.9em;
+            color: #00ff88;
+        }
+        
+        .tool-status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .tool-status.active {
+            background: rgba(39, 174, 96, 0.8);
+            color: white;
+        }
+        
+        .tool-status.inactive {
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+        }
+        
+        .leaderboard {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+        
+        .leaderboard-entry {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .leaderboard-rank {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #f39c12;
+            width: 40px;
+        }
+        
+        .leaderboard-user {
+            flex-grow: 1;
+            margin-left: 15px;
+        }
+        
+        .leaderboard-score {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .email-input {
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1em;
+            margin: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 300px;
+        }
+        
+        .email-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 0 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .quick-actions {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .activity-feed {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .activity-icon {
+            font-size: 1.5em;
+            margin-right: 15px;
+            width: 30px;
+            text-align: center;
+        }
+        
+        .activity-text {
+            flex-grow: 1;
+        }
+        
+        .activity-time {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+        
+        .tier-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin: 10px 0;
+        }
+        
+        .tier-bronze {
+            background: rgba(205, 127, 50, 0.8);
+            color: white;
+        }
+        
+        .tier-silver {
+            background: rgba(192, 192, 192, 0.8);
+            color: black;
+        }
+        
+        .tier-gold {
+            background: rgba(255, 215, 0, 0.8);
+            color: black;
+        }
+        
+        .tier-platinum {
+            background: rgba(229, 228, 226, 0.8);
+            color: black;
+        }
+        
+        .tier-legendary {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            background-size: 300% 300%;
+            animation: gradientShift 3s ease infinite;
+            color: white;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .contribution-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .toggle-switch.active {
+            background: #00ff88;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(30px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌟 Community Dashboard</h1>
+        
+        <div class="hero-section">
+            <h2>Welcome to the HGWS Community Cloud!</h2>
+            <p><strong>"You get back what you give"</strong></p>
+            <p>Share your resources, help the community, earn credits, and access free cloud services!</p>
+            <input type="email" class="email-input" id="userEmail" placeholder="your@email.com">
+            <br>
+            <button onclick="loadUserData()">📊 Load My Dashboard</button>
+            <button onclick="showQuickStart()">🚀 Quick Start Guide</button>
+        </div>
+        
+        <div class="user-stats" id="userStats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCredits">0.00</div>
+                <div class="stat-label">Total Credits</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="contributorTier">Unknown</div>
+                <div class="stat-label">Contributor Tier</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="tasksCompleted">0</div>
+                <div class="stat-label">Tasks Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="resourcesShared">0.0</div>
+                <div class="stat-label">GB Resources Shared</div>
+            </div>
+        </div>
+        
+        <div class="contribution-tools">
+            <div class="tool-card" onclick="openTool('storage-contributor')">
+                <div class="tool-status inactive" id="storageStatus">Inactive</div>
+                <div class="tool-icon">💾</div>
+                <div class="tool-title">Storage Sharing</div>
+                <div class="tool-description">Share browser storage for distributed file system</div>
+                <div class="tool-earnings">💰 ~0.01 credits/GB/hour</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('gpu-pool')">
+                <div class="tool-status inactive" id="gpuStatus">Inactive</div>
+                <div class="tool-icon">🎮</div>
+                <div class="tool-title">GPU Pool</div>
+                <div class="tool-description">Contribute GPU power for distributed computing</div>
+                <div class="tool-earnings">💰 ~0.1 credits/task</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('freedom-relay')">
+                <div class="tool-status inactive" id="freedomStatus">Inactive</div>
+                <div class="tool-icon">🕊️</div>
+                <div class="tool-title">Freedom Relay</div>
+                <div class="tool-description">Help bypass censorship worldwide</div>
+                <div class="tool-earnings">💰 ~0.1 credits/relay + karma</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('bandwidth-pool')" style="opacity: 0.7;">
+                <div class="tool-status inactive" id="bandwidthStatus">Coming Soon</div>
+                <div class="tool-icon">🌐</div>
+                <div class="tool-title">Bandwidth Pool</div>
+                <div class="tool-description">Share bandwidth for distributed downloads</div>
+                <div class="tool-earnings">💰 ~0.02 credits/GB transferred</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('cpu-sharing')" style="opacity: 0.7;">
+                <div class="tool-status inactive" id="cpuStatus">Coming Soon</div>
+                <div class="tool-icon">🖥️</div>
+                <div class="tool-title">CPU Sharing</div>
+                <div class="tool-description">Contribute idle CPU cycles</div>
+                <div class="tool-earnings">💰 ~0.005 credits/core/hour</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('skill-marketplace')" style="opacity: 0.7;">
+                <div class="tool-status inactive" id="skillStatus">Coming Soon</div>
+                <div class="tool-icon">🛠️</div>
+                <div class="tool-title">Skill Marketplace</div>
+                <div class="tool-description">Trade skills for compute credits</div>
+                <div class="tool-earnings">💰 Variable based on task</div>
+            </div>
+        </div>
+        
+        <div class="quick-actions">
+            <h3>⚡ Quick Actions</h3>
+            <button onclick="startAllContributions()">🚀 Start All Active Tools</button>
+            <button onclick="stopAllContributions()">⏹️ Stop All Contributions</button>
+            <button onclick="checkEarnings()">💰 Refresh Earnings</button>
+            <button onclick="redeemCredits()">🎁 Redeem Credits</button>
+        </div>
+        
+        <div class="leaderboard">
+            <h3>🏆 Top Contributors This Month</h3>
+            <div class="leaderboard-entry">
+                <div class="leaderboard-rank">#1</div>
+                <div class="leaderboard-user">
+                    <strong>CryptoAnarchist_42</strong><br>
+                    <small>🏅 Legendary Contributor</small>
+                </div>
+                <div class="leaderboard-score">1,847.23 credits</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="leaderboard-rank">#2</div>
+                <div class="leaderboard-user">
+                    <strong>FreedomFighter_88</strong><br>
+                    <small>🥇 Platinum Contributor</small>
+                </div>
+                <div class="leaderboard-score">1,203.56 credits</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="leaderboard-rank">#3</div>
+                <div class="leaderboard-user">
+                    <strong>GPU_Sharer_2024</strong><br>
+                    <small>🥈 Gold Contributor</small>
+                </div>
+                <div class="leaderboard-score">892.17 credits</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="leaderboard-rank">#4</div>
+                <div class="leaderboard-user">
+                    <strong>StorageMaster_v2</strong><br>
+                    <small>🥉 Silver Contributor</small>
+                </div>
+                <div class="leaderboard-score">634.89 credits</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="leaderboard-rank">#5</div>
+                <div class="leaderboard-user">
+                    <strong>BandwidthBeast</strong><br>
+                    <small>🏅 Bronze Contributor</small>
+                </div>
+                <div class="leaderboard-score">428.33 credits</div>
+            </div>
+        </div>
+        
+        <div class="activity-feed">
+            <h3>📈 Recent Activity</h3>
+            <div id="activityContainer">
+                <div class="activity-item">
+                    <div class="activity-icon">💾</div>
+                    <div class="activity-text">Welcome to HGWS Community Cloud!</div>
+                    <div class="activity-time">Just now</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let userData = null;
+        let activityUpdateTimer = null;
+        
+        // Sample activity messages
+        const activities = [
+            { icon: '💾', text: 'Storage chunk uploaded successfully', credit: 0.01 },
+            { icon: '🎮', text: 'GPU task completed', credit: 0.1 },
+            { icon: '🕊️', text: 'Helped bypass censorship in Iran', credit: 0.1 },
+            { icon: '🌐', text: 'Bandwidth shared for download', credit: 0.02 },
+            { icon: '🖥️', text: 'CPU cycles contributed', credit: 0.005 },
+            { icon: '🛠️', text: 'Skill task completed', credit: 0.25 },
+            { icon: '🏆', text: 'New achievement unlocked!', credit: 1.0 },
+            { icon: '📊', text: 'Daily contribution bonus', credit: 0.5 }
+        ];
+        
+        // Load user data from API or localStorage
+        async function loadUserData() {
+            const email = document.getElementById('userEmail').value.trim();
+            if (!email) {
+                alert('Please enter your email address');
+                return;
+            }
+            
+            try {
+                // Try to fetch from API
+                const response = await fetch(`/api/community/credits/${encodeURIComponent(email)}`);
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    userData = result;
+                    updateDashboard();
+                    startActivityFeed();
+                } else {
+                    // Create new user
+                    userData = {
+                        email: email,
+                        total_credits: 0,
+                        contributor_tier: 'Bronze',
+                        tasks_completed: 0,
+                        contributions: {
+                            storage_shared_gb: 0,
+                            gpu_tasks_completed: 0,
+                            freedom_requests_relayed: 0,
+                            bandwidth_shared_gb: 0,
+                            cpu_hours_contributed: 0
+                        }
+                    };
+                    updateDashboard();
+                    startActivityFeed();
+                }
+                
+                document.getElementById('userStats').style.display = 'grid';
+                
+            } catch (error) {
+                console.error('Could not load user data:', error);
+                // Use demo data
+                userData = {
+                    email: email,
+                    total_credits: 156.78,
+                    contributor_tier: 'Silver',
+                    tasks_completed: 89,
+                    contributions: {
+                        storage_shared_gb: 23.4,
+                        gpu_tasks_completed: 12,
+                        freedom_requests_relayed: 45,
+                        bandwidth_shared_gb: 167.8,
+                        cpu_hours_contributed: 34.2
+                    }
+                };
+                updateDashboard();
+                startActivityFeed();
+                document.getElementById('userStats').style.display = 'grid';
+            }
+        }
+        
+        // Update dashboard with user data
+        function updateDashboard() {
+            if (!userData) return;
+            
+            document.getElementById('totalCredits').textContent = userData.total_credits.toFixed(2);
+            document.getElementById('contributorTier').textContent = userData.contributor_tier;
+            document.getElementById('tasksCompleted').textContent = userData.tasks_completed;
+            
+            const totalResources = (userData.contributions.storage_shared_gb || 0) + 
+                                 (userData.contributions.bandwidth_shared_gb || 0);
+            document.getElementById('resourcesShared').textContent = totalResources.toFixed(1);
+            
+            // Update tier display
+            const tierElement = document.getElementById('contributorTier');
+            tierElement.className = `stat-number tier-${userData.contributor_tier.toLowerCase()}`;
+        }
+        
+        // Start activity feed updates
+        function startActivityFeed() {
+            if (activityUpdateTimer) clearInterval(activityUpdateTimer);
+            
+            activityUpdateTimer = setInterval(() => {
+                addRandomActivity();
+            }, 15000); // Every 15 seconds
+        }
+        
+        // Add random activity to feed
+        function addRandomActivity() {
+            const container = document.getElementById('activityContainer');
+            const activity = activities[Math.floor(Math.random() * activities.length)];
+            
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+            activityItem.style.opacity = '0';
+            activityItem.innerHTML = `
+                <div class="activity-icon">${activity.icon}</div>
+                <div class="activity-text">${activity.text} (+${activity.credit} credits)</div>
+                <div class="activity-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            container.insertBefore(activityItem, container.firstChild.nextSibling);
+            
+            // Fade in animation
+            setTimeout(() => {
+                activityItem.style.opacity = '1';
+                activityItem.style.transition = 'opacity 0.5s';
+            }, 100);
+            
+            // Update user credits
+            if (userData) {
+                userData.total_credits += activity.credit;
+                userData.tasks_completed++;
+                updateDashboard();
+            }
+            
+            // Keep only last 20 activities
+            while (container.children.length > 21) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        // Open specific tool
+        function openTool(toolName) {
+            const urls = {
+                'storage-contributor': 'storage-contributor.html',
+                'gpu-pool': 'gpu-pool.html',
+                'freedom-relay': 'freedom-relay.html',
+                'bandwidth-pool': '#coming-soon',
+                'cpu-sharing': '#coming-soon',
+                'skill-marketplace': '#coming-soon'
+            };
+            
+            if (urls[toolName] && !urls[toolName].includes('#')) {
+                window.open(urls[toolName], '_blank');
+            } else {
+                alert('This tool is coming soon! Stay tuned for updates.');
+            }
+        }
+        
+        // Start all contributions
+        function startAllContributions() {
+            alert('🚀 Starting all active contribution tools!\n\n' +
+                  'This will open multiple tabs for:\n' +
+                  '• Storage Sharing\n' +
+                  '• GPU Pool\n' +
+                  '• Freedom Relay\n\n' +
+                  'Make sure to configure each tool with your preferences!');
+            
+            // Open all available tools
+            setTimeout(() => window.open('storage-contributor.html', '_blank'), 500);
+            setTimeout(() => window.open('gpu-pool.html', '_blank'), 1000);
+            setTimeout(() => window.open('freedom-relay.html', '_blank'), 1500);
+        }
+        
+        // Stop all contributions
+        function stopAllContributions() {
+            alert('⏹️ To stop contributions, please close the individual tool tabs or click "Stop" in each tool.');
+        }
+        
+        // Check earnings
+        async function checkEarnings() {
+            const email = document.getElementById('userEmail').value.trim();
+            if (!email) {
+                alert('Please enter your email address first');
+                return;
+            }
+            
+            await loadUserData();
+            alert(`💰 Current Earnings:\n\n` +
+                  `Total Credits: ${userData.total_credits.toFixed(2)}\n` +
+                  `Contributor Tier: ${userData.contributor_tier}\n` +
+                  `Tasks Completed: ${userData.tasks_completed}\n\n` +
+                  `Keep contributing to earn more!`);
+        }
+        
+        // Redeem credits
+        function redeemCredits() {
+            if (!userData) {
+                alert('Please load your dashboard first');
+                return;
+            }
+            
+            if (userData.total_credits < 1.0) {
+                alert('❌ You need at least 1.0 credits to redeem!\n\n' +
+                      `Current balance: ${userData.total_credits.toFixed(2)} credits\n\n` +
+                      'Keep contributing to earn more credits!');
+                return;
+            }
+            
+            const options = [
+                `🖥️ 1 Hour VM (1.0 credits)`,
+                `💾 10GB Storage (5.0 credits)`,
+                `🎮 GPU Instance (10.0 credits)`,
+                `🌐 Premium Bandwidth (2.0 credits)`,
+                `🕊️ Anonymous VPN (3.0 credits)`
+            ];
+            
+            alert('🎁 Available Rewards:\n\n' + options.join('\n') + 
+                  `\n\nYour balance: ${userData.total_credits.toFixed(2)} credits` +
+                  '\n\nVisit the full dashboard to redeem!');
+        }
+        
+        // Show quick start guide
+        function showQuickStart() {
+            alert('🚀 HGWS Quick Start Guide:\n\n' +
+                  '1. Enter your email and load dashboard\n' +
+                  '2. Click on any tool card to start contributing\n' +
+                  '3. Configure your sharing preferences\n' +
+                  '4. Start earning credits automatically\n' +
+                  '5. Redeem credits for free cloud services\n\n' +
+                  '💡 Tips:\n' +
+                  '• Start with Storage Sharing (easiest)\n' +
+                  '• GPU Pool gives highest credits\n' +
+                  '• Freedom Relay helps fight censorship\n' +
+                  '• Higher contributions = better tier status\n\n' +
+                  '"You get back what you give!" 🌟');
+        }
+        
+        // Initialize dashboard
+        window.addEventListener('load', () => {
+            // Auto-populate email from localStorage if available
+            const storedEmail = localStorage.getItem('hgws_user_email');
+            if (storedEmail) {
+                document.getElementById('userEmail').value = storedEmail;
+            }
+            
+            // Add some demo activity
+            setTimeout(() => {
+                addRandomActivity();
+            }, 3000);
+            
+            // Tool status simulation (would be real in production)
+            setTimeout(() => {
+                const tools = ['storage', 'gpu', 'freedom'];
+                tools.forEach(tool => {
+                    if (Math.random() > 0.7) {
+                        const statusElement = document.getElementById(tool + 'Status');
+                        if (statusElement) {
+                            statusElement.textContent = 'Active';
+                            statusElement.className = 'tool-status active';
+                        }
+                    }
+                });
+            }, 5000);
+        });
+        
+        // Save email to localStorage when changed
+        document.getElementById('userEmail').addEventListener('change', function() {
+            localStorage.setItem('hgws_user_email', this.value);
+        });
+    </script>
+    
+    <!-- HGWS Unified Navigation -->
+    <script src="/static/nav.js"></script>
+</body>
+</html>

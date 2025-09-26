@@ -1,0 +1,27 @@
+# Quadlet unit for pfs-infinity backend (dev, insecure TLS in app)
+# Install to: /etc/containers/systemd/pfs-infinity.container
+# Then: systemctl daemon-reload && systemctl start pfs-infinity.service
+
+[Unit]
+Description=PFS Infinity Backend (dev)
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+# Image reference is patched by installer
+Image=REGISTRY_REF
+ContainerName=pfs-infinity
+Network=host
+# Mount host /dev/shm for blob access if desired
+Volume=/dev/shm:/dev/shm:Z
+# Env for app
+Environment=WS_PORT=BACKEND_PORT
+Environment=BIND=0.0.0.0
+Environment=PFS_NET=host
+Environment=PFS_TLS=1
+Environment=PFS_TLS_INSECURE=1
+# Pull from insecure registry
+PodmanArgs=--tls-verify=false
+
+[Install]
+WantedBy=multi-user.target

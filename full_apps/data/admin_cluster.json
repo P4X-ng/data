@@ -1,0 +1,97 @@
+{
+  "cluster_name": "HGWS Personal Infrastructure",
+  "owner": "punk",
+  "description": "Personal distributed computing infrastructure with GPU rigs and remote servers",
+  "created": "2025-01-24T11:16:00Z",
+  "last_updated": "2025-01-24T11:16:00Z",
+  "settings": {
+    "auto_deploy": true,
+    "skip_no_key": true,
+    "default_user": "punk",
+    "default_roles": ["base_system", "tailscale_client", "monitoring"],
+    "tailscale_auth_key_env": "TAILSCALE_AUTH_KEY",
+    "deployment_timeout": 300,
+    "parallel_deployments": 3
+  },
+  "machines": [
+    {
+      "id": "gaming-rig-01",
+      "name": "gaming-rig-01",
+      "description": "RTX 4090 Gaming Rig - Primary GPU Compute",
+      "address": "192.168.1.100",
+      "type": "gpu_cluster",
+      "os": "Ubuntu 24.04",
+      "hardware": {
+        "gpu": "RTX 4090",
+        "cpu": "AMD Ryzen 9 7900X",
+        "ram": "64GB DDR5",
+        "storage": "2TB NVMe"
+      },
+      "ssh": {
+        "user": "punk",
+        "port": 22,
+        "key_present": false,
+        "last_check": null
+      },
+      "roles": ["base_system", "tailscale_client", "monitoring", "container_runtime"],
+      "status": "pending",
+      "last_deployment": null,
+      "notes": "Primary GPU compute node - needs SSH key setup"
+    },
+    {
+      "id": "server-rack-01",
+      "name": "server-rack-01", 
+      "description": "Dell PowerEdge R720 - Storage & Compute",
+      "address": "192.168.1.200",
+      "type": "bare_metal",
+      "os": "Ubuntu Server 24.04 LTS",
+      "hardware": {
+        "cpu": "2x Xeon E5-2690",
+        "ram": "128GB DDR3",
+        "storage": "8x 4TB SAS",
+        "network": "Dual 10GbE"
+      },
+      "ssh": {
+        "user": "punk",
+        "port": 22,
+        "key_present": false,
+        "last_check": null
+      },
+      "roles": ["base_system", "tailscale_client", "glusterfs_client", "monitoring", "container_runtime"],
+      "status": "pending",
+      "last_deployment": null,
+      "notes": "Main storage node - configure GlusterFS after SSH key setup"
+    },
+    {
+      "id": "remote-cloud-01",
+      "name": "remote-cloud-01",
+      "description": "Linode VPS - Remote Access Point", 
+      "address": "cloud-server.example.com",
+      "type": "cloud_vm",
+      "os": "Ubuntu Server 24.04 LTS",
+      "hardware": {
+        "cpu": "8 vCPUs",
+        "ram": "32GB",
+        "storage": "640GB SSD",
+        "network": "40Gbps"
+      },
+      "ssh": {
+        "user": "punk",
+        "port": 22,
+        "key_present": false,
+        "last_check": null
+      },
+      "roles": ["base_system", "tailscale_client", "monitoring", "container_runtime"],
+      "status": "pending", 
+      "last_deployment": null,
+      "notes": "Remote access node - configure as Tailscale exit node"
+    }
+  ],
+  "deployment_stats": {
+    "total_machines": 3,
+    "deployed": 0,
+    "pending": 3,
+    "failed": 0,
+    "no_ssh_key": 3
+  }
+}

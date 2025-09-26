@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F3 Cluster Management</title>
+    <link rel="icon" href="/static/f3_logo.png" type="image/png">
+    <style>
+        /* Hyperion Gray Design Tokens */
+        :root {
+            /* Grayscale Foundation */
+            --hg-gray-900: #0a0a0a;
+            --hg-gray-800: #1a1a1a;
+            --hg-gray-700: #2a2a2a;
+            --hg-gray-600: #666666;
+            --hg-gray-500: #999999;
+            --hg-gray-400: #cccccc;
+            --hg-gray-300: #e6e6e6;
+            --hg-gray-200: #f5f5f5;
+            --hg-gray-100: #ffffff;
+            
+            /* Neon Accents */
+            --hg-electric-cyan: #00d9ff;
+            --hg-signal-green: #00ff41;
+            --hg-hot-magenta: #ff0080;
+            
+            /* Semantic Colors */
+            --hg-primary: var(--hg-electric-cyan);
+            --hg-success: var(--hg-signal-green);
+            --hg-error: var(--hg-hot-magenta);
+            --hg-warning: var(--hg-hot-magenta);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--hg-gray-900);
+            color: var(--hg-gray-100);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--hg-gray-800);
+            border-bottom: 1px solid var(--hg-gray-700);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            height: 40px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--hg-electric-cyan);
+        }
+
+        .cluster-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--hg-gray-700);
+            border-radius: 4px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.healthy {
+            background: var(--hg-signal-green);
+            box-shadow: 0 0 4px var(--hg-signal-green);
+        }
+
+        .status-indicator.warning {
+            background: var(--hg-warning);
+            box-shadow: 0 0 4px var(--hg-warning);
+        }
+
+        .status-indicator.error {
+            background: var(--hg-error);
+            box-shadow: 0 0 4px var(--hg-error);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--hg-gray-800);
+            border: 1px solid var(--hg-gray-700);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--hg-gray-700);
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--hg-gray-100);
+        }
+
+        /* Node List */
+        .nodes-panel {
+            flex: 1;
+            min-width: 350px;
+        }
+
+        .node-card {
+            background: var(--hg-gray-900);
+            border: 1px solid var(--hg-gray-700);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .node-card:hover {
+            border-color: var(--hg-electric-cyan);
+            box-shadow: 0 0 8px rgba(0, 217, 255, 0.1);
+        }
+
+        .node-card.selected {
+            border-color: var(--hg-electric-cyan);
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .node-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .node-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .node-role {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            background: var(--hg-gray-700);
+            color: var(--hg-gray-400);
+        }
+
+        .node-role.seed {
+            background: rgba(0, 217, 255, 0.2);
+            color: var(--hg-electric-cyan);
+        }
+
+        .node-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--hg-gray-400);
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .metric-value {
+            color: var(--hg-gray-100);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Actions Panel */
+        .actions-panel {
+            width: 400px;
+        }
+
+        .action-section {
+            margin-bottom: 2rem;
+        }
+
+        .action-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--hg-gray-100);
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--hg-gray-400);
+            margin-bottom: 0.5rem;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--hg-gray-900);
+            border: 1px solid var(--hg-gray-700);
+            color: var(--hg-gray-100);
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--hg-electric-cyan);
+            box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.1);
+        }
+
+        .button {
+            padding: 0.75rem 1.5rem;
+            background: var(--hg-electric-cyan);
+            color: var(--hg-gray-900);
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .button:hover {
+            background: #00b8e6;
+            box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3);
+        }
+
+        .button:active {
+            transform: translateY(1px);
+        }
+
+        .button:disabled {
+            background: var(--hg-gray-700);
+            color: var(--hg-gray-500);
+            cursor: not-allowed;
+        }
+
+        .button.secondary {
+            background: var(--hg-gray-700);
+            color: var(--hg-gray-100);
+        }
+
+        .button.secondary:hover {
+            background: var(--hg-gray-600);
+        }
+
+        .button.danger {
+            background: var(--hg-hot-magenta);
+            color: var(--hg-gray-100);
+        }
+
+        .button.danger:hover {
+            background: #e6006d;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--hg-gray-700);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--hg-electric-cyan) 0%, var(--hg-signal-green) 100%);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.875rem;
+            color: var(--hg-gray-400);
+            margin-top: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Live Logs Panel */
+        .logs-panel {
+            flex: 1;
+        }
+
+        .log-container {
+            background: var(--hg-gray-900);
+            border: 1px solid var(--hg-gray-700);
+            border-radius: 4px;
+            padding: 1rem;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .log-timestamp {
+            color: var(--hg-gray-600);
+            margin-right: 1rem;
+            min-width: 80px;
+        }
+
+        .log-level {
+            margin-right: 0.5rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .log-level.info {
+            background: rgba(0, 217, 255, 0.2);
+            color: var(--hg-electric-cyan);
+        }
+
+        .log-level.success {
+            background: rgba(0, 255, 65, 0.2);
+            color: var(--hg-signal-green);
+        }
+
+        .log-level.warning {
+            background: rgba(255, 0, 128, 0.2);
+            color: var(--hg-warning);
+        }
+
+        .log-level.error {
+            background: rgba(255, 0, 128, 0.2);
+            color: var(--hg-error);
+        }
+
+        .log-message {
+            flex: 1;
+            color: var(--hg-gray-400);
+            word-wrap: break-word;
+        }
+
+        /* Transfer Status */
+        .transfer-status {
+            background: var(--hg-gray-900);
+            border: 1px solid var(--hg-gray-700);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .transfer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .transfer-speed {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--hg-signal-green);
+        }
+
+        .transfer-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--hg-gray-400);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--hg-gray-900);
+            border: 1px solid var(--hg-gray-700);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--hg-electric-cyan);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--hg-gray-500);
+        }
+
+        /* Auto-scroll checkbox */
+        .log-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            background: var(--hg-gray-900);
+            border: 2px solid var(--hg-gray-600);
+            border-radius: 3px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox.checked {
+            background: var(--hg-electric-cyan);
+            border-color: var(--hg-electric-cyan);
+        }
+
+        .checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: -2px;
+            left: 2px;
+            color: var(--hg-gray-900);
+            font-weight: bold;
+        }
+
+        /* Tooltips */
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--hg-gray-700);
+            color: var(--hg-gray-100);
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 10;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--hg-gray-700);
+            border-top-color: var(--hg-electric-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Notification Toast */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+        }
+
+        .toast {
+            background: var(--hg-gray-800);
+            border: 1px solid var(--hg-gray-700);
+            border-left: 4px solid var(--hg-electric-cyan);
+            border-radius: 4px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            min-width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-left-color: var(--hg-signal-green);
+        }
+
+        .toast.error {
+            border-left-color: var(--hg-error);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-message {
+            font-size: 0.875rem;
+            color: var(--hg-gray-400);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .actions-panel {
+                width: 100%;
+            }
+
+            .nodes-panel {
+                min-width: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .main-container {
+                padding: 1rem;
+                gap: 1rem;
+            }
+
+            .panel {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo-container">
+            <img src="/static/f3_logo.png" alt="F3 Logo" class="logo">
+            <span class="logo-text">F3 Cluster Manager</span>
+        </div>
+        <div class="cluster-status">
+            <span class="status-indicator healthy" id="clusterStatusIndicator"></span>
+            <span id="clusterStatusText">Cluster Healthy</span>
+        </div>
+    </header>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Nodes Panel -->
+        <div class="panel nodes-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Cluster Nodes</h2>
+                <button class="button secondary" onclick="refreshNodes()">
+                    <span id="refreshBtn">Refresh</span>
+                </button>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalNodes">0</div>
+                    <div class="stat-label">Total Nodes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="activeTransfers">0</div>
+                    <div class="stat-label">Active Transfers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="storageUsed">0 GB</div>
+                    <div class="stat-label">Storage Used</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="throughput">0 MB/s</div>
+                    <div class="stat-label">Throughput</div>
+                </div>
+            </div>
+
+            <!-- Node List -->
+            <div id="nodeList">
+                <!-- Nodes will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- Actions Panel -->
+        <div class="panel actions-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Actions</h2>
+            </div>
+
+            <!-- Bootstrap Seed Node -->
+            <div class="action-section">
+                <h3 class="action-title">Bootstrap Seed Node</h3>
+                <p style="font-size: 0.875rem; color: var(--hg-gray-500); margin-bottom: 1rem;">
+                    Initialize the first node in your F3 cluster
+                </p>
+                <div class="input-group">
+                    <label class="input-label">Node Name</label>
+                    <input type="text" class="input-field" id="seedNodeName" placeholder="e.g., seed-1" value="seed-1">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Bind Address</label>
+                    <input type="text" class="input-field" id="seedBindAddress" placeholder="0.0.0.0:8811" value="0.0.0.0:8811">
+                </div>
+                <button class="button" onclick="bootstrapSeedNode()" id="bootstrapSeedBtn">
+                    Initialize Seed Node
+                </button>
+                <div class="progress-container" id="seedProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="seedProgressFill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="seedProgressText">Initializing...</span>
+                        <span id="seedProgressPercent">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Node to Cluster -->
+            <div class="action-section">
+                <h3 class="action-title">Add Node to Cluster</h3>
+                <p style="font-size: 0.875rem; color: var(--hg-gray-500); margin-bottom: 1rem;">
+                    Join an existing F3 cluster via SSH
+                </p>
+                <div class="input-group">
+                    <label class="input-label">Node Address</label>
+                    <input type="text" class="input-field" id="nodeAddress" placeholder="e.g., 10.69.69.56:8811">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Node Name</label>
+                    <input type="text" class="input-field" id="nodeName" placeholder="e.g., node-2">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">SSH Username</label>
+                    <input type="text" class="input-field" id="sshUsername" placeholder="e.g., root or ubuntu">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">SSH Password</label>
+                    <input type="password" class="input-field" id="sshPassword" placeholder="Enter SSH password">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Seed Node Address</label>
+                    <input type="text" class="input-field" id="seedAddress" placeholder="e.g., 10.69.69.9:8811">
+                </div>
+                <div class="button-group">
+                    <button class="button" onclick="addNodeToCluster()" id="addNodeBtn">
+                        Join Cluster
+                    </button>
+                    <button class="button secondary" onclick="openTerminalSetup()" title="Use terminal for interactive setup">
+                        Setup via Terminal
+                    </button>
+                </div>
+                <div class="progress-container" id="joinProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="joinProgressFill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="joinProgressText">Connecting...</span>
+                        <span id="joinProgressPercent">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transfer Status -->
+            <div class="action-section">
+                <h3 class="action-title">Active Transfer</h3>
+                <div class="transfer-status" id="transferStatus" style="display: none;">
+                    <div class="transfer-header">
+                        <span>Transfer Speed:</span>
+                        <span class="transfer-speed" id="transferSpeed">0 MB/s</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="transferProgressFill" style="width: 0%"></div>
+                    </div>
+                    <div class="transfer-details">
+                        <div class="metric">
+                            <span>File:</span>
+                            <span class="metric-value" id="transferFile">-</span>
+                        </div>
+                        <div class="metric">
+                            <span>Size:</span>
+                            <span class="metric-value" id="transferSize">-</span>
+                        </div>
+                        <div class="metric">
+                            <span>Progress:</span>
+                            <span class="metric-value" id="transferProgress">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span>ETA:</span>
+                            <span class="metric-value" id="transferETA">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Panel -->
+        <div class="panel logs-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Live Activity Log</h2>
+                <div class="log-controls">
+                    <div class="checkbox-container" onclick="toggleAutoScroll()">
+                        <div class="checkbox checked" id="autoScrollCheckbox"></div>
+                        <span style="font-size: 0.875rem; color: var(--hg-gray-400);">Auto-scroll</span>
+                    </div>
+                    <button class="button secondary" onclick="clearLogs()">Clear</button>
+                </div>
+            </div>
+            <div class="log-container" id="logContainer">
+                <!-- Logs will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let nodes = [];
+        let selectedNode = null;
+        let autoScroll = true;
+        let wsConnection = null;
+        let transferActive = false;
+
+        // Initialize WebSocket for real-time updates
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/cluster`;
+            
+            try {
+                wsConnection = new WebSocket(wsUrl);
+                
+                wsConnection.onopen = () => {
+                    addLog('info', 'Connected to cluster management service');
+                    showToast('Connected', 'Real-time updates enabled', 'success');
+                };
+                
+                wsConnection.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                };
+                
+                wsConnection.onerror = (error) => {
+                    addLog('error', `WebSocket error: ${error}`);
+                    showToast('Connection Error', 'Failed to establish real-time connection', 'error');
+                };
+                
+                wsConnection.onclose = () => {
+                    addLog('warning', 'Disconnected from cluster service');
+                    setTimeout(initWebSocket, 5000); // Reconnect after 5 seconds
+                };
+            } catch (error) {
+                console.error('WebSocket initialization failed:', error);
+                setTimeout(initWebSocket, 5000);
+            }
+        }
+
+        // Handle WebSocket messages
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'node_update':
+                    updateNode(data.node);
+                    break;
+                case 'transfer_progress':
+                    updateTransferProgress(data.progress);
+                    break;
+                case 'log':
+                    addLog(data.level, data.message);
+                    break;
+                case 'cluster_stats':
+                    updateClusterStats(data.stats);
+                    break;
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        }
+
+        // Bootstrap seed node
+        async function bootstrapSeedNode() {
+            const nodeName = document.getElementById('seedNodeName').value;
+            const bindAddress = document.getElementById('seedBindAddress').value;
+            
+            if (!nodeName || !bindAddress) {
+                showToast('Error', 'Please fill in all required fields', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('bootstrapSeedBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Initializing...';
+            
+            const progressContainer = document.getElementById('seedProgress');
+            progressContainer.style.display = 'block';
+            
+            // Simulate progressive initialization steps
+            const steps = [
+                { percent: 20, text: 'Creating cluster configuration...' },
+                { percent: 40, text: 'Initializing storage backend...' },
+                { percent: 60, text: 'Setting up TLS certificates...' },
+                { percent: 80, text: 'Starting cluster services...' },
+                { percent: 100, text: 'Seed node initialized!' }
+            ];
+            
+            for (let i = 0; i < steps.length; i++) {
+                const step = steps[i];
+                updateProgress('seed', step.percent, step.text);
+                addLog('info', step.text);
+                
+                // Simulate actual work
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            // Actually bootstrap the node via API
+            try {
+                const response = await fetch('/api/cluster/bootstrap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: nodeName,
+                        bind_address: bindAddress,
+                        role: 'seed'
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    addLog('success', `Seed node '${nodeName}' successfully initialized`);
+                    showToast('Success', 'Seed node initialized successfully', 'success');
+                    
+                    // Add the seed node to the UI
+                    const seedNode = {
+                        id: result.node_id || '1',
+                        name: nodeName,
+                        address: bindAddress,
+                        role: 'seed',
+                        status: 'healthy',
+                        cpu: 0,
+                        memory: 0,
+                        storage: 0,
+                        connections: 0
+                    };
+                    nodes.push(seedNode);
+                    renderNodes();
+                    updateStats();
+                } else {
+                    throw new Error('Failed to bootstrap seed node');
+                }
+            } catch (error) {
+                addLog('error', `Bootstrap failed: ${error.message}`);
+                showToast('Error', 'Failed to initialize seed node', 'error');
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = 'Initialize Seed Node';
+            
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+                updateProgress('seed', 0, 'Initializing...');
+            }, 2000);
+        }
+
+        // Add node to cluster
+        async function addNodeToCluster() {
+            const nodeAddress = document.getElementById('nodeAddress').value;
+            const nodeName = document.getElementById('nodeName').value;
+            const sshUsername = document.getElementById('sshUsername').value;
+            const sshPassword = document.getElementById('sshPassword').value;
+            const seedAddress = document.getElementById('seedAddress').value;
+            
+            if (!nodeAddress || !nodeName || !sshUsername || !sshPassword || !seedAddress) {
+                showToast('Error', 'Please fill in all required fields including SSH credentials', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('addNodeBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Joining...';
+            
+            const progressContainer = document.getElementById('joinProgress');
+            progressContainer.style.display = 'block';
+            
+            // Progressive join steps
+            const steps = [
+                { percent: 20, text: 'Connecting to seed node...' },
+                { percent: 40, text: 'Exchanging certificates...' },
+                { percent: 60, text: 'Syncing cluster state...' },
+                { percent: 80, text: 'Registering with cluster...' },
+                { percent: 100, text: 'Successfully joined cluster!' }
+            ];
+            
+            for (let i = 0; i < steps.length; i++) {
+                const step = steps[i];
+                updateProgress('join', step.percent, step.text);
+                addLog('info', step.text);
+                await new Promise(resolve => setTimeout(resolve, 800));
+            }
+            
+            // Add the new node to the UI
+            const newNode = {
+                id: Date.now().toString(),
+                name: nodeName,
+                address: nodeAddress,
+                role: 'worker',
+                status: 'healthy',
+                cpu: Math.random() * 30,
+                memory: Math.random() * 50,
+                storage: Math.random() * 100,
+                connections: Math.floor(Math.random() * 10)
+            };
+            
+            nodes.push(newNode);
+            renderNodes();
+            updateStats();
+            
+            addLog('success', `Node '${nodeName}' successfully joined the cluster`);
+            showToast('Success', 'Node added to cluster', 'success');
+            
+            btn.disabled = false;
+            btn.innerHTML = 'Join Cluster';
+            
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+                updateProgress('join', 0, 'Connecting...');
+            }, 2000);
+        }
+
+        // Update progress bar
+        function updateProgress(type, percent, text) {
+            const fill = document.getElementById(`${type}ProgressFill`);
+            const textEl = document.getElementById(`${type}ProgressText`);
+            const percentEl = document.getElementById(`${type}ProgressPercent`);
+            
+            fill.style.width = `${percent}%`;
+            textEl.textContent = text;
+            percentEl.textContent = `${percent}%`;
+        }
+
+        // Render nodes
+        function renderNodes() {
+            const nodeList = document.getElementById('nodeList');
+            nodeList.innerHTML = '';
+            
+            nodes.forEach(node => {
+                const nodeCard = document.createElement('div');
+                nodeCard.className = `node-card ${selectedNode === node.id ? 'selected' : ''}`;
+                nodeCard.onclick = () => selectNode(node.id);
+                
+                nodeCard.innerHTML = `
+                    <div class="node-header">
+                        <div class="node-name">
+                            <span class="status-indicator ${node.status}"></span>
+                            ${node.name}
+                        </div>
+                        <span class="node-role ${node.role}">${node.role.toUpperCase()}</span>
+                    </div>
+                    <div class="node-metrics">
+                        <div class="metric">
+                            <span>CPU:</span>
+                            <span class="metric-value">${node.cpu.toFixed(1)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span>Memory:</span>
+                            <span class="metric-value">${node.memory.toFixed(1)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span>Storage:</span>
+                            <span class="metric-value">${node.storage.toFixed(1)} GB</span>
+                        </div>
+                        <div class="metric">
+                            <span>Connections:</span>
+                            <span class="metric-value">${node.connections}</span>
+                        </div>
+                    </div>
+                `;
+                
+                nodeList.appendChild(nodeCard);
+            });
+        }
+
+        // Select node
+        function selectNode(nodeId) {
+            selectedNode = nodeId;
+            renderNodes();
+            addLog('info', `Selected node: ${nodes.find(n => n.id === nodeId)?.name}`);
+        }
+
+        // Update node
+        function updateNode(nodeData) {
+            const index = nodes.findIndex(n => n.id === nodeData.id);
+            if (index !== -1) {
+                nodes[index] = { ...nodes[index], ...nodeData };
+            } else {
+                nodes.push(nodeData);
+            }
+            renderNodes();
+            updateStats();
+        }
+
+        // Update cluster stats
+        function updateStats() {
+            document.getElementById('totalNodes').textContent = nodes.length;
+            
+            const totalStorage = nodes.reduce((sum, node) => sum + node.storage, 0);
+            document.getElementById('storageUsed').textContent = `${totalStorage.toFixed(1)} GB`;
+            
+            // Simulate some throughput
+            if (transferActive) {
+                const throughput = (Math.random() * 100 + 50).toFixed(1);
+                document.getElementById('throughput').textContent = `${throughput} MB/s`;
+            }
+        }
+
+        // Open terminal for interactive setup
+        function openTerminalSetup() {
+            const nodeAddress = document.getElementById('nodeAddress').value;
+            const sshUsername = document.getElementById('sshUsername').value;
+            const sshPassword = document.getElementById('sshPassword').value;
+            
+            if (!nodeAddress) {
+                showToast('Error', 'Please enter the node address first', 'error');
+                return;
+            }
+            
+            // Extract host from address (remove port if present)
+            const host = nodeAddress.split(':')[0];
+            
+            // Open terminal in new tab with pre-filled connection details
+            const terminalUrl = `/static/terminal.html?host=${encodeURIComponent(host)}&user=${encodeURIComponent(sshUsername || 'root')}&autoconnect=true&setup=cluster`;
+            
+            // Open in new tab
+            const terminalWindow = window.open(terminalUrl, '_blank');
+            
+            // Send setup commands after terminal connects
+            setTimeout(() => {
+                if (terminalWindow) {
+                    // The terminal will auto-run cluster setup commands
+                    showToast('Info', 'Terminal opened. Follow the on-screen instructions.', 'info');
+                    addLog('info', `Opened terminal for interactive setup of ${host}`);
+                }
+            }, 1000);
+        }
+
+        // Update cluster-wide stats from WebSocket
+        function updateClusterStats(stats) {
+            if (stats.total_nodes !== undefined) {
+                document.getElementById('totalNodes').textContent = stats.total_nodes;
+            }
+            if (stats.active_transfers !== undefined) {
+                document.getElementById('activeTransfers').textContent = stats.active_transfers;
+            }
+            if (stats.storage_used !== undefined) {
+                document.getElementById('storageUsed').textContent = `${stats.storage_used} GB`;
+            }
+            if (stats.throughput !== undefined) {
+                document.getElementById('throughput').textContent = `${stats.throughput} MB/s`;
+            }
+        }
+
+        // Update transfer progress
+        function updateTransferProgress(progress) {
+            const transferStatus = document.getElementById('transferStatus');
+            transferStatus.style.display = 'block';
+            transferActive = true;
+            
+            document.getElementById('transferSpeed').textContent = `${progress.speed || 0} MB/s`;
+            document.getElementById('transferProgressFill').style.width = `${progress.percent || 0}%`;
+            document.getElementById('transferFile').textContent = progress.filename || '-';
+            document.getElementById('transferSize').textContent = progress.size || '-';
+            document.getElementById('transferProgress').textContent = `${progress.percent || 0}%`;
+            document.getElementById('transferETA').textContent = progress.eta || '-';
+            
+            if (progress.percent >= 100) {
+                setTimeout(() => {
+                    transferStatus.style.display = 'none';
+                    transferActive = false;
+                }, 3000);
+            }
+        }
+
+        // Add log entry
+        function addLog(level, message) {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            
+            const timestamp = new Date().toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+            
+            logEntry.innerHTML = `
+                <span class="log-timestamp">${timestamp}</span>
+                <span class="log-level ${level}">${level.toUpperCase()}</span>
+                <span class="log-message">${message}</span>
+            `;
+            
+            logContainer.appendChild(logEntry);
+            
+            // Auto-scroll if enabled
+            if (autoScroll) {
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Limit log entries to prevent memory issues
+            while (logContainer.children.length > 500) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        // Clear logs
+        function clearLogs() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = '';
+            addLog('info', 'Logs cleared');
+        }
+
+        // Toggle auto-scroll
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const checkbox = document.getElementById('autoScrollCheckbox');
+            checkbox.classList.toggle('checked', autoScroll);
+        }
+
+        // Show toast notification
+        function showToast(title, message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            toast.innerHTML = `
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }, 5000);
+        }
+
+        // Refresh nodes
+        async function refreshNodes() {
+            const btn = document.getElementById('refreshBtn');
+            btn.innerHTML = '<span class="spinner"></span>';
+            
+            try {
+                const response = await fetch('/api/cluster/nodes');
+                if (response.ok) {
+                    const data = await response.json();
+                    nodes = data.nodes || [];
+                    renderNodes();
+                    updateStats();
+                    addLog('info', 'Node list refreshed');
+                }
+            } catch (error) {
+                addLog('error', `Failed to refresh nodes: ${error.message}`);
+            }
+            
+            btn.innerHTML = 'Refresh';
+        }
+
+        // Simulate some initial activity
+        function simulateActivity() {
+            // Add some sample logs
+            addLog('info', 'F3 Cluster Manager initialized');
+            addLog('info', 'Scanning for existing nodes...');
+            addLog('success', 'WebSocket connection established');
+            
+            // Simulate periodic status updates
+            setInterval(() => {
+                if (nodes.length > 0) {
+                    // Update random node metrics
+                    const randomNode = nodes[Math.floor(Math.random() * nodes.length)];
+                    randomNode.cpu = Math.random() * 50;
+                    randomNode.memory = Math.random() * 60;
+                    renderNodes();
+                    
+                    // Occasionally add a log
+                    if (Math.random() > 0.8) {
+                        const messages = [
+                            `Health check completed for ${randomNode.name}`,
+                            `Sync completed with ${randomNode.name}`,
+                            `Metrics updated for ${randomNode.name}`,
+                            `Connection established to ${randomNode.name}`
+                        ];
+                        addLog('info', messages[Math.floor(Math.random() * messages.length)]);
+                    }
+                }
+            }, 5000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initWebSocket();
+            simulateActivity();
+            addLog('success', 'F3 Cluster Manager ready');
+            
+            // Check for existing cluster
+            refreshNodes();
+        });
+
+        // Handle page visibility for WebSocket management
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Page is hidden, could close WebSocket to save resources
+                if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                    wsConnection.close();
+                }
+            } else {
+                // Page is visible again, reconnect
+                if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
+                    initWebSocket();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

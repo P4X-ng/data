@@ -1,0 +1,52 @@
+# Dev Podman registry helpers (insecure OK for dev)
+
+# Include central variables
+import "./justfile.vars"
+
+# Note: no default target here to avoid collision when imported into the main Justfile
+
+help-registry:
+    @echo "registry commands: registry-up|down|status|logs|push-infinity|image-ref|host-ip|install-quadlet|bootstrap-remote"
+    @echo "Examples:"
+    @echo "  just registry-up                                 # start insecure registry on :{{REGISTRY_PORT}}"
+    @echo "  just registry-install-quadlet                    # install and start systemd quadlet (root)"
+    @echo "  just registry-bootstrap-remote host=10.69.69.56  # copy quadlet to remote and enable with sudo"
+    @echo "  just registry-push-infinity host=10.69.69.9     # tag+push to host:{{REGISTRY_PORT}} (\"--tls-verify=false\")"
+    @echo "  just registry-status                            # ps + catalog probe"
+
+# Bring up an insecure registry (HTTP only) on REGISTRY_PORT via helper script
+registry-up data_dir="/srv/pfs-registry/data":
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/registry/start.sh "{{REGISTRY_PORT}}" "{{data_dir}}"
+
+registry-down:
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/registry/down.sh
+
+registry-status:
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/registry/status.sh "{{REGISTRY_PORT}}"
+
+registry-logs lines="200":
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/registry/logs.sh "{{lines}}"
+
+# Compute the host IP that would be used to reach a given remote (default your 10.69.69.56)
+registry-host-ip:
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/registry/host_ip.sh "${REMOTE:-10.69.69.56}"
+
+# Print ref for pfs-infinity image in the registry
+registry-image-ref:
+    @bash -eu -o pipefail -c '\
+    host="${HOST:-127.0.0.1}"; tag="${TAG:-latest}"; port="${REGISTRY_PORT:-5000}"; \
+    ref="$host:$port/pfs-infinity:$tag"; \
+    echo "$ref"'
+
+# Tag and push packetfs/pfs-infinity:<tag> to <host>:REGISTRY_PORT/pfs-infinity:<tag>
+# Uses --tls-verify=false (insecure dev registry).
+registry-push-infinity:
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/registry/push_infinity.sh "${HOST:-127.0.0.1}" "${REGISTRY_PORT:-5000}" "${TAG:-latest}"
+
+# Install quadlet locally (root)
+registry-install-quadlet:
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/registry/install_quadlet.sh "${REGISTRY_PORT:-5000}"
+
+# Bootstrap quadlet on a remote host (copies unit + installs with sudo)
+registry-bootstrap-remote:
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/registry/bootstrap_remote_registry.sh "${HOST:-10.69.69.56}" "${PORT:-${REGISTRY_PORT:-5000}}"

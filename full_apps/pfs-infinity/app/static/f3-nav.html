@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F3 - Fast File Fabric</title>
+    <link rel="icon" href="/static/f3_logo.png" type="image/png">
+    <style>
+        :root {
+            --hg-gray-900: #0a0a0a;
+            --hg-gray-800: #1a1a1a;
+            --hg-gray-700: #2a2a2a;
+            --hg-gray-600: #666666;
+            --hg-gray-500: #999999;
+            --hg-gray-400: #cccccc;
+            --hg-gray-300: #e6e6e6;
+            --hg-gray-200: #f5f5f5;
+            --hg-gray-100: #ffffff;
+            --hg-electric-cyan: #00d9ff;
+            --hg-signal-green: #00ff41;
+            --hg-hot-magenta: #ff0080;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--hg-gray-900);
+            color: var(--hg-gray-100);
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .nav-header {
+            background: var(--hg-gray-800);
+            border-bottom: 1px solid var(--hg-gray-700);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            background: rgba(26, 26, 26, 0.95);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+            color: var(--hg-gray-100);
+        }
+
+        .nav-logo img {
+            height: 40px;
+            width: auto;
+        }
+
+        .nav-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--hg-electric-cyan);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--hg-gray-400);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            color: var(--hg-electric-cyan);
+        }
+
+        .nav-link.active {
+            color: var(--hg-electric-cyan);
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--hg-electric-cyan);
+            box-shadow: 0 0 8px var(--hg-electric-cyan);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 6rem 2rem;
+            text-align: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero-logo {
+            width: 200px;
+            height: auto;
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 0 30px rgba(0, 217, 255, 0.3));
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--hg-electric-cyan) 0%, var(--hg-signal-green) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: var(--hg-gray-400);
+            margin-bottom: 3rem;
+            font-weight: 300;
+        }
+
+        .hero-description {
+            font-size: 1.125rem;
+            line-height: 1.8;
+            color: var(--hg-gray-400);
+            max-width: 800px;
+            margin: 0 auto 4rem;
+        }
+
+        /* Feature Cards */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            padding: 0 2rem;
+            max-width: 1200px;
+            margin: 0 auto 6rem;
+        }
+
+        .feature-card {
+            background: var(--hg-gray-800);
+            border: 1px solid var(--hg-gray-700);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--hg-electric-cyan) 0%, var(--hg-signal-green) 100%);
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--hg-electric-cyan);
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.2);
+        }
+
+        .feature-card:hover::before {
+            transform: translateY(0);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--hg-electric-cyan) 0%, var(--hg-signal-green) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 24px;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--hg-gray-100);
+        }
+
+        .feature-description {
+            color: var(--hg-gray-400);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-action {
+            color: var(--hg-electric-cyan);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-action::after {
+            content: '→';
+            transition: transform 0.2s ease;
+        }
+
+        .feature-card:hover .feature-action::after {
+            transform: translateX(5px);
+        }
+
+        /* Stats Section */
+        .stats-section {
+            background: var(--hg-gray-800);
+            padding: 4rem 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 1rem;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--hg-electric-cyan);
+            margin-bottom: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-label {
+            font-size: 1.125rem;
+            color: var(--hg-gray-400);
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 4rem 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta-description {
+            font-size: 1.125rem;
+            color: var(--hg-gray-400);
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--hg-electric-cyan) 0%, var(--hg-signal-green) 100%);
+            color: var(--hg-gray-900);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 8px 24px rgba(0, 217, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--hg-gray-100);
+            border: 2px solid var(--hg-gray-700);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--hg-electric-cyan);
+            color: var(--hg-electric-cyan);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--hg-gray-800);
+            border-top: 1px solid var(--hg-gray-700);
+            padding: 2rem;
+            text-align: center;
+            margin-top: 6rem;
+        }
+
+        .footer-text {
+            color: var(--hg-gray-500);
+            font-size: 0.875rem;
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.25rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-header">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <img src="/static/f3_logo.png" alt="F3 Logo">
+                <span class="nav-title">F3</span>
+            </a>
+            <div class="nav-links">
+                <a href="/static/transfer-v2.html" class="nav-link active">File Transfer</a>
+                <a href="/static/browse.html" class="nav-link">Browse Files</a>
+                <a href="/api/docs" class="nav-link">API Docs</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero fade-in">
+        <img src="/static/f3_logo.png" alt="F3 Logo" class="hero-logo">
+        <h1 class="hero-title">F3</h1>
+        <p class="hero-subtitle">Fast File Fabric</p>
+        <p class="hero-description">
+            A revolutionary distributed storage system that turns your network into a unified, 
+            high-performance file fabric. Bootstrap clusters, transfer files at incredible speeds, 
+            and seamlessly join filesystems across nodes with complete transparency and real-time feedback.
+        </p>
+    </section>
+
+    <!-- Feature Cards -->
+    <section class="features">
+        <a href="/static/cluster.html" class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h3 class="feature-title">Cluster Management</h3>
+            <p class="feature-description">
+                Bootstrap seed nodes and expand your cluster with ease. Real-time monitoring, 
+                live activity logs, and comprehensive node health tracking ensure you always 
+                know what's happening in your distributed system.
+            </p>
+            <span class="feature-action">Launch Cluster Manager</span>
+        </a>
+
+        <a href="/static/transfer.html" class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3 class="feature-title">Lightning Fast Transfers</h3>
+            <p class="feature-description">
+                Transfer files at speeds that defy physics using our packet-based compression 
+                and intelligent routing. Watch live progress, speeds, and compression ratios 
+                as your data flies across the network.
+            </p>
+            <span class="feature-action">Start Transferring</span>
+        </a>
+
+        <a href="/static/browse.html" class="feature-card">
+            <div class="feature-icon">📁</div>
+            <h3 class="feature-title">Unified Filesystem</h3>
+            <p class="feature-description">
+                Browse and manage files across all nodes as if they were local. Our FUSE-based 
+                filesystem provides transparent access to distributed storage with real-time 
+                synchronization.
+            </p>
+            <span class="feature-action">Browse Files</span>
+        </a>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-number" id="compressionRatio">95%</div>
+                <div class="stat-label">Compression Ratio</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="transferSpeed">1.2 GB/s</div>
+                <div class="stat-label">Peak Transfer Speed</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="nodesOnline">0</div>
+                <div class="stat-label">Nodes Online</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="uptime">99.9%</div>
+                <div class="stat-label">Uptime</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <h2 class="cta-title">Ready to Get Started?</h2>
+        <p class="cta-description">
+            Bootstrap your first node with a single command and experience the future of distributed storage.
+        </p>
+        <div class="cta-buttons">
+            <a href="/static/cluster.html" class="btn btn-primary">
+                Bootstrap Cluster
+            </a>
+            <a href="/api/docs" class="btn btn-secondary">
+                View Documentation
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p class="footer-text">
+            F3 - Fast File Fabric | Powered by PacketFS Technology
+        </p>
+    </footer>
+
+    <script>
+        // Animate stats on page load
+        function animateNumber(element, target, suffix = '') {
+            const duration = 2000;
+            const start = 0;
+            const increment = target / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                
+                if (suffix === '%' || suffix === 'GB/s') {
+                    element.textContent = current.toFixed(1) + (suffix === 'GB/s' ? ' GB/s' : '%');
+                } else {
+                    element.textContent = Math.floor(current);
+                }
+            }, 16);
+        }
+
+        // Check for actual nodes online
+        async function updateNodesCount() {
+            try {
+                const response = await fetch('/api/cluster/nodes');
+                if (response.ok) {
+                    const data = await response.json();
+                    const nodesCount = data.nodes?.length || 0;
+                    document.getElementById('nodesOnline').textContent = nodesCount;
+                }
+            } catch (error) {
+                console.log('Could not fetch nodes count');
+            }
+        }
+
+        // Initialize animations when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animate stats
+            setTimeout(() => {
+                animateNumber(document.getElementById('compressionRatio'), 95, '%');
+                animateNumber(document.getElementById('transferSpeed'), 1.2, 'GB/s');
+                animateNumber(document.getElementById('uptime'), 99.9, '%');
+            }, 500);
+
+            // Fetch real nodes count
+            updateNodesCount();
+            
+            // Add fade-in animation to feature cards
+            const cards = document.querySelectorAll('.feature-card');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.add('fade-in');
+                }, 100 * index);
+            });
+        });
+
+        // Periodically update stats
+        setInterval(updateNodesCount, 10000);
+    </script>
+</body>
+</html>

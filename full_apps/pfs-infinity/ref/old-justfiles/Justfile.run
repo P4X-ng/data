@@ -1,0 +1,58 @@
+# Run tasks (containers)
+# Default help rule provided in root Justfile
+help-run:
+    @echo "run commands: backend|backend-stop|native|native-stop|status"
+
+# Run backend API container (podman)
+run-backend share="/srv/pfs-share" host_share="/srv/pfs-share" psk="":
+    podman run --rm -d --name pfs-infinity \
+      -p {{WS_PORT}}:{{WS_PORT}} \
+      -v {{host_share}}:{{share}}:Z \
+      -e PFS_BROWSE_ROOT={{share}} \
+      -e PFS_TLS=1 \
+      -e PFS_NET=host \
+      -e WS_PORT={{WS_PORT}} \
+      -e BIND="${BIND:-${BIND_ADDR}}" \
+      -e PFS_BLOB_AUTO="${PFS_BLOB_AUTO:-0}" \
+      -e PFS_QUIC_ENABLE="${PFS_QUIC_ENABLE:-0}" \
+      $([ -n "{{psk}}" ] && echo -e "-e PFS_BROWSE_PSK={{psk}}" || true) \
+      packetfs/pfs-infinity:latest
+
+run-backend-stop:
+    podman stop pfs-infinity || true
+
+# Local-friendly backend runner: ensures share dir exists under the repo and runs the container
+run-backend-local psk="":
+    @bash -eu -o pipefail -c '\
+    hs="$(pwd)/var/pfs-share"; \
+    mkdir -p "$hs"; \
+    podman run --rm -d --name pfs-infinity \
+      -p {{WS_PORT}}:{{WS_PORT}} \
+      -v "$hs":/srv/pfs-share:Z \
+      -e PFS_BROWSE_ROOT=/srv/pfs-share \
+      -e PFS_TLS=1 \
+      -e PFS_NET=host \
+      -e WS_PORT={{WS_PORT}} \
+      -e BIND="${BIND:-${BIND_ADDR}}" \
+      -e PFS_BLOB_AUTO="${PFS_BLOB_AUTO:-0}" \
+      -e PFS_QUIC_ENABLE="${PFS_QUIC_ENABLE:-0}" \
+      $([ -n "{{psk}}" ] && echo -e "-e PFS_BROWSE_PSK={{psk}}" || true) \
+      packetfs/pfs-infinity:latest'
+
+# Health check helper
+run-health:
+    @bash -eu -o pipefail -c '\
+    curl -fsS http://127.0.0.1:{{WS_PORT}}/health || curl -fsS http://localhost:{{WS_PORT}}/health'
+
+# Run PacketFS-native container (requires FUSE)
+run-native:
+    just pfs-run
+
+run-native-stop:
+    just pfs-stop
+
+# Quick status (shows podman containers matching prefix)
+run-status:
+    @bash -eu -o pipefail -c '\
+    echo -e "NAMES\tIMAGE\tSTATUS"; \
+    podman ps --format "\{\{.Names\}\}\t\{\{.Image\}\}\t\{\{.Status\}\}" | grep -E "^pfs-" || true'

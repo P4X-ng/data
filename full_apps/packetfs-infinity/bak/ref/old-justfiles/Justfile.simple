@@ -1,0 +1,174 @@
+# F3 PacketFS - Simplified Commands
+# Use: just -f Justfile.simple [command]
+
+# Default: show help
+default:
+    @just -f Justfile.simple --list
+
+# === QUICK START ===
+
+# Start F3 server (production mode with TLS)
+start:
+    @echo "Starting F3 server on https://localhost:8811"
+    podman run -d --name f3-server \
+        --net=host \
+        -e WS_PORT=8811 \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=1 \
+        packetfs/pfs-infinity:latest
+
+# Stop F3 server
+stop:
+    @echo "Stopping F3 server..."
+    podman stop f3-server 2>/dev/null || true
+    podman rm f3-server 2>/dev/null || true
+
+# Restart F3 server
+restart: stop start
+    @echo "F3 server restarted"
+
+# Show server status
+status:
+    @echo "F3 Server Status:"
+    @podman ps --filter name=f3-server
+    @echo ""
+    @echo "Health check:"
+    @curl -s https://localhost:8811/api/health --insecure | jq '.' 2>/dev/null || echo "Server not responding"
+
+# === BUILD ===
+
+# Build container image
+build:
+    @echo "Building F3 container..."
+    podman build -t packetfs/pfs-infinity:latest .
+
+# Clean build (no cache)
+rebuild:
+    @echo "Clean rebuild..."
+    podman build --no-cache -t packetfs/pfs-infinity:latest .
+
+# === DEVELOPMENT ===
+
+# Run in development mode (no TLS, with logs)
+dev:
+    @echo "Starting F3 in development mode..."
+    podman run --rm -it \
+        --name f3-dev \
+        --net=host \
+        -e WS_PORT=8811 \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=0 \
+        -v $(pwd)/app:/app:Z \
+        packetfs/pfs-infinity:latest
+
+# Watch logs
+logs:
+    podman logs -f f3-server
+
+# Open web UI
+ui:
+    @echo "Opening F3 UI..."
+    @xdg-open https://localhost:8811/static/f3-nav.html 2>/dev/null || \
+        open https://localhost:8811/static/f3-nav.html 2>/dev/null || \
+        echo "Navigate to: https://localhost:8811/static/f3-nav.html"
+
+# === CLUSTER MANAGEMENT ===
+
+# Open cluster manager
+cluster-ui:
+    @echo "Opening Cluster Manager..."
+    @xdg-open https://localhost:8811/static/cluster.html 2>/dev/null || \
+        echo "Navigate to: https://localhost:8811/static/cluster.html"
+
+# Open auto-discovery
+discovery-ui:
+    @echo "Opening Auto-Discovery..."
+    @xdg-open https://localhost:8811/static/cluster-discovery.html 2>/dev/null || \
+        echo "Navigate to: https://localhost:8811/static/cluster-discovery.html"
+
+# Open terminal for SSH node management
+terminal-ui:
+    @echo "Opening Terminal..."
+    @xdg-open https://localhost:8811/static/terminal.html 2>/dev/null || \
+        echo "Navigate to: https://localhost:8811/static/terminal.html"
+
+# Test network discovery
+test-discovery ip_range="192.168.1.0/24":
+    @echo "Testing discovery on {{ip_range}}..."
+    @curl -X POST https://localhost:8811/api/discovery/scan \
+        -H "Content-Type: application/json" \
+        -d '{"ip_range": "{{ip_range}}", "port": 22}' \
+        --insecure
+
+# === TESTING ===
+
+# Run GPU benchmark
+gpu-test:
+    @echo "Running GPU benchmark..."
+    @curl -X POST https://localhost:8811/api/gpu/benchmark --insecure | jq '.'
+
+# Run CPU test
+cpu-test:
+    @echo "Running CPU test..."
+    @curl -X POST https://localhost:8811/api/compute/benchmark --insecure | jq '.'
+
+# Health check
+health:
+    @curl -s https://localhost:8811/api/health --insecure | jq '.'
+
+# === TLS/CERTIFICATES ===
+
+# Trust dev certificate
+trust-cert:
+    @echo "Trusting dev certificate..."
+    @podman exec f3-server cat /tmp/dev_ca.crt | sudo tee /usr/local/share/ca-certificates/f3-dev-ca.crt
+    @sudo update-ca-certificates
+
+# === UTILITIES ===
+
+# Clean everything
+clean: stop
+    @echo "Cleaning up..."
+    @podman image prune -f
+    @rm -rf /tmp/pfs_* 2>/dev/null || true
+
+# Show all containers
+ps:
+    @podman ps -a --filter label=app=f3
+
+# Shell into container
+shell:
+    @podman exec -it f3-server /bin/bash
+
+# Python shell with app context
+python:
+    @podman exec -it f3-server python
+
+# === HELP ===
+
+# Show this help
+help:
+    @echo "F3 PacketFS - Quick Commands"
+    @echo "============================"
+    @echo ""
+    @echo "Quick Start:"
+    @echo "  just start      - Start F3 server"
+    @echo "  just stop       - Stop F3 server"
+    @echo "  just restart    - Restart F3 server"
+    @echo "  just status     - Show server status"
+    @echo ""
+    @echo "Development:"
+    @echo "  just dev        - Run in dev mode"
+    @echo "  just logs       - Watch server logs"
+    @echo "  just ui         - Open web UI"
+    @echo ""
+    @echo "Cluster:"
+    @echo "  just cluster-ui - Open cluster manager"
+    @echo "  just discovery-ui - Open auto-discovery"
+    @echo ""
+    @echo "Testing:"
+    @echo "  just gpu-test   - Run GPU benchmark"
+    @echo "  just cpu-test   - Run CPU test"
+    @echo "  just health     - Health check"
+    @echo ""
+    @echo "For more: just -f Justfile.simple --list"

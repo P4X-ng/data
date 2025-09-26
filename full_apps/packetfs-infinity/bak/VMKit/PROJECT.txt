@@ -1,0 +1,7 @@
+New Effort! VMKit, optimize_spider, and NOTKUBERNETES are becoming dependent projects!
+
+They'll still be separate projects, but both NOTKUBERNETS and optimize spider should use VMKit as a base to:
+
+- Build containers
+- Build orchestrators that may be mixes of both containers and VMs
+- 

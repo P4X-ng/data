@@ -1,0 +1,17 @@
+# Build tasks (aggregated)
+# Default help rule provided in root Justfile
+help-builds:
+    @echo "build commands: backend|native|all"
+
+# Build backend API image
+build-backend:
+    just prod-image-build
+
+# Build PacketFS-native image
+build-native:
+    just pfs-build
+
+# Build everything
+build-all:
+    just build-backend
+    just build-native

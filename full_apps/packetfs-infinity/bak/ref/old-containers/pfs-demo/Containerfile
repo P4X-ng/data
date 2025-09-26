@@ -1,0 +1,76 @@
+# Simplified PacketFS demo container
+# Shows the concept without full translation pipeline
+
+FROM docker.io/library/python:3.11-slim
+
+# Install deps
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        fuse3 \
+        curl \
+        jq \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Setup Python env
+ENV VENV=/opt/venv
+RUN python -m venv $VENV
+ENV PATH="$VENV/bin:$PATH"
+
+# Install pfs-infinity deps
+COPY containers/backend/requirements.txt /tmp/requirements.txt
+RUN pip install -U pip setuptools wheel && \
+    pip install -r /tmp/requirements.txt
+
+# Copy app
+COPY app /app/app
+COPY scripts /app/scripts
+
+# Create demo PacketFS structure
+RUN mkdir -p /pfs/mount /pfs/iprog /pfs/blob /pfs/meta
+
+# Demo: Create a simple "translated" binary representation
+RUN echo '{
+  "name": "echo",
+  "version": "1.0.0",
+  "blob_ref": "pfs_demo",
+  "windows": [
+    {
+      "offset": 0,
+      "length": 4096,
+      "ops": [
+        {"type": "identity", "blob_offset": 0, "length": 4096}
+      ]
+    }
+  ],
+  "metadata": {
+    "original_size": 28672,
+    "translated_at": "2025-09-17T19:00:00Z",
+    "tx_ratio": 0.0001
+  }
+}' > /pfs/iprog/echo.iprog.json
+
+# Startup script
+RUN echo '#!/bin/bash
+set -e
+
+echo "[PFS] PacketFS Demo Container"
+echo "[PFS] Concept: Files are formulas, packets are execution"
+echo ""
+echo "[PFS] Simulated translations in /pfs/iprog/:"
+ls -la /pfs/iprog/*.iprog.json 2>/dev/null || echo "  (none)"
+echo ""
+echo "[PFS] Starting pfs-infinity server on port 8811..."
+
+# Start the server
+exec hypercorn -b 0.0.0.0:8811 app.main:app' > /start.sh && \
+    chmod +x /start.sh
+
+EXPOSE 8811
+
+ENV PFS_MODE=demo \
+    PFS_BLOB_DIR=/pfs/blob \
+    PFS_IPROG_DIR=/pfs/iprog
+
+CMD ["/start.sh"]

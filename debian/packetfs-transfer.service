@@ -1,0 +1,38 @@
+[Unit]
+Description=PacketFS F3 Transfer Service
+Documentation=man:f3transfer(1)
+Documentation=https://github.com/packetfs/packetfs-utils
+After=network.target
+
+[Service]
+Type=simple
+User=packetfs
+Group=packetfs
+WorkingDirectory=/usr/share/packetfs-utils
+Environment="F3_HOST=0.0.0.0"
+Environment="F3_PORT=8811"
+Environment="F3_DATA_DIR=/var/lib/packetfs"
+ExecStartPre=/usr/bin/mkdir -p /var/lib/packetfs/{uploads,downloads,logs,cache}
+ExecStart=/usr/bin/python3 /usr/share/packetfs-utils/web/app.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/packetfs
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+PrivateMounts=true
+
+[Install]
+WantedBy=multi-user.target

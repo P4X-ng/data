@@ -1,0 +1,13 @@
+[Unit]
+Description=Smart Proxy Service
+After=network.target
+
+[Service]
+ExecStart=/path/to/python3 /path/to/smart_proxy.py
+WorkingDirectory=/path/to/project
+Restart=always
+User=your-user
+Group=your-group
+
+[Install]
+WantedBy=multi-user.target

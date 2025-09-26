@@ -1,0 +1,359 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>F3 Infinite Storage — Browse</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; margin: 1.5rem; }
+      .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+      .card { border: 1px solid #999; padding: 1rem; border-radius: 6px; }
+      h2 { margin-top: 0; }
+      .row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+      input[type=text] { width: 18rem; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      th, td { border-bottom: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+      .mono { font-family: Menlo, Monaco, Consolas, "Ubuntu Mono", monospace; font-size: 12px; }
+      button { padding: 4px 8px; }
+      #status { font-size: 12px; }
+      .dim { opacity: 0.8; }
+      .small { font-size: 12px; }
+    /* Brand bar */
+    .brand-bar { display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #ccc; padding-bottom: .5rem; margin-bottom: 1rem; }
+    .brand-bar .logo { height: 40px; width: auto; }
+    .brand-bar .brand-title { font-size: 22px; font-weight: 700; margin: 0; }
+    .brand-bar .brand-sub { font-size: 12px; opacity: 0.8; margin: 0; }
+    .brand-bar nav a { margin-right: .75rem; text-decoration: none; color: #0366d6; }
+    .brand-bar nav a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <header class="brand-bar">
+      <img src="/static/f3_logo.png" alt="F3 Infinite Storage" class="logo" />
+      <div>
+        <div class="brand-title">F3 Infinite Storage</div>
+        <div class="brand-sub">PacketFS control</div>
+      </div>
+      <nav style="margin-left:auto;">
+        <a href="/static/index.html">Home</a>
+        <a href="/static/browse.html">Browse</a>
+        <a href="/static/transfer.html">Transfer</a>
+        <a href="/static/twin.html">Twin</a>
+        <a href="/static/spider.html">Spider</a>
+      </nav>
+    </header>
+    <h1>Browse files</h1>
+    <div class="cols">
+      <div class="card">
+        <h2>Cluster</h2>
+        <div class="row">
+          <input id="clLabel" type="text" placeholder="Label (e.g., lab-nuc)" />
+          <input id="clHost" type="text" placeholder="host or user@host" />
+          <input id="clWs" type="text" value="8811" title="WS port" />
+          <label class="small dim"><input id="clPersist" type="checkbox" /> Persist if SSH reachable</label>
+          <button id="clAdd">Add Host</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th></th><th>label</th><th>host</th><th>ws</th><th>persisted</th><th></th></tr>
+          </thead>
+          <tbody id="clTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Local uploads</h2>
+        <div class="row small dim">These are objects uploaded to this server in this process.</div>
+        <div class="row">
+          <button id="refreshLocal">Refresh</button>
+          <label class="small dim">PSK (for download):</label>
+          <input id="localPsk" type="text" placeholder="optional" />
+        </div>
+        <table>
+          <thead>
+            <tr><th>object_id</th><th>size</th><th>sha256</th><th></th></tr>
+          </thead>
+          <tbody id="localTbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Remote browser</h2>
+        <div class="row">
+          <label>PSK</label>
+          <input id="remotePsk" type="text" placeholder="optional" />
+        </div>
+        <div class="row small dim">Select one or more hosts above. Browsing is sandboxed to the configured share root on each remote.</div>
+        <div class="row">
+          <label>Path</label>
+          <input id="remotePath" type="text" value="/" />
+          <button id="list">List</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>name</th><th>type</th><th>size</th><th>mtime</th><th></th></tr>
+          </thead>
+          <tbody id="remoteTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script type="module">
+      const localTbody = document.getElementById('localTbody')
+      const localPsk = document.getElementById('localPsk')
+      const refreshLocal = document.getElementById('refreshLocal')
+      const remotePskEl = document.getElementById('remotePsk')
+      const remotePathEl = document.getElementById('remotePath')
+      const remoteTbody = document.getElementById('remoteTbody')
+      const listBtn = document.getElementById('list')
+
+      function fmtBytes(n){
+        const k=1024, units=['B','KB','MB','GB','TB'];
+        let i=0, v=Number(n);
+        while (v>=k && i<units.length-1){ v/=k; i++ }
+        return (v.toFixed(2)+' '+units[i])
+      }
+      function fmtTime(ts){
+        try{ return new Date(ts*1000).toISOString().replace('T',' ').replace('Z','') }catch{ return String(ts) }
+      }
+
+      async function loadLocal(){
+        localTbody.innerHTML = ''
+        try {
+          const r = await fetch('/objects')
+          const arr = await r.json()
+          for(const row of arr){
+            const tr = document.createElement('tr')
+            const tdId = document.createElement('td'); tdId.textContent = row.object_id
+            const tdSz = document.createElement('td'); tdSz.textContent = fmtBytes(row.size)
+            const tdSha = document.createElement('td'); tdSha.textContent = (row.sha256||'').slice(0,16)+'…'
+            const tdAct = document.createElement('td')
+            const btn = document.createElement('button'); btn.textContent = 'Download'
+            btn.addEventListener('click', async () => {
+              const headers = {}
+              if (localPsk.value.trim()) headers['X-PFS-PSK'] = localPsk.value.trim()
+              const rr = await fetch(`/objects/${encodeURIComponent(row.object_id)}/bytes`, { headers })
+              if (!rr.ok){ alert('download failed: '+rr.status); return }
+              const blob = await rr.blob()
+              const a = document.createElement('a')
+              a.href = URL.createObjectURL(blob)
+              a.download = row.object_id.replace(/[:]/g,'_')+'.bin'
+              document.body.appendChild(a); a.click(); a.remove()
+            })
+            tdAct.appendChild(btn)
+            tr.append(tdId, tdSz, tdSha, tdAct)
+            localTbody.appendChild(tr)
+          }
+        } catch(e) {
+          const tr = document.createElement('tr'); const td = document.createElement('td')
+          td.colSpan=4; td.textContent = 'error: '+(e.message||e); tr.appendChild(td); localTbody.appendChild(tr)
+        }
+      }
+
+      refreshLocal.addEventListener('click', loadLocal)
+      loadLocal()
+
+      // Cluster state (session-only list + server-persisted list)
+      const clTbody = document.getElementById('clTbody')
+      const clAdd = document.getElementById('clAdd')
+      const clLabel = document.getElementById('clLabel')
+      const clHost = document.getElementById('clHost')
+      const clWs = document.getElementById('clWs')
+      const clPersist = document.getElementById('clPersist')
+      let clSession = [] // {id,label,host,ws_port}
+
+      function loadServerHosts(){
+        fetch('/cluster/hosts').then(r=>r.json()).then(arr=>{
+          renderCluster(arr, clSession)
+        }).catch(()=>renderCluster([], clSession))
+      }
+      function saveSession(){ sessionStorage.setItem('pfs_cluster_session', JSON.stringify(clSession)) }
+      function loadSession(){ try{ clSession = JSON.parse(sessionStorage.getItem('pfs_cluster_session')||'[]')||[] }catch{ clSession=[] } }
+      function parseUserHost(s){
+        if (!s) return {user:null, host:''}
+        if (s.includes('@')){ const [u,h]=s.split('@'); return {user:u||null, host:h||''} }
+        return {user:null, host:s}
+      }
+      function renderCluster(permanent, sessionList){
+        clTbody.innerHTML = ''
+        const rows = []
+        const addRow = (h, persisted)=>{
+          const tr = document.createElement('tr')
+          const tdChk = document.createElement('td'); const chk = document.createElement('input'); chk.type='checkbox'; chk.dataset.host = (h.host+':'+(h.ws_port||8811)); tdChk.appendChild(chk)
+          const tdL = document.createElement('td'); tdL.textContent = h.label||''
+          const tdH = document.createElement('td'); tdH.textContent = (h.user? (h.user+'@'):'')+h.host
+          const tdW = document.createElement('td'); tdW.textContent = h.ws_port||8811
+          const tdP = document.createElement('td'); tdP.textContent = persisted ? 'yes' : 'no'
+          const tdA = document.createElement('td');
+          if (persisted){
+            const del = document.createElement('button'); del.textContent='Remove'
+            del.addEventListener('click', async ()=>{ await fetch(`/cluster/hosts/${h.id}`, {method:'DELETE'}); loadServerHosts() })
+            tdA.appendChild(del)
+          } else {
+            const del = document.createElement('button'); del.textContent='Remove'
+            del.addEventListener('click', ()=>{ clSession = clSession.filter(x=>x._sid !== h._sid); saveSession(); loadServerHosts() })
+            tdA.appendChild(del)
+          }
+          tr.append(tdChk, tdL, tdH, tdW, tdP, tdA)
+          clTbody.appendChild(tr)
+        }
+        for (const h of permanent){ addRow(h, true) }
+        for (const h of sessionList){ addRow(h, false) }
+      }
+      loadSession(); loadServerHosts()
+      const refreshBtn = document.createElement('button'); refreshBtn.textContent='Refresh Hosts'; refreshBtn.className='small';
+      refreshBtn.addEventListener('click', ()=>loadServerHosts());
+const persistBtn = document.createElement('button'); persistBtn.textContent='Save Selected to List'; persistBtn.className='small';
+      const bootBtn = document.createElement('button'); bootBtn.textContent='Bootstrap Selected'; bootBtn.className='small';
+      bootBtn.addEventListener('click', async ()=>{
+        const mode = window.prompt('Mode: backend or native?','backend') || 'backend'
+        const ws = parseInt(window.prompt('WS port','8811')||'8811',10)
+        const root = window.prompt('Browse root path','/srv/pfs-share') || '/srv/pfs-share'
+        const psk = window.prompt('Optional PSK (blank for none)','') || ''
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        for (const c of chks){
+          const host = c.dataset.host.split(':')[0]
+          const body = { host: host, user: null, mode: mode, browse_root: root, ws_port: ws, psk: (psk||null) }
+          await fetch('/cluster/bootstrap/ssh', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) })
+        }
+        loadServerHosts()
+      })
+      persistBtn.addEventListener('click', async ()=>{
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        for (const c of chks){
+          const host = c.dataset.host.split(':')[0]
+          const ws = parseInt(c.dataset.ws||'8811',10)
+          // naive: try persist with empty user
+          const body = { label: host, host: host, user: null, ws_port: ws, https_port: ws, quic_port: 8853 }
+          await fetch('/cluster/hosts', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) })
+        }
+        loadServerHosts()
+      })
+      const h2 = document.querySelector('.card h2')
+      h2.appendChild(document.createTextNode(' '))
+      h2.appendChild(refreshBtn)
+      h2.appendChild(document.createTextNode(' '))
+h2.appendChild(persistBtn)
+      h2.appendChild(document.createTextNode(' '))
+      h2.appendChild(bootBtn)
+
+      clAdd.addEventListener('click', async ()=>{
+        const label = clLabel.value.trim(); const hostStr = clHost.value.trim(); const ws = parseInt(clWs.value||'8811',10)
+        const {user, host} = parseUserHost(hostStr)
+        if (!host){ alert('host required'); return }
+        if (clPersist.checked){
+          // Try to persist via server (SSH BatchMode=yes)
+          const body = { label, host, user, ws_port: ws, https_port: ws, quic_port: 8853 }
+          const r = await fetch('/cluster/hosts', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) })
+          if (r.ok){ loadServerHosts() } else { alert('ssh not reachable; keeping as session entry'); clSession.push({_sid:crypto.randomUUID(), label, host, user, ws_port: ws}); saveSession(); loadServerHosts() }
+        } else {
+          clSession.push({_sid:crypto.randomUUID(), label, host, user, ws_port: ws}); saveSession(); loadServerHosts()
+        }
+      })
+
+      // Remote multi-host listing via HTTP
+
+      function selectedHosts(){
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        const arr = []
+        for (const c of chks){ arr.push(c.dataset.host) }
+        return arr
+      }
+
+      function listRemote(){
+        const hosts = selectedHosts()
+        remoteTbody.innerHTML = ''
+        if (!hosts.length){ alert('Select at least one host in the Cluster list.'); return }
+        const path = remotePathEl.value || '/'
+        const psk = remotePskEl.value.trim()
+        for (const hp of hosts){
+          const [h, p] = hp.split(':'); const url = `${location.protocol}//${hp}/browse/list?root=share&path=${encodeURIComponent(path)}`
+          const headers = {}; if (psk) headers['X-PFS-PSK'] = psk
+          fetch(url, { headers }).then(r=>r.json()).then(entries=>{
+            renderRemoteList(entries||[], hp)
+          }).catch(()=>{})
+        }
+      }
+
+      function renderRemoteList(entries, hostport){
+        for(const e of entries){
+          const tr = document.createElement('tr')
+          const tdN = document.createElement('td'); tdN.textContent = (hostport?`[${hostport}] `:'') + e.name
+          const tdT = document.createElement('td'); tdT.textContent = e.is_dir ? 'dir' : 'file'
+          const tdS = document.createElement('td'); tdS.textContent = e.is_dir ? '' : fmtBytes(e.size)
+          const tdM = document.createElement('td'); tdM.textContent = fmtTime(e.mtime)
+          const tdA = document.createElement('td')
+          if (e.is_dir){
+            const b = document.createElement('button'); b.textContent = 'Open'
+            b.addEventListener('click', () => {
+              let cur = remotePathEl.value || '/'
+              if (!cur.endsWith('/')) cur += '/'
+              remotePathEl.value = cur + e.name
+              listRemote()
+            })
+            tdA.appendChild(b)
+          } else {
+            const b = document.createElement('button'); b.textContent = 'Download'
+            b.addEventListener('click', async () => {
+              const full = (remotePathEl.value||'/').replace(/\/$/,'/') + e.name
+              const psk = remotePskEl.value.trim()
+              const url = `${location.protocol}//${hostport|| (remoteHostEl.value.trim()||'127.0.0.1:8811')}/browse/download?root=share&path=${encodeURIComponent(full)}`
+              const headers = {}; if (psk) headers['X-PFS-PSK'] = psk
+              const r = await fetch(url, { headers })
+              if (!r.ok){ alert('remote download failed: '+r.status); return }
+              const blob = await r.blob()
+              const a = document.createElement('a')
+              a.href = URL.createObjectURL(blob)
+              a.download = e.name
+              document.body.appendChild(a); a.click(); a.remove()
+            })
+            tdA.appendChild(b)
+          }
+          tr.append(tdN, tdT, tdS, tdM, tdA)
+          remoteTbody.appendChild(tr)
+        }
+      }
+        for(const e of entries){
+          const tr = document.createElement('tr')
+          const tdN = document.createElement('td'); tdN.textContent = e.name
+          const tdT = document.createElement('td'); tdT.textContent = e.is_dir ? 'dir' : 'file'
+          const tdS = document.createElement('td'); tdS.textContent = e.is_dir ? '' : fmtBytes(e.size)
+          const tdM = document.createElement('td'); tdM.textContent = fmtTime(e.mtime)
+          const tdA = document.createElement('td')
+          if (e.is_dir){
+            const b = document.createElement('button'); b.textContent = 'Open'
+            b.addEventListener('click', () => {
+              let cur = remotePathEl.value || '/'
+              if (!cur.endsWith('/')) cur += '/'
+              remotePathEl.value = cur + e.name
+              listRemote()
+            })
+            tdA.appendChild(b)
+          } else {
+            const b = document.createElement('button'); b.textContent = 'Download'
+            b.addEventListener('click', async () => {
+              const hostPort = remoteHostEl.value.trim() || '127.0.0.1:8811'
+              const psk = remotePskEl.value.trim()
+              const path = remotePathEl.value || '/'
+              const full = path.endsWith('/') ? path+e.name : path+'/'+e.name
+              const url = `${location.protocol}//${hostPort}/browse/download?root=share&path=${encodeURIComponent(full)}`
+              const headers = {}
+              if (psk) headers['X-PFS-PSK'] = psk
+              const r = await fetch(url, { headers })
+              if (!r.ok){ alert('remote download failed: '+r.status); return }
+              const blob = await r.blob()
+              const a = document.createElement('a')
+              a.href = URL.createObjectURL(blob)
+              a.download = e.name
+              document.body.appendChild(a); a.click(); a.remove()
+            })
+            tdA.appendChild(b)
+          }
+          tr.append(tdN, tdT, tdS, tdM, tdA)
+          remoteTbody.appendChild(tr)
+        }
+      }
+
+      listBtn.addEventListener('click', listRemote)
+    </script>
+  </body>
+</html>

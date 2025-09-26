@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌐 HGWS Transparent Redirect - Full Disclosure</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.2em;
+        }
+        
+        .disclosure-box {
+            background: rgba(255, 255, 0, 0.1);
+            border: 2px solid #ffff00;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .code-preview {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .consent-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .resource-config {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .resource-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .reject-btn {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+        
+        .countdown {
+            font-size: 1.5em;
+            color: #00ff88;
+            margin: 15px 0;
+        }
+        
+        .destination-info {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Transparent Resource Sharing</h1>
+        
+        <div class="disclosure-box">
+            <h2>⚠️ FULL DISCLOSURE ⚠️</h2>
+            <p><strong>We are about to inject JavaScript into your browser session!</strong></p>
+            <p>This is 100% transparent and voluntary. Here's exactly what we're doing:</p>
+        </div>
+        
+        <div class="destination-info">
+            <h3>📍 Your Destination</h3>
+            <p><strong>Original URL:</strong> <code id="originalUrl">Loading...</code></p>
+            <p><strong>Redirect Method:</strong> DNS → Transparency Page → Your Site</p>
+        </div>
+        
+        <div class="consent-section">
+            <h3>🔍 Code We're Injecting (Click to expand)</h3>
+            <button onclick="toggleCodePreview()">👀 Show/Hide Injection Code</button>
+            
+            <div class="code-preview" id="codePreview" style="display: none;">
+<pre>// HGWS Resource Sharing Injection - 100% Open Source
+(function() {
+    'use strict';
+    
+    // Configuration from user consent
+    const config = {
+        cpu_contribution: {{cpu_percent}}%, // CPU usage when active
+        cpu_idle_contribution: {{cpu_idle_percent}}%, // CPU when idle
+        storage_contribution: {{storage_gb}}GB, // Storage to share
+        gpu_contribution: {{gpu_enabled}}, // Share GPU time
+        bandwidth_contribution: {{bandwidth_enabled}}, // Share bandwidth
+        privacy_mode: {{privacy_mode}} // Anonymous censorship bypass
+    };
+    
+    // Initialize contribution systems
+    if (config.storage_contribution > 0) {
+        initStorageSharing(config.storage_contribution);
+    }
+    
+    if (config.cpu_contribution > 0) {
+        initCPUSharing(config.cpu_contribution, config.cpu_idle_contribution);
+    }
+    
+    if (config.gpu_contribution) {
+        initGPUSharing();
+    }
+    
+    if (config.bandwidth_contribution) {
+        initBandwidthPooling();
+    }
+    
+    if (config.privacy_mode) {
+        initCensorshipBypass();
+    }
+    
+    // Report earnings every 60 seconds
+    setInterval(() => reportEarnings(), 60000);
+    
+    console.log('🌟 HGWS Resource Sharing Active!');
+    console.log('💰 Earning credits while you browse!');
+    console.log('📊 Check earnings at: https://hgws.com/community/earnings');
+})();</pre>
+            </div>
+        </div>
+        
+        <div class="consent-section">
+            <h3>⚙️ Configure Your Contribution</h3>
+            <p>Set how much you want to share. You can change this anytime!</p>
+            
+            <div class="resource-config">
+                <div class="resource-card">
+                    <h4>💾 Storage Sharing</h4>
+                    <div class="slider-container">
+                        <label>GB to share: <span id="storageValue">2</span>GB</label>
+                        <input type="range" id="storageSlider" min="0" max="10" value="2" step="0.5">
+                    </div>
+                    <p><small>💰 Earn ~0.01 credits/GB/hour</small></p>
+                </div>
+                
+                <div class="resource-card">
+                    <h4>🖥️ CPU Sharing</h4>
+                    <div class="slider-container">
+                        <label>Active: <span id="cpuValue">10</span>%</label>
+                        <input type="range" id="cpuSlider" min="0" max="50" value="10">
+                        <label>Idle: <span id="cpuIdleValue">75</span>%</label>
+                        <input type="range" id="cpuIdleSlider" min="0" max="100" value="75">
+                    </div>
+                    <p><small>💰 Earn ~0.005 credits/core/hour</small></p>
+                </div>
+                
+                <div class="resource-card">
+                    <h4>🎮 GPU Sharing</h4>
+                    <label>
+                        <input type="checkbox" id="gpuEnabled" checked> Share GPU when idle
+                    </label>
+                    <p><small>💰 Earn ~0.1 credits/hour (WebGPU)</small></p>
+                </div>
+                
+                <div class="resource-card">
+                    <h4>🌐 Bandwidth Pooling</h4>
+                    <label>
+                        <input type="checkbox" id="bandwidthEnabled" checked> Share bandwidth
+                    </label>
+                    <p><small>💰 Earn ~0.02 credits/GB transferred</small></p>
+                </div>
+                
+                <div class="resource-card">
+                    <h4>🔒 Privacy Mode</h4>
+                    <label>
+                        <input type="checkbox" id="privacyEnabled" checked> Help bypass censorship
+                    </label>
+                    <p><small>💰 Earn karma + credits for freedom!</small></p>
+                </div>
+                
+                <div class="resource-card">
+                    <h4>📧 Your Email</h4>
+                    <input type="email" id="userEmail" placeholder="your@email.com" style="width: 90%; padding: 8px; border: none; border-radius: 5px; background: rgba(255,255,255,0.2); color: white;">
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <div class="countdown">⏱️ Redirecting in: <span id="countdown">15</span>s</div>
+            
+            <button onclick="acceptAndRedirect()" style="font-size: 1.3em; padding: 20px 40px;">
+                ✅ Accept & Continue to Site
+            </button>
+            
+            <button class="reject-btn" onclick="rejectAndRedirect()">
+                ❌ No Thanks, Just Go to Site
+            </button>
+            
+            <button onclick="showMoreInfo()">
+                📖 Learn More About HGWS
+            </button>
+        </div>
+        
+        <div style="text-align: center; font-size: 0.9em; opacity: 0.8; margin-top: 30px;">
+            <p>🌟 <strong>HGWS Community Cloud:</strong> By the people, for the people</p>
+            <p>💝 <strong>Inspired by generosity:</strong> "You get back what you give"</p>
+            <p>🔓 <strong>100% Open Source:</strong> <a href="https://github.com/hyperion-gray/hgws" style="color: #00ff88;">View Code</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const originalUrl = urlParams.get('url') || urlParams.get('destination') || 'example.com';
+        document.getElementById('originalUrl').textContent = originalUrl;
+        
+        // Update sliders
+        function updateSliders() {
+            document.getElementById('storageValue').textContent = document.getElementById('storageSlider').value;
+            document.getElementById('cpuValue').textContent = document.getElementById('cpuSlider').value;
+            document.getElementById('cpuIdleValue').textContent = document.getElementById('cpuIdleSlider').value;
+        }
+        
+        // Event listeners for sliders
+        document.getElementById('storageSlider').addEventListener('input', updateSliders);
+        document.getElementById('cpuSlider').addEventListener('input', updateSliders);
+        document.getElementById('cpuIdleSlider').addEventListener('input', updateSliders);
+        
+        // Countdown timer
+        let countdownSeconds = 15;
+        const countdownElement = document.getElementById('countdown');
+        
+        const countdownTimer = setInterval(() => {
+            countdownSeconds--;
+            countdownElement.textContent = countdownSeconds;
+            
+            if (countdownSeconds <= 0) {
+                clearInterval(countdownTimer);
+                rejectAndRedirect(); // Auto-reject if no action
+            }
+        }, 1000);
+        
+        // Toggle code preview
+        function toggleCodePreview() {
+            const preview = document.getElementById('codePreview');
+            preview.style.display = preview.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // Generate injection code with user settings
+        function getInjectionCode() {
+            const config = {
+                cpu_percent: document.getElementById('cpuSlider').value,
+                cpu_idle_percent: document.getElementById('cpuIdleSlider').value,
+                storage_gb: document.getElementById('storageSlider').value,
+                gpu_enabled: document.getElementById('gpuEnabled').checked,
+                bandwidth_enabled: document.getElementById('bandwidthEnabled').checked,
+                privacy_mode: document.getElementById('privacyEnabled').checked,
+                email: document.getElementById('userEmail').value
+            };
+            
+            return `
+// HGWS Resource Sharing - User Configured
+(function() {
+    const userConfig = ${JSON.stringify(config, null, 2)};
+    
+    // Initialize based on user preferences
+    if (userConfig.storage_gb > 0) initStorageSharing(userConfig.storage_gb);
+    if (userConfig.cpu_percent > 0) initCPUSharing(userConfig.cpu_percent, userConfig.cpu_idle_percent);
+    if (userConfig.gpu_enabled) initGPUSharing();
+    if (userConfig.bandwidth_enabled) initBandwidthPooling();
+    if (userConfig.privacy_mode) initCensorshipBypass();
+    
+    // Start earning credits!
+    console.log('🌟 HGWS Active - Contributing resources for credits!');
+})();`;
+        }
+        
+        // Accept and redirect with injection
+        async function acceptAndRedirect() {
+            const email = document.getElementById('userEmail').value;
+            if (!email) {
+                alert('Please enter your email to earn credits!');
+                return;
+            }
+            
+            clearInterval(countdownTimer);
+            
+            // Save user preferences
+            const preferences = {
+                storage_gb: document.getElementById('storageSlider').value,
+                cpu_percent: document.getElementById('cpuSlider').value,
+                cpu_idle_percent: document.getElementById('cpuIdleSlider').value,
+                gpu_enabled: document.getElementById('gpuEnabled').checked,
+                bandwidth_enabled: document.getElementById('bandwidthEnabled').checked,
+                privacy_mode: document.getElementById('privacyEnabled').checked,
+                email: email
+            };
+            
+            // Register user preferences with server
+            try {
+                await fetch('/api/community/register-contributor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        preferences: preferences,
+                        source: 'dns_redirect',
+                        original_url: originalUrl
+                    })
+                });
+            } catch (error) {
+                console.warn('Could not register preferences:', error);
+            }
+            
+            // Create the injection script
+            const injectionScript = getInjectionCode();
+            localStorage.setItem('hgws_injection_script', injectionScript);
+            localStorage.setItem('hgws_user_email', email);
+            localStorage.setItem('hgws_preferences', JSON.stringify(preferences));
+            
+            // Redirect with injection
+            const redirectUrl = `https://${originalUrl}`;
+            window.location.href = redirectUrl;
+        }
+        
+        // Reject and redirect normally
+        function rejectAndRedirect() {
+            clearInterval(countdownTimer);
+            const redirectUrl = `https://${originalUrl}`;
+            window.location.href = redirectUrl;
+        }
+        
+        // Show more info
+        function showMoreInfo() {
+            window.open('/community/about', '_blank');
+        }
+        
+        // Auto-inject stored preferences if user returns
+        window.addEventListener('load', () => {
+            const storedEmail = localStorage.getItem('hgws_user_email');
+            if (storedEmail) {
+                document.getElementById('userEmail').value = storedEmail;
+                
+                const storedPrefs = localStorage.getItem('hgws_preferences');
+                if (storedPrefs) {
+                    const prefs = JSON.parse(storedPrefs);
+                    document.getElementById('storageSlider').value = prefs.storage_gb || 2;
+                    document.getElementById('cpuSlider').value = prefs.cpu_percent || 10;
+                    document.getElementById('cpuIdleSlider').value = prefs.cpu_idle_percent || 75;
+                    document.getElementById('gpuEnabled').checked = prefs.gpu_enabled !== false;
+                    document.getElementById('bandwidthEnabled').checked = prefs.bandwidth_enabled !== false;
+                    document.getElementById('privacyEnabled').checked = prefs.privacy_mode !== false;
+                    updateSliders();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

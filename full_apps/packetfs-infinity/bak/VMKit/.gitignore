@@ -1,0 +1,30 @@
+# VMKit artifacts
+vms/*.qcow2
+vms/*.img
+vms/*.vdi
+vms/*.vmdk
+vms/*.iso
+vms/*.log
+vms/*-nvram.fd
+
+# Downloads/cache
+downloads/
+
+# Python/build
+__pycache__/
+*.pyc
+.build/
+dist/
+*.egg-info/
+
+# Editors/OS
+.DS_Store
+.idea/
+.vscode/
+
+# Test caches
+.pytest_cache/
+
+# Misc
+*.swp
+*.swo

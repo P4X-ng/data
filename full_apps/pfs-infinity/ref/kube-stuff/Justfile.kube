@@ -1,0 +1,47 @@
+# Kubernetes / Podman play kube
+
+# K8s/Podman play kube (new names)
+
+# Default help
+_default: (help-k8s)
+
+help-k8s:
+    @echo "k8s commands: play-up|play-down|spider-up|spider-down"
+    @echo "Aliases: prod-play-kube, prod-play-kube-down, prod-k8s-spider-up, prod-k8s-spider-down"
+    @echo "Usage: just k8s <cmd>"
+k8s-play-up:
+    podman play kube containers/pfs-infinity/pod.yaml
+
+k8s-play-down:
+    podman kube down containers/pfs-infinity/pod.yaml
+
+# Kubernetes deploys for spider coordinator + agents (new names)
+k8s-spider-up:
+    kubectl apply -f kube/redis.yaml -f kube/spider-coordinator.yaml -f kube/spider-agents.yaml
+
+k8s-spider-down:
+    kubectl delete -f kube/spider-agents.yaml -f kube/spider-coordinator.yaml -f kube/redis.yaml || true
+
+# Back-compat aliases
+prod-play-kube:
+    just k8s-play-up
+
+prod-play-kube-down:
+    just k8s-play-down
+
+prod-k8s-spider-up:
+    just k8s-spider-up
+
+prod-k8s-spider-down:
+    just k8s-spider-down
+
+# Dispatcher: `just k8s <cmd>`
+k8s cmd="help":
+    @bash -eu -o pipefail -c '
+    case "{{cmd}}" in \
+      play-up) just k8s-play-up ;; \
+      play-down) just k8s-play-down ;; \
+      spider-up) just k8s-spider-up ;; \
+      spider-down) just k8s-spider-down ;; \
+      *) echo "k8s commands: play-up|play-down|spider-up|spider-down"; exit 2 ;; \
+    esac'

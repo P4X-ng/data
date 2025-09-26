@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""
+OS-Walk - The Complete Distributed Operating System
+Network machines as one unified system
+"""
+import sys
+import argparse
+from pathlib import Path
+
+# Add current directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from packet_bridge import PacketBridge
+from osv_executor import OSvExecutor
+from distributed_cpu import DistributedCPU
+from unified_fs import UnifiedFS
+from integrated_shell import IntegratedShell
+from packet_vmkit import PacketVMKit
+
+def main():
+    parser = argparse.ArgumentParser(description="OS-Walk - Distributed Operating System")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    
+    # Shell command
+    shell_parser = subparsers.add_parser("shell", help="Start integrated shell")
+    
+    # Bridge commands
+    bridge_parser = subparsers.add_parser("bridge", help="Packet bridge management")
+    bridge_parser.add_argument("action", choices=["start", "stop", "list", "mount", "unmount"])
+    bridge_parser.add_argument("--machine", help="Machine hostname for mount/unmount")
+    
+    # OSv executor commands
+    osv_parser = subparsers.add_parser("osv", help="OSv container execution")
+    osv_parser.add_argument("action", choices=["worker", "submit", "status"])
+    osv_parser.add_argument("--command", help="Command to execute")
+    osv_parser.add_argument("--job-id", help="Job ID for status check")
+    
+    # CPU commands
+    cpu_parser = subparsers.add_parser("cpu", help="Network CPU management")
+    cpu_parser.add_argument("action", choices=["start", "benchmark", "execute"])
+    cpu_parser.add_argument("--command", help="Command to execute")
+    
+    # Unified filesystem
+    fs_parser = subparsers.add_parser("fs", help="Unified filesystem")
+    fs_parser.add_argument("action", choices=["mount", "unmount", "status"])
+    fs_parser.add_argument("--mount-point", default="/oswalk", help="Mount point")
+    
+    # VMKit integration
+    vmkit_parser = subparsers.add_parser("vmkit", help="AWESOMEIZED VMKit VMs")
+    vmkit_parser.add_argument("action", choices=["create", "start", "stop", "list", "status"])
+    vmkit_parser.add_argument("--name", help="VM name")
+    vmkit_parser.add_argument("--template", default="ubuntu-24.04", help="VM template")
+    
+    args = parser.parse_args()
+    
+    if not args.command:
+        # Default to shell
+        shell = IntegratedShell()
+        shell.run_shell()
+        return
+    
+    # Handle subcommands
+    if args.command == "shell":
+        shell = IntegratedShell()
+        shell.run_shell()
+        
+    elif args.command == "bridge":
+        bridge = PacketBridge()
+        
+        if args.action == "start":
+            bridge.start()
+            print("Packet bridge started")
+            try:
+                while True:
+                    import time
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                bridge.stop()
+                
+        elif args.action == "list":
+            bridges = bridge.list_bridges()
+            if bridges:
+                print("Active bridges:")
+                for b in bridges:
+                    print(f"  /net/{b}")
+            else:
+                print("No active bridges")
+                
+        elif args.action == "mount" and args.machine:
+            bridge.mount_machine(args.machine)
+            print(f"Mounted {args.machine}")
+            
+        elif args.action == "unmount" and args.machine:
+            bridge.unmount_machine(args.machine)
+            print(f"Unmounted {args.machine}")
+    
+    elif args.command == "osv":
+        osv = OSvExecutor()
+        
+        if args.action == "worker":
+            osv.worker_loop()
+            
+        elif args.action == "submit" and args.command:
+            job_id = osv.submit_job(args.command)
+            print(f"Submitted job: {job_id}")
+            
+        elif args.action == "status" and args.job_id:
+            status = osv.get_job_status(args.job_id)
+            print(f"Job {args.job_id}: {status}")
+    
+    elif args.command == "cpu":
+        cpu = DistributedCPU()
+        
+        if args.action == "start":
+            cpu.start_workers()
+            
+        elif args.action == "benchmark":
+            cpu.benchmark()
+            
+        elif args.action == "execute" and args.command:
+            result = cpu.execute_distributed(args.command)
+            print(f"Exit code: {result}")
+    
+    elif args.command == "fs":
+        fs = UnifiedFS()
+        
+        if args.action == "mount":
+            fs.mount(args.mount_point)
+            print(f"Unified filesystem mounted at {args.mount_point}")
+            
+        elif args.action == "unmount":
+            fs.unmount()
+            print("Unified filesystem unmounted")
+            
+        elif args.action == "status":
+            print("Unified filesystem status: TODO")
+    
+    elif args.command == "vmkit":
+        vmkit = PacketVMKit()
+        
+        if args.action == "create" and args.name:
+            vmkit.create_packet_vm(args.name, args.template)
+            
+        elif args.action == "start" and args.name:
+            vmkit.start_packet_vm(args.name)
+            
+        elif args.action == "stop" and args.name:
+            vmkit.stop_packet_vm(args.name)
+            
+        elif args.action == "list":
+            vmkit.list_packet_vms()
+            
+        elif args.action == "status" and args.name:
+            vmkit.packet_vm_status(args.name)
+
+if __name__ == "__main__":
+    main()

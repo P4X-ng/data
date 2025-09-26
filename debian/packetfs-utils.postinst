@@ -1,0 +1,66 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Create packetfs user if it doesn't exist
+        if ! getent passwd packetfs >/dev/null 2>&1; then
+            adduser --system --group --home /var/lib/packetfs \
+                    --no-create-home --disabled-password \
+                    --gecos "PacketFS Transfer Service" packetfs
+        fi
+
+        # Create necessary directories
+        mkdir -p /var/lib/packetfs/{uploads,downloads,logs,cache}
+        chown -R packetfs:packetfs /var/lib/packetfs
+
+        # Set permissions for executables
+        chmod 755 /usr/bin/f3transfer
+        if [ -f /usr/bin/pfsrsync ]; then
+            chmod 755 /usr/bin/pfsrsync
+        fi
+
+        # Create symbolic link for easy access to Justfile
+        if [ -f /usr/share/packetfs-utils/Justfile ]; then
+            ln -sf /usr/share/packetfs-utils/Justfile /usr/local/bin/pfs-just || true
+        fi
+
+        # Compile Python files for better performance
+        if command -v py3compile >/dev/null 2>&1; then
+            py3compile -p packetfs-utils /usr/share/packetfs-utils || true
+        fi
+
+        # Print post-installation message
+        cat <<EOF
+
+================================================================
+PacketFS Transfer Utilities successfully installed!
+
+Quick Start:
+  - CLI transfers: f3transfer send myfile.txt
+  - Web interface: systemctl start packetfs-transfer
+                   Browse to http://localhost:8811
+  - View help: f3transfer --help
+
+For cluster mode:
+  - Initialize: f3transfer cluster-init
+  - Join node: f3transfer cluster-join <seed-node>
+
+Documentation: /usr/share/doc/packetfs-utils/
+================================================================
+
+EOF
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pfs-infinity
+spec:
+  hostNetwork: true
+  containers:
+    - name: pfs-infinity
+      image: packetfs/pfs-infinity:latest
+      env:
+        - name: PFS_BLOB_DIR
+          value: /mnt/huge1G
+        - name: PFS_SHARE_DIR
+          value: /share
+        - name: REDIS_URL
+          value: redis://127.0.0.1:6389/0
+      volumeMounts:
+        - name: huge
+          mountPath: /mnt/huge1G
+        - name: share
+          mountPath: /share
+      command: ["hypercorn", "-b", "0.0.0.0:8811", "app.main:app"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+            - NET_RAW
+    - name: redis
+      image: docker.io/library/redis:7-alpine
+      args: ["redis-server", "--port", "6389", "--save", "", "--appendonly", "no"]
+      ports:
+        - containerPort: 6389
+          protocol: TCP
+  volumes:
+    - name: huge
+      hostPath:
+        path: /mnt/huge1G
+        type: DirectoryOrCreate
+    - name: share
+      hostPath:
+        path: /srv/pfs-share
+        type: DirectoryOrCreate

@@ -1,0 +1,26 @@
+# UI tooling
+
+# Help for this file (when used standalone)
+help-ui:
+    @echo "ui commands: setup|test|rebuild|open-browse|open-twin"
+# UI tests with Python Playwright
+ui-setup:
+    {{VENV_PATH}}/bin/python -m pip install -U pytest playwright
+    {{VENV_PATH}}/bin/playwright install --with-deps chromium
+
+ui-test:
+    {{VENV_PATH}}/bin/python -m pytest -q tests/ui/test_quic_ui.py
+
+# Rebuild UI static assets into .build/ui
+ui-rebuild:
+    bash scripts/ui/rebuild.sh
+
+ui-open-browse:
+    @echo "Open http://127.0.0.1:{{WS_PORT}}/static/browse.html"
+
+ui-open-twin:
+    @echo "Open http://127.0.0.1:{{WS_PORT}}/static/twin.html"
+
+# Dispatcher: `just ui <cmd>`
+ui cmd="help":
+    bash scripts/ui/dispatch.sh "{{cmd}}"

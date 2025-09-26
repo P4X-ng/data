@@ -1,0 +1,428 @@
+# 🎆 HGWS Main Justfile - Command Orchestration Hub
+# This is the main entry point that imports all modular Justfiles
+# Each module handles specific functionality with helper scripts for complex logic
+
+# Centralized shared variables
+# simplified: no external imports
+root := justfile_directory()
+venv_path := "/home/punk/.venv"
+web_port := "8888"
+dns_zone := "pfs.internal."
+dns_zonefile := "/var/lib/bind/db.pfs.internal"
+
+# Import all modular Justfiles
+# removed: import 'Justfile.dev'
+# removed: import 'Justfile.prod'
+# removed: import 'Justfile.test'
+# removed: import 'Justfile.vm'
+# removed: import 'Justfile.edge'
+# removed: import 'Justfile.admin'
+# removed: import 'Justfile.info'
+# removed: import 'Justfile.cloud'
+# removed: import 'Justfile.k8s'
+# removed: import 'Justfile.nk'
+# removed: import 'Justfile.net'
+
+# Default recipe shows the main help
+default: help
+
+# Main help command - shows overview (focused, production-ready)
+help:
+    @echo "\nPacketFS Infinity — quick commands" && \
+    echo "  just rebuild   # no-cache build (TS lib + backend image)" && \
+    echo "  just run       # run server (same as 'up')" && \
+    echo "  just stop      # stop server (same as 'down')" && \
+    echo "  just up        # run server (TLS) — SPA at / — arithmetic-first" && \
+    echo "  just down      # stop server" && \
+     echo "" && \
+     echo "Strict arithmetic (no fallback): use API with mode=iprog-only" && \
+     echo "  curl -ks -X POST https://localhost:${PORT:-8811}/transfers -H 'Content-Type: application/json' -d '{\"mode\":\"iprog-only\",\"object_id\":\"...\"}' | jq ." && \
+     echo "" && \
+     echo "Notes:" && \
+     echo "  • / serves the advanced SPA (transfer-v2) and uses /static/pfs-arith for the TS client" && \
+     echo "  • Arithmetic transfers run over WSS/QUIC (not bulk HTTPS). Uploads/APIs remain HTTPS." && \
+     echo "" 
+    @bash scripts/just_help.sh
+
+# 🚀 UNIFIED RUN COMMANDS
+# Keep oauth-run available, but make 'run' the simple container bring-up
+run: up
+
+# Run with OAuth/PacketFS system
+oauth-run:
+	@echo "🚀 Starting HGWS with OAuth & PacketFS..."
+	@scripts/run/oauth_run.sh {{venv_path}} {{web_port}}
+
+# Legacy run command
+legacy-run:
+    @bash scripts/start-all.sh
+
+# Stop everything cleanly (legacy/stack-wide)
+stop-all *args:
+    @bash scripts/stop-all.sh {{args}}
+
+# Simple stop for this app's container
+stop: down
+
+# Quick aliases for common tasks
+build:
+    @echo "Building arithmetic TS lib (app/web/pfs-arith) ..." && \
+    npm --prefix {{root}}/app/web/pfs-arith ci >/dev/null 2>&1 || npm --prefix {{root}}/app/web/pfs-arith install && \
+    npm --prefix {{root}}/app/web/pfs-arith run build && \
+    echo "Building pfs-infinity container (backend) with context=full_apps/packetfs-infinity (stable relative paths)..." && \
+    podman build -t packetfs/pfs-infinity:latest -f containers/backend/Containerfile . && \
+    echo "Built packetfs/pfs-infinity:latest"
+
+# Build all container images (backend + pfs-native)
+build-all:
+    @echo "Building backend image (context: packetfs-infinity subdir)..." && \
+    podman build -t packetfs/pfs-infinity:latest -f containers/backend/Containerfile . && \
+    echo "Building pfs-native image (context: packetfs-infinity subdir)..." && \
+    podman build -t packetfs/pfs-native:latest -f containers/pfs-native/Containerfile . && \
+    echo "All images built."
+up:
+    @echo "Starting pfs-infinity..."
+    @podman rm -f pfs-infinity 2>/dev/null || true
+    @podman run -d --name pfs-infinity \
+        --net=host \
+        --shm-size=${PFS_SHM_SIZE:-2g} \
+        -e WS_PORT=${PORT:-8811} \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=1 \
+        -e PFS_TLS_INSECURE=1 \
+    -e PFS_BLOB_AUTO=1 \
+    -e PFS_BLOB_SIZE_BYTES=${PFS_BLOB_SIZE_BYTES:-1073741824} \
+        -e PFS_QUIC_ENABLE=${PFS_QUIC_ENABLE:-1} \
+        -e PFS_DEBUG=${PFS_DEBUG:-0} \
+        -e PFS_ENABLE_TERMINAL=${PFS_ENABLE_TERMINAL:-0} \
+        -e PFS_SIMPLE_XFER=${PFS_SIMPLE_XFER:-0} \
+        -e PFS_ARITH=1 \
+        packetfs/pfs-infinity:latest
+    @echo "Listening on https://localhost:${PORT:-8811}"
+
+# Advanced UI explicitly (mirrors default 'up' but clarifies intent)
+up-advanced:
+    @echo "Starting pfs-infinity (advanced transfer-v2 UI)..."
+    @just up
+
+# 1 GiB blob with progressive fill progress banner (can override size)
+up-big-blob:
+    @echo "Starting with large blob (progressive fill)..."
+    @podman rm -f pfs-infinity 2>/dev/null || true
+    @podman run -d --name pfs-infinity \
+        --net=host \
+        --shm-size=${PFS_SHM_SIZE:-2g} \
+        -e WS_PORT=${PORT:-8811} \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=1 \
+        -e PFS_TLS_INSECURE=1 \
+        -e PFS_BLOB_AUTO=1 \
+        -e PFS_BLOB_SIZE_BYTES=${PFS_BLOB_SIZE_BYTES:-1073741824} \
+        -e PFS_BLOB_MAX_SIZE=${PFS_BLOB_MAX_SIZE:-1073741824} \
+        -e PFS_BLOB_PROGRESSIVE_FILL=1 \
+        -e PFS_BLOB_SKIP_FILL=0 \
+        -e PFS_QUIC_ENABLE=${PFS_QUIC_ENABLE:-1} \
+        -e PFS_DEBUG=${PFS_DEBUG:-0} \
+        -e PFS_SIMPLE_XFER=0 \
+        -e PFS_ENABLE_TERMINAL=${PFS_ENABLE_TERMINAL:-0} \
+        -e PFS_ARITH=1 \
+        packetfs/pfs-infinity:latest
+    @echo "Open https://localhost:${PORT:-8811}/"
+
+# Skip initial fill (user can manually trigger later)
+up-skip-fill:
+    @echo "Starting with blob skip-fill (manual /blob/fill later)..."
+    @podman rm -f pfs-infinity 2>/dev/null || true
+    @podman run -d --name pfs-infinity \
+        --net=host \
+        --shm-size=${PFS_SHM_SIZE:-2g} \
+        -e WS_PORT=${PORT:-8811} \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=1 \
+        -e PFS_TLS_INSECURE=1 \
+        -e PFS_BLOB_AUTO=1 \
+        -e PFS_BLOB_SIZE_BYTES=${PFS_BLOB_SIZE_BYTES:-1073741824} \
+        -e PFS_BLOB_MAX_SIZE=${PFS_BLOB_MAX_SIZE:-1073741824} \
+        -e PFS_BLOB_PROGRESSIVE_FILL=1 \
+        -e PFS_BLOB_SKIP_FILL=1 \
+        -e PFS_QUIC_ENABLE=${PFS_QUIC_ENABLE:-1} \
+        -e PFS_DEBUG=${PFS_DEBUG:-0} \
+        -e PFS_SIMPLE_XFER=0 \
+        -e PFS_ENABLE_TERMINAL=${PFS_ENABLE_TERMINAL:-0} \
+        -e PFS_ARITH=1 \
+        packetfs/pfs-infinity:latest
+    @echo "Visit page then click 'Start Fill' in banner"
+
+# Trigger manual progressive fill (requires running container)
+blob-fill host="127.0.0.1" port="8811":
+    @echo "Triggering /blob/fill on https://{{host}}:{{port}} ..."
+    @curl -ks -X POST "https://{{host}}:{{port}}/blob/fill" | jq .
+
+# Compression debug (adds PFS_COMPRESSION_DEBUG=1 env)
+up-compression-debug:
+    @echo "Starting with compression debug logging enabled..."
+    @podman rm -f pfs-infinity 2>/dev/null || true
+    @podman run -d --name pfs-infinity \
+        --net=host \
+        --shm-size=${PFS_SHM_SIZE:-512m} \
+        -e WS_PORT=${PORT:-8811} \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=1 \
+        -e PFS_TLS_INSECURE=1 \
+        -e PFS_BLOB_AUTO=1 \
+        -e PFS_BLOB_SIZE_BYTES=${PFS_BLOB_SIZE_BYTES:-134217728} \
+        -e PFS_BLOB_PROGRESSIVE_FILL=${PFS_BLOB_PROGRESSIVE_FILL:-1} \
+        -e PFS_COMPRESSION_DEBUG=1 \
+        -e PFS_QUIC_ENABLE=${PFS_QUIC_ENABLE:-1} \
+        -e PFS_DEBUG=${PFS_DEBUG:-1} \
+        -e PFS_SIMPLE_XFER=0 \
+        -e PFS_ENABLE_TERMINAL=${PFS_ENABLE_TERMINAL:-0} \
+        -e PFS_ARITH=1 \
+        packetfs/pfs-infinity:latest
+    @echo "Compression debug active; check 'just logs'"
+
+# Unified power dev environment
+dev-all:
+    @echo "Starting combined dev environment (1GiB blob, progressive fill, compression debug, advanced UI)..."
+    @podman rm -f pfs-infinity 2>/dev/null || true
+    @podman run -d --name pfs-infinity \
+        --net=host \
+        --shm-size=${PFS_SHM_SIZE:-2g} \
+        -e WS_PORT=${PORT:-8811} \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=1 \
+        -e PFS_TLS_INSECURE=1 \
+        -e PFS_BLOB_AUTO=1 \
+        -e PFS_BLOB_SIZE_BYTES=${PFS_BLOB_SIZE_BYTES:-1073741824} \
+        -e PFS_BLOB_MAX_SIZE=${PFS_BLOB_MAX_SIZE:-1073741824} \
+        -e PFS_BLOB_PROGRESSIVE_FILL=1 \
+        -e PFS_BLOB_SKIP_FILL=0 \
+        -e PFS_COMPRESSION_DEBUG=1 \
+        -e PFS_QUIC_ENABLE=${PFS_QUIC_ENABLE:-1} \
+        -e PFS_DEBUG=${PFS_DEBUG:-1} \
+        -e PFS_SIMPLE_XFER=0 \
+        -e PFS_ENABLE_TERMINAL=${PFS_ENABLE_TERMINAL:-0} \
+        -e PFS_ARITH=1 \
+        packetfs/pfs-infinity:latest
+    @echo "Open https://localhost:${PORT:-8811}/"
+
+# Print environment flag documentation
+docs-env:
+    @echo "Environment Flags:" && \
+    echo "  PFS_BLOB_SIZE_BYTES       - Desired virtual blob size (default 1GiB in code, 128MiB in up)" && \
+    echo "  PFS_BLOB_MAX_SIZE         - Safety clamp maximum (default 512MiB unless overridden)" && \
+    echo "  PFS_BLOB_SEED             - Deterministic PRNG seed for blob content (default 1337)" && \
+    echo "  PFS_BLOB_SKIP_FILL        - If 1, do not fill blob on startup (user can POST /blob/fill)" && \
+    echo "  PFS_BLOB_PROGRESSIVE_FILL - If 1, fill in async chunks reporting progress (default on)" && \
+    echo "  PFS_BLOB_AUTO             - Auto-create blob at startup (1 default)" && \
+    echo "  PFS_SHM_SIZE              - Host shared memory size passed to container --shm-size (e.g. 512m, 2g)" && \
+    echo "  PFS_SIMPLE_XFER           - Serve simple upload/download page at root (1 = enable)" && \
+    echo "  PFS_ENABLE_TERMINAL       - Enable experimental terminal UI/WS (1 = enable)" && \
+    echo "  PFS_COMPRESSION_DEBUG     - Verbose compression/iprog diagnostics (1 = enable)" && \
+    echo "  PFS_ARITH                 - Placeholder flag for arithmetic pipeline (1 = enable)" && \
+    echo "  PFS_DEBUG                 - General verbose debug logging" && \
+    echo "  PFS_QUIC_ENABLE           - Enable QUIC listener (1 default)" && \
+    echo "  PORT / WS_PORT            - External / internal listening port" && \
+    echo "Usage examples:" && \
+    echo "  just up-big-blob PFS_BLOB_SIZE_BYTES=$$((2**30))" && \
+    echo "  PFS_DEBUG=1 just up-compression-debug"
+
+# Run with simple upload/download UI by default
+up-simple:
+    @echo "Starting pfs-infinity (simple transfer UI)..."
+    @podman rm -f pfs-infinity 2>/dev/null || true
+    @podman run -d --name pfs-infinity \
+        --net=host \
+        --shm-size=${PFS_SHM_SIZE:-2g} \
+        -e WS_PORT=${PORT:-8811} \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=1 \
+        -e PFS_TLS_INSECURE=1 \
+    -e PFS_BLOB_AUTO=1 \
+    -e PFS_BLOB_SIZE_BYTES=${PFS_BLOB_SIZE_BYTES:-1073741824} \
+        -e PFS_QUIC_ENABLE=${PFS_QUIC_ENABLE:-1} \
+        -e PFS_DEBUG=${PFS_DEBUG:-0} \
+        -e PFS_SIMPLE_XFER=1 \
+        -e PFS_ENABLE_TERMINAL=0 \
+        -e PFS_ARITH=1 \
+        packetfs/pfs-infinity:latest
+    @echo "Open https://localhost:${PORT:-8811}/ (xfer-simple)"
+down:
+    @echo "Stopping pfs-infinity..."
+    @podman stop pfs-infinity 2>/dev/null || true
+    @podman rm pfs-infinity 2>/dev/null || true
+    @echo "Stopped"
+test: test-all
+
+test-all:
+    @echo "Smoke tests placeholder (upload/download UI)."
+status:
+    @podman ps | grep pfs-infinity || echo "Not running"
+logs:
+    @podman logs -f pfs-infinity
+
+# Front proxy no longer required: backend serves TLS directly
+front:
+    @echo "[deprecated] Front proxy is not needed. Run: just up-front"
+front-stop:
+    @echo "[deprecated] Front proxy is not needed. Run: just down"
+
+# One-command bring-up: backend with built-in TLS (no host proxy)
+up-front:
+    @echo "Starting backend (TLS in-container)..."
+    @podman rm -f pfs-infinity 2>/dev/null || true
+    @podman run -d --name pfs-infinity \
+        --net=host \
+        --shm-size=${PFS_SHM_SIZE:-2g} \
+        -e WS_PORT=${PORT:-8811} \
+        -e BIND=0.0.0.0 \
+        -e PFS_TLS=1 \
+        -e PFS_TLS_INSECURE=1 \
+    -e PFS_BLOB_AUTO=1 \
+    -e PFS_BLOB_SIZE_BYTES=${PFS_BLOB_SIZE_BYTES:-1073741824} \
+        -e PFS_QUIC_ENABLE=${PFS_QUIC_ENABLE:-1} \
+        -e PFS_DEBUG=${PFS_DEBUG:-0} \
+        -e PFS_ENABLE_TERMINAL=${PFS_ENABLE_TERMINAL:-0} \
+        -e PFS_SIMPLE_XFER=${PFS_SIMPLE_XFER:-0} \
+        -e PFS_AUTH_ENABLED=${PFS_AUTH_ENABLED:-0} \
+        -e PFS_ARITH=1 \
+        packetfs/pfs-infinity:latest
+    @echo "Open https://localhost:${PORT:-8811}/"
+clean:
+    @echo "Cleaning up..."
+    @podman rm -f pfs-infinity 2>/dev/null || true
+    @podman image prune -f >/dev/null 2>&1 || true
+    @rm -rf /tmp/pfs-infinity 2>/dev/null || true
+    @echo "Cleaned"
+
+# Upload a local file to the running server (HTTPS; -k for self-signed)
+xfer-upload file host="127.0.0.1" port="8811":
+    @if [ ! -f "{{file}}" ]; then echo "file not found: {{file}}" >&2; exit 1; fi
+    @echo "Uploading {{file}} -> https://{{host}}:{{port}}/objects"
+    @curl -ks -X POST "https://{{host}}:{{port}}/objects" -F "file=@{{file}}" | jq .
+
+# List stored objects on the server
+list-objects host="127.0.0.1" port="8811":
+    @curl -ks "https://{{host}}:{{port}}/objects" | jq .
+
+# Full rebuild (no cache) for backend image
+dev-rebuild:
+    @echo "Rebuilding arithmetic TS lib (no cache-ish) ..." && \
+    npm --prefix {{root}}/app/web/pfs-arith ci >/dev/null 2>&1 || npm --prefix {{root}}/app/web/pfs-arith install && \
+    npm --prefix {{root}}/app/web/pfs-arith run build && \
+    echo "Rebuilding pfs-infinity container (no cache, context=. )..." && \
+    podman build --no-cache -t packetfs/pfs-infinity:latest -f containers/backend/Containerfile . && \
+    echo "Rebuilt packetfs/pfs-infinity:latest"
+
+# Rebuild all images (no cache)
+rebuild-all:
+    @echo "Rebuilding arithmetic TS lib ..." && \
+    npm --prefix {{root}}/app/web/pfs-arith ci >/dev/null 2>&1 || npm --prefix {{root}}/app/web/pfs-arith install && \
+    npm --prefix {{root}}/app/web/pfs-arith run build && \
+    echo "Rebuilding ALL images (no cache, context: packetfs-infinity subdir) ..." && \
+    podman build --no-cache -t packetfs/pfs-infinity:latest -f containers/backend/Containerfile . && \
+    podman build --no-cache -t packetfs/pfs-native:latest -f containers/pfs-native/Containerfile . && \
+    echo "All images rebuilt (no cache)."
+
+# Three simple commands (UX): rebuild (no cache), up, down
+# 'rebuild' is a no-cache build of the backend image and ensures the web library is built
+rebuild: dev-rebuild
+
+# DNS update shortcut (uses /usr/local/sbin/hgws-zone-update)
+update-dns *args:
+    @echo "Updating DNS zone {{dns_zone}} using {{dns_zonefile}}"
+    @if [ "$(id -u)" -ne 0 ]; then \
+        sudo ZONE={{dns_zone}} ZONEFILE={{dns_zonefile}} /usr/local/sbin/hgws-zone-update {{args}}; \
+      else \
+        ZONE={{dns_zone}} ZONEFILE={{dns_zonefile}} /usr/local/sbin/hgws-zone-update {{args}}; \
+      fi
+
+# Quick test commands (use 'just test-api' for full test suite)
+api-test:
+    @echo "🧪 Running API endpoint tests..."
+    @python3 test_actual_endpoints.py
+
+playwright-test:
+    @echo "🎭 Running Playwright browser tests..."
+    @npx playwright test --reporter=list
+
+# UI test using Playwright against the F3 Transfer page
+# Usage:
+#   just test-ui                      # uses http://localhost:{{web_port}}
+#   just test-ui BASE=https://host    # override base URL
+#   just test-ui-install              # install browsers + system deps
+test-ui BASE="":
+    @echo "Running Playwright UI tests..."
+    @BASE_URL={{if BASE != "" { BASE } else { "http://localhost:" + web_port } }} TEST_BASE_URL=$$BASE_URL npx -y @playwright/test@latest test tests/ui/transfer_v2.spec.ts --reporter=list
+
+test-ui-install:
+    @echo "Installing Playwright browsers and system deps..."
+    @npx -y @playwright/test@latest install --with-deps
+
+quick-test:
+    @echo "⚡ Running quick smoke tests..."
+    @curl -s http://localhost:8888/healthz | jq '.status' 2>/dev/null || echo "API not responding"
+    @curl -s http://localhost:8888/api/containers | jq '. | length' 2>/dev/null || echo "0 containers"
+    @curl -s http://localhost:8888/api/vms | jq '. | length' 2>/dev/null || echo "0 VMs"
+
+# HGWS CLI shortcut
+hgws *args:
+    @~/.local/bin/hgws {{args}}
+
+# 🔐 OAuth & Authentication Commands
+oauth-setup:
+	@echo "🔐 Setting up OAuth providers..."
+	@echo "Visit these URLs to create OAuth apps:"
+	@echo "  Google: https://console.cloud.google.com/"
+	@echo "  GitHub: https://github.com/settings/developers"
+	@echo "  Discord: https://discord.com/developers/applications"
+	@echo ""
+	@echo "Add redirect URL: http://localhost:{{web_port}}/auth/callback/{provider}"
+	@echo "Then edit .env with your CLIENT_ID and CLIENT_SECRET"
+
+oauth-test:
+	@echo "🧪 Testing OAuth configuration..."
+	@curl -s http://localhost:{{web_port}}/auth/providers | jq '.providers[] | {name, display_name}'
+
+# 📦 PacketFS Storage Commands  
+packetfs-status:
+	@echo "📦 Checking PacketFS instances..."
+	@curl -s http://localhost:{{web_port}}/api/storage/packetfs/status | jq '.'
+
+packetfs-deploy vlan_id tskey="":
+	@echo "🚀 Deploying PacketFS for VLAN {{vlan_id}}..."
+	@curl -X POST "http://localhost:{{web_port}}/api/storage/packetfs/deploy/{{vlan_id}}?ts_authkey={{tskey}}" | jq '.'
+
+# 🖥️ VM Storage (PacketFS inside VM)  
+vm-provision-storage vlan_id tskey vm_img mem="2048" vcpus="2":
+	@echo "Provisioning storage VM on VLAN {{vlan_id}} (bridge vlan{{vlan_id}})"
+	WEB_PORT={{web_port}} VLAN_ID={{vlan_id}} TSKEY="{{tskey}}" VM_IMG="{{vm_img}}" MEM={{mem}} VCPUS={{vcpus}} bash scripts/helpers/vm-provision-storage.sh
+
+# 🌐 VLAN Management
+vlan-create customer_id vlan_id:
+	@echo "🌐 Creating VLAN {{vlan_id}} for customer {{customer_id}}..."
+	@curl -X POST http://localhost:{{web_port}}/api/vlans/create -H "Content-Type: application/json" -d '{"vlan_id": {{vlan_id}}, "customer_id": "{{customer_id}}"}' | jq '.'
+
+vlan-list:
+	@echo "📋 Listing VLANs..."
+	@curl -s http://localhost:{{web_port}}/api/vlans/list | jq '.'
+
+# 🎯 Quick Demo Flow
+demo-user email="demo@example.com":
+    @echo "🎯 Demo: Creating user with email {{email}}"
+    @python3 -c "import hashlib; email='{{email}}'; cid=hashlib.sha256(email.encode()).hexdigest()[:12]; vid=100+(int(hashlib.sha256(cid.encode()).hexdigest()[:4],16)%3994); print(f'Customer ID: {cid}\nVLAN ID: {vid}')"
+    @echo "Use these values to manually create VLAN and deploy PacketFS"
+
+# 🔥 Full Stack Commands
+stack-up:
+	@just oauth-run &
+	@sleep 2
+	@echo "✅ HGWS running at http://localhost:{{web_port}}"
+	@echo "📝 Configure OAuth providers in .env first!"
+
+stack-down:
+	@pkill -f "uvicorn app:app" || true
+	@echo "🛑 HGWS stopped"
+
+stack-logs:
+	@tail -f hgws.log 2>/dev/null || echo "No logs yet. Run 'just stack-up' first"

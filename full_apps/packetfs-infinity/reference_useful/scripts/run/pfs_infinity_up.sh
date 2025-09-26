@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Helper to run the pfs-infinity backend container using Podman.
+# Reads configuration from environment variables; provides sensible defaults.
+
+IMG="${PFS_IMAGE:-packetfs/pfs-infinity:latest}"
+NAME="${PFS_CONTAINER_NAME:-pfs-infinity}"
+
+WS_PORT="${PORT:-${WS_PORT:-8811}}"
+BIND_ADDR="${BIND:-0.0.0.0}"
+
+# TLS & QUIC
+PFS_TLS="${PFS_TLS:-1}"
+PFS_TLS_INSECURE="${PFS_TLS_INSECURE:-1}"
+PFS_QUIC_ENABLE="${PFS_QUIC_ENABLE:-1}"
+
+# Blob defaults
+PFS_BLOB_AUTO="${PFS_BLOB_AUTO:-1}"
+PFS_BLOB_SIZE_BYTES="${PFS_BLOB_SIZE_BYTES:-134217728}"
+PFS_BLOB_MAX_SIZE="${PFS_BLOB_MAX_SIZE:-$PFS_BLOB_SIZE_BYTES}"
+PFS_BLOB_PROGRESSIVE_FILL="${PFS_BLOB_PROGRESSIVE_FILL:-1}"
+PFS_BLOB_SKIP_FILL="${PFS_BLOB_SKIP_FILL:-0}"
+
+# Features
+PFS_SIMPLE_XFER="${PFS_SIMPLE_XFER:-0}"
+PFS_ENABLE_TERMINAL="${PFS_ENABLE_TERMINAL:-0}"
+PFS_PUBLIC_UPLOAD="${PFS_PUBLIC_UPLOAD:-0}"
+PFS_AUTH_ENABLED="${PFS_AUTH_ENABLED:-0}"
+PFS_ARITH=1
+PFS_DEBUG="${PFS_DEBUG:-0}"
+
+SHM_SIZE="${PFS_SHM_SIZE:-512m}"
+
+# Remove prior container if present
+podman rm -f "$NAME" >/dev/null 2>&1 || true
+
+exec podman run -d --name "$NAME" \
+  --net=host \
+  --shm-size="$SHM_SIZE" \
+  -e WS_PORT="$WS_PORT" \
+  -e BIND="$BIND_ADDR" \
+  -e PFS_TLS="$PFS_TLS" \
+  -e PFS_TLS_INSECURE="$PFS_TLS_INSECURE" \
+  -e PFS_BLOB_AUTO="$PFS_BLOB_AUTO" \
+  -e PFS_BLOB_SIZE_BYTES="$PFS_BLOB_SIZE_BYTES" \
+  -e PFS_BLOB_MAX_SIZE="$PFS_BLOB_MAX_SIZE" \
+  -e PFS_BLOB_PROGRESSIVE_FILL="$PFS_BLOB_PROGRESSIVE_FILL" \
+  -e PFS_BLOB_SKIP_FILL="$PFS_BLOB_SKIP_FILL" \
+  -e PFS_QUIC_ENABLE="$PFS_QUIC_ENABLE" \
+  -e PFS_DEBUG="$PFS_DEBUG" \
+  -e PFS_ENABLE_TERMINAL="$PFS_ENABLE_TERMINAL" \
+  -e PFS_SIMPLE_XFER="$PFS_SIMPLE_XFER" \
+  -e PFS_PUBLIC_UPLOAD="$PFS_PUBLIC_UPLOAD" \
+  -e PFS_AUTH_ENABLED="$PFS_AUTH_ENABLED" \
+  -e PFS_ARITH="$PFS_ARITH" \
+  "$IMG"

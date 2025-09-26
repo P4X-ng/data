@@ -1,0 +1,33 @@
+# Podman lifecycle (env-driven)
+
+# Include ports and env
+import "./justfile.vars"
+
+help-pod:
+    @echo "pod commands: up|down|rebuild|status|logs|xephyr"
+    @echo "Env: HOST_SHARE (default ./var/pfs-share) PORT (default BACKEND_PORT) IMAGE (default packetfs/pfs-infinity:latest)"
+    @echo "GUI env (optional): GUI_X11=1 [DISPLAY=$DISPLAY] XAUTHORITY, GUI_WAYLAND=1 [XDG_RUNTIME_DIR, WAYLAND_DISPLAY], GUI_DRI=1"
+
+# Dispatcher: `just pod <cmd>`
+pod cmd="help":
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/pod/dispatch.sh "{{cmd}}"
+
+pod-up:
+    HOST_SHARE="${HOST_SHARE:-$(pwd)/var/pfs-share}" PORT="${PORT:-${BACKEND_PORT}}" IMAGE="${IMAGE:-packetfs/pfs-infinity:latest}" \
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/pod/up.sh
+
+pod-down:
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/pod/down.sh
+
+pod-rebuild:
+    IMAGE="${IMAGE:-packetfs/pfs-infinity:latest}" bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/pod/rebuild.sh
+
+pod-status:
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/pod/status.sh
+
+pod-logs lines="200":
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/pod/logs.sh "{{lines}}"
+
+# Helper to start nested X (Xephyr) on :100
+pod-xephyr:
+    bash /home/punk/Projects/packetfs/full_apps/pfs-infinity/scripts/pod/xephyr.sh

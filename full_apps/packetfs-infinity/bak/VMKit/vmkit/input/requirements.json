@@ -1,0 +1,129 @@
+{
+  "specVersion": "1.0",
+  "metadata": {
+    "project": "KubeSimpl",
+    "description": "Simplified Kubernetes implementation with SSH-based security",
+    "target": "Ubuntu 24.04 LTS",
+    "language": "Python"
+  },
+  "removals": {
+    "components": [
+      "kube-proxy",
+      "linux-namespaces",
+      "etcd",
+      "rbac",
+      "certificates",
+      "scheduler",
+      "controller-manager"
+    ],
+    "features": [
+      "acls",
+      "rbac",
+      "certificate-auth",
+      "pods",
+      "complex-networking"
+    ]
+  },
+  "replacements": {
+    "datastore": {
+      "from": "etcd",
+      "to": "rocksdb"
+    },
+    "authentication": {
+      "from": "certificates",
+      "to": "ssh-keys"
+    },
+    "networking": {
+      "from": "kube-proxy",
+      "to": "host-networking"
+    },
+    "orchestration": {
+      "from": "pods",
+      "to": "containers"
+    },
+    "coordination": {
+      "from": "api-server",
+      "to": "redis-cluster"
+    }
+  },
+  "access_control": {
+    "watcher": {
+      "permissions": "read-only",
+      "method": "linux-file-permissions",
+      "description": "Users with list/read-only access to directories"
+    },
+    "user": {
+      "permissions": "namespace-restricted",
+      "method": "linux-user-permissions",
+      "description": "Normal users without sudo, no system namespace access"
+    },
+    "developer": {
+      "permissions": "full-with-sudo",
+      "method": "sudoers-file",
+      "description": "Users with sudo access to everything"
+    },
+    "admin": {
+      "permissions": "full-root",
+      "method": "root-or-passwordless-sudo",
+      "description": "Root users or passwordless sudo users"
+    }
+  },
+  "networking": {
+    "api": {
+      "protocol": "http",
+      "bind": "localhost-only",
+      "protection": "ssh-tunnel-required",
+      "ssl": "self-signed-in-ca-store"
+    },
+    "containers": {
+      "mode": "host-networking",
+      "pod_subnet": "192.168.0.0/24",
+      "isolation": "local-only-subnet"
+    }
+  },
+  "deployment": {
+    "method": "untar-and-run",
+    "requirements": ["ssh-keys", "sudo-or-root"],
+    "service": "kubelet-as-root"
+  },
+  "container_runtime": {
+    "primary": "podman",
+    "export_to": "containerd",
+    "cli": "nerdctl"
+  },
+  "simplified_resources": {
+    "containers": {
+      "replaces": "pods",
+      "health_checks": "central-monitor-container"
+    },
+    "statefulsets": {
+      "purpose": "distributed-containers",
+      "coordination": "redis-queue"
+    },
+    "services": {
+      "implementation": "containers-with-service"
+    }
+  },
+  "job_system": {
+    "pattern": "consumer-producer",
+    "queue": "redis",
+    "compatibility": "kubernetes-job-configs"
+  },
+  "configuration": {
+    "principle": "key-items-only",
+    "compatibility": "kubernetes-yaml-drop-in",
+    "validation": "ignore-non-essential"
+  },
+  "performance": {
+    "scheduling": "resource-aware-distribution",
+    "preferences": ["data-locality", "resource-availability", "minimal-os"],
+    "coordination": "redis-cluster",
+    "chattiness": "minimal-network-chatter"
+  },
+  "kubectl_integration": {
+    "base_project": "/home/punk/Projects/VMKit",
+    "reference_file": "kubectl.py",
+    "functions": ["view-pods", "interact-pods", "list-pods", "add-pods"],
+    "vm_support": "full-passthrough-vms"
+  }
+}

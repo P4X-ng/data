@@ -1,0 +1,19 @@
+packetfs-utils (1.0.0-1) unstable; urgency=medium
+
+  * Initial release of PacketFS Transfer Utilities
+  * Features:
+    - f3transfer CLI tool for fast file transfers
+    - Web-based transfer interface with upload/download support
+    - pfsrsync integration for folder synchronization
+    - Cluster mode support for distributed transfers
+    - Real-time transfer monitoring and statistics
+    - 95% compression with F3 protocol
+    - Cross-platform support (x86_64, ARM64)
+  * Components included:
+    - F3 Transfer web UI (transfer-v2.html)
+    - CLI transfer utility (f3transfer.py)
+    - Backend API for transfers
+    - Justfile for easy command execution
+    - Systemd service for daemon mode
+
+ -- PacketFS Team <packetfs@example.com>  Thu, 19 Sep 2025 15:49:00 +0000

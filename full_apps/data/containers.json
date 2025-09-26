@@ -1,0 +1,91 @@
+{
+  "containers": [
+    {
+      "id": "test-test-nginx",
+      "name": "test-nginx",
+      "image": "nginx",
+      "network": "bridge:hgws-edge",
+      "cpu_limit": 0.5,
+      "memory_limit": "256m",
+      "environment": {},
+      "volumes": [],
+      "user": null,
+      "status": "created",
+      "ip_address": null,
+      "created_at": "2025-09-11T16:07:56.232263"
+    },
+    {
+      "id": "test-tech-postgre",
+      "name": "tech-postgres",
+      "image": "postgres",
+      "network": "bridge:tech-edge",
+      "cpu_limit": 2.0,
+      "memory_limit": "2g",
+      "environment": {
+        "POSTGRES_PASSWORD": "techdb123",
+        "POSTGRES_DB": "techstartup"
+      },
+      "volumes": [],
+      "user": null,
+      "status": "created",
+      "ip_address": null,
+      "created_at": "2025-09-11T16:19:57.596640"
+    },
+    {
+      "id": "test-tech-redis",
+      "name": "tech-redis",
+      "image": "redis:alpine",
+      "network": "bridge:tech-edge",
+      "cpu_limit": 1.0,
+      "memory_limit": "512m",
+      "environment": {},
+      "volumes": [],
+      "user": null,
+      "status": "created",
+      "ip_address": null,
+      "created_at": "2025-09-11T16:20:05.586381"
+    },
+    {
+      "id": "test-tech-nginx",
+      "name": "tech-nginx",
+      "image": "nginx",
+      "network": "bridge:tech-edge",
+      "cpu_limit": 1.0,
+      "memory_limit": "256m",
+      "environment": {},
+      "volumes": [],
+      "user": null,
+      "status": "created",
+      "ip_address": null,
+      "created_at": "2025-09-11T16:20:14.187000"
+    },
+    {
+      "id": "test-test-contain",
+      "name": "test-container-1757882444912",
+      "image": "docker.io/library/alpine:latest",
+      "network": "bridge",
+      "cpu_limit": 1.0,
+      "memory_limit": "512m",
+      "environment": {},
+      "volumes": [],
+      "user": null,
+      "status": "created",
+      "ip_address": null,
+      "created_at": "2025-09-14T20:40:45.012887"
+    },
+    {
+      "id": "test-test-contain",
+      "name": "test-container-1757882463998",
+      "image": "docker.io/library/alpine:latest",
+      "network": "bridge",
+      "cpu_limit": 1.0,
+      "memory_limit": "512m",
+      "environment": {},
+      "volumes": [],
+      "user": null,
+      "status": "created",
+      "ip_address": null,
+      "created_at": "2025-09-14T20:41:04.081226"
+    }
+  ]
+}

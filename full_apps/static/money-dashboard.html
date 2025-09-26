@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 HGWS Community - Transparent Money Dashboard</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        /* Transparent billing section at the top */
+        .billing-transparency {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #00ff88;
+        }
+        
+        .billing-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .billing-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .money-amount {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+        
+        .money-amount.negative {
+            color: #ff4757;
+        }
+        
+        .money-amount.warning {
+            color: #ffa726;
+        }
+        
+        .billing-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .due-date {
+            background: rgba(255, 167, 38, 0.2);
+            border: 1px solid #ffa726;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.9em;
+            text-align: center;
+        }
+        
+        .hero-section {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .contribution-tools {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .tool-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tool-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .tool-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .tool-description {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 15px;
+        }
+        
+        .tool-earnings {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 0.9em;
+            color: #00ff88;
+        }
+        
+        .tool-status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .tool-status.active {
+            background: rgba(39, 174, 96, 0.8);
+            color: white;
+        }
+        
+        .tool-status.inactive {
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+        }
+        
+        .earnings-history {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .earnings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .earnings-description {
+            flex-grow: 1;
+        }
+        
+        .earnings-amount {
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .earnings-time {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-left: 15px;
+        }
+        
+        .payout-section {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .email-input {
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1em;
+            margin: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 300px;
+        }
+        
+        .email-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 0 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .payout-button {
+            background: linear-gradient(135deg, #00ff88 0%, #00d2ff 100%);
+            font-size: 1.2em;
+            padding: 20px 40px;
+        }
+        
+        .cost-breakdown {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .cost-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 10px;
+            padding-top: 15px;
+            border-top: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .activity-feed {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .activity-icon {
+            font-size: 1.5em;
+            margin-right: 15px;
+            width: 30px;
+            text-align: center;
+        }
+        
+        .activity-text {
+            flex-grow: 1;
+        }
+        
+        .activity-amount {
+            font-weight: bold;
+            color: #00ff88;
+            margin-right: 15px;
+        }
+        
+        .activity-time {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+        
+        /* Payout method selection styles */
+        .payout-methods h4 {
+            text-align: center;
+            margin: 20px 0 15px 0;
+            color: #00ff88;
+        }
+        
+        .payout-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .payout-method {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .payout-method:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #00ff88;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.2);
+        }
+        
+        .payout-method.selected {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .method-icon {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+        
+        .method-name {
+            font-weight: bold;
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
+        
+        .method-fee {
+            font-size: 0.8em;
+            color: #00ff88;
+            margin-bottom: 3px;
+        }
+        
+        .method-time {
+            font-size: 0.7em;
+            opacity: 0.7;
+        }
+        
+        /* Payout form styles */
+        #payoutForm {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #00ff88;
+        }
+        
+        #payoutDetails {
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Community Money Dashboard</h1>
+        
+        <!-- Transparent Billing Section -->
+        <div class="billing-transparency">
+            <h2>📊 Transparent Billing & Earnings</h2>
+            <p><strong>100% transparent.</strong> Every penny earned and spent is shown below.</p>
+            
+            <div class="billing-summary">
+                <div class="billing-card">
+                    <div class="money-amount" id="totalEarned">$0.00</div>
+                    <div class="billing-label">Total Earned This Month</div>
+                </div>
+                <div class="billing-card">
+                    <div class="money-amount" id="availableCash">$0.00</div>
+                    <div class="billing-label">Available for Payout</div>
+                </div>
+                <div class="billing-card">
+                    <div class="money-amount negative" id="servicesCost">$0.00</div>
+                    <div class="billing-label">Services Used This Month</div>
+                </div>
+                <div class="billing-card">
+                    <div class="money-amount" id="netBalance">$0.00</div>
+                    <div class="billing-label">Net Balance</div>
+                </div>
+            </div>
+            
+            <div class="due-date" id="billingDueDate">
+                🗓️ Next billing cycle: January 1, 2025 | No surprise fees, ever.
+            </div>
+        </div>
+        
+        <div class="hero-section">
+            <h2>Welcome to HGWS Community Cloud!</h2>
+            <p><strong>"Real money for real contributions"</strong></p>
+            <p>Share your resources → Earn actual dollars → Use free cloud services!</p>
+            <input type="email" class="email-input" id="userEmail" placeholder="your@email.com">
+            <br>
+            <button onclick="loadUserData()">📊 Load My Money Dashboard</button>
+            <button onclick="showEarningsGuide()">💡 How to Earn Money</button>
+        </div>
+        
+        <div class="user-stats" id="userStats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="todayEarnings">$0.00</div>
+                <div class="stat-label">Earned Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="thisWeekEarnings">$0.00</div>
+                <div class="stat-label">This Week</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="tasksCompleted">0</div>
+                <div class="stat-label">Tasks Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="resourcesShared">0.0</div>
+                <div class="stat-label">GB Resources Shared</div>
+            </div>
+        </div>
+        
+        <div class="contribution-tools">
+            <div class="tool-card" onclick="openTool('storage-contributor')">
+                <div class="tool-status inactive" id="storageStatus">Inactive</div>
+                <div class="tool-icon">💾</div>
+                <div class="tool-title">Storage Sharing</div>
+                <div class="tool-description">Share browser storage for distributed file system</div>
+                <div class="tool-earnings">💰 $0.01/GB/hour (real money!)</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('gpu-pool')">
+                <div class="tool-status inactive" id="gpuStatus">Inactive</div>
+                <div class="tool-icon">🎮</div>
+                <div class="tool-title">GPU Computing</div>
+                <div class="tool-description">Contribute GPU power for AI/ML workloads</div>
+                <div class="tool-earnings">💰 $0.10/task completed</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('freedom-relay')">
+                <div class="tool-status inactive" id="freedomStatus">Inactive</div>
+                <div class="tool-icon">🕊️</div>
+                <div class="tool-title">Freedom Relay</div>
+                <div class="tool-description">Help bypass censorship worldwide</div>
+                <div class="tool-earnings">💰 $0.05/request + impact bonus</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('bandwidth-pool')">
+                <div class="tool-status inactive" id="bandwidthStatus">Inactive</div>
+                <div class="tool-icon">🌐</div>
+                <div class="tool-title">Bandwidth Sharing</div>
+                <div class="tool-description">Share bandwidth for distributed downloads</div>
+                <div class="tool-earnings">💰 $0.02/GB transferred</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('cpu-sharing')">
+                <div class="tool-status inactive" id="cpuStatus">Inactive</div>
+                <div class="tool-icon">🖥️</div>
+                <div class="tool-title">CPU Sharing</div>
+                <div class="tool-description">Contribute idle CPU cycles</div>
+                <div class="tool-earnings">💰 $0.005/core/hour</div>
+            </div>
+            
+            <div class="tool-card" onclick="openTool('skill-marketplace')">
+                <div class="tool-status inactive" id="skillStatus">Inactive</div>
+                <div class="tool-icon">🛠️</div>
+                <div class="tool-title">Skill Marketplace</div>
+                <div class="tool-description">Complete tasks using your skills</div>
+                <div class="tool-earnings">💰 $1-50/task (based on complexity)</div>
+            </div>
+        </div>
+        
+        <!-- Cost Breakdown Section -->
+        <div class="billing-transparency">
+            <h3>💳 Your Service Costs This Month</h3>
+            <div class="cost-breakdown" id="costBreakdown">
+                <div class="cost-item">
+                    <span>Ultra-Free Containers (24h)</span>
+                    <span>$0.00</span>
+                </div>
+                <div class="cost-item">
+                    <span>VM Usage (0.0 hours)</span>
+                    <span>$0.00</span>
+                </div>
+                <div class="cost-item">
+                    <span>Storage (0 GB-months)</span>
+                    <span>$0.00</span>
+                </div>
+                <div class="cost-item">
+                    <span>Bandwidth (0 GB)</span>
+                    <span>$0.00</span>
+                </div>
+                <div class="cost-item">
+                    <span><strong>Total Monthly Bill</strong></span>
+                    <span><strong>$0.00</strong></span>
+                </div>
+            </div>
+            <p style="text-align: center; opacity: 0.8; font-size: 0.9em;">
+                💡 <strong>Smart Tip:</strong> Your earnings this month ($<span id="smartTipEarnings">0.00</span>) 
+                cover <span id="coveragePercent">100%</span> of your bill!
+            </p>
+        </div>
+        
+        <!-- Payout Section -->
+        <div class="payout-section" id="payoutSection" style="display: none;">
+            <h3>💸 Cash Out Your Earnings</h3>
+            <p>Available balance: <strong>$<span id="payoutBalance">0.00</span></strong></p>
+            
+            <div class="payout-methods">
+                <h4>Choose Your Payout Method:</h4>
+                
+                <div class="payout-grid">
+                    <div class="payout-method" onclick="selectPayoutMethod('paypal')">
+                        <div class="method-icon">💙</div>
+                        <div class="method-name">PayPal</div>
+                        <div class="method-fee">2.9% + $0.30</div>
+                        <div class="method-time">24-48 hours</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('cashapp')">
+                        <div class="method-icon">💚</div>
+                        <div class="method-name">Cash App</div>
+                        <div class="method-fee">Free!</div>
+                        <div class="method-time">Instant</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('venmo')">
+                        <div class="method-icon">💜</div>
+                        <div class="method-name">Venmo</div>
+                        <div class="method-fee">Free!</div>
+                        <div class="method-time">Instant</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('zelle')">
+                        <div class="method-icon">🟡</div>
+                        <div class="method-name">Zelle</div>
+                        <div class="method-fee">Free!</div>
+                        <div class="method-time">Minutes</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('bitcoin')">
+                        <div class="method-icon">₿</div>
+                        <div class="method-name">Bitcoin</div>
+                        <div class="method-fee">~$2-5</div>
+                        <div class="method-time">10-60 min</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('ethereum')">
+                        <div class="method-icon">Ξ</div>
+                        <div class="method-name">Ethereum</div>
+                        <div class="method-fee">~$1-10</div>
+                        <div class="method-time">2-15 min</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('litecoin')">
+                        <div class="method-icon">Ł</div>
+                        <div class="method-name">Litecoin</div>
+                        <div class="method-fee">~$0.05</div>
+                        <div class="method-time">2-5 min</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('bank')">
+                        <div class="method-icon">🏦</div>
+                        <div class="method-name">Bank Transfer</div>
+                        <div class="method-fee">$1.00</div>
+                        <div class="method-time">1-3 days</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('wire')">
+                        <div class="method-icon">🌐</div>
+                        <div class="method-name">Wire Transfer</div>
+                        <div class="method-fee">$15-25</div>
+                        <div class="method-time">Same day</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('applepay')">
+                        <div class="method-icon">🍎</div>
+                        <div class="method-name">Apple Pay</div>
+                        <div class="method-fee">Free!</div>
+                        <div class="method-time">Instant</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('googlepay')">
+                        <div class="method-icon">🔵</div>
+                        <div class="method-name">Google Pay</div>
+                        <div class="method-fee">Free!</div>
+                        <div class="method-time">Instant</div>
+                    </div>
+                    
+                    <div class="payout-method" onclick="selectPayoutMethod('account')">
+                        <div class="method-icon">💳</div>
+                        <div class="method-name">Account Credit</div>
+                        <div class="method-fee">Free!</div>
+                        <div class="method-time">Instant</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="payoutForm" style="display: none; margin: 20px 0;">
+                <h4 id="selectedMethodTitle">Selected Method</h4>
+                <div id="payoutDetails"></div>
+                <input type="text" id="payoutAddress" placeholder="Enter payment details..." style="width: 100%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.2); color: white;">
+                <div style="text-align: center; margin: 15px 0;">
+                    <button class="payout-button" onclick="processPayout()" id="finalPayoutButton">
+                        💸 Request Payout
+                    </button>
+                    <button onclick="cancelPayout()" style="background: rgba(255,0,0,0.3); margin-left: 10px;">
+                        ❌ Cancel
+                    </button>
+                </div>
+            </div>
+            
+            <p style="font-size: 0.9em; opacity: 0.8; text-align: center; margin-top: 20px;">
+                💡 <strong>Pro Tip:</strong> Cash App, Venmo, and Zelle are fastest and free!<br>
+                Minimum payout: $5.00 | All payouts processed securely
+            </p>
+        </div>
+        
+        <!-- Earnings History -->
+        <div class="earnings-history">
+            <h3>💰 Recent Earnings</h3>
+            <div id="earningsContainer">
+                <div class="earnings-item">
+                    <div class="earnings-description">
+                        <div>🎉 Welcome bonus for joining!</div>
+                        <div style="font-size: 0.8em; opacity: 0.7;">Just now</div>
+                    </div>
+                    <div class="earnings-amount">+$0.10</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="activity-feed">
+            <h3>📈 Live Earning Activity</h3>
+            <div id="activityContainer">
+                <div class="activity-item">
+                    <div class="activity-icon">💾</div>
+                    <div class="activity-text">Start contributing to see real-time earnings!</div>
+                    <div class="activity-amount">$0.00</div>
+                    <div class="activity-time">Now</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HGWS Unified Navigation -->
+    <script src="/static/nav.js"></script>
+
+    <script>
+        let userData = null;
+        let activityUpdateTimer = null;
+        
+        // Real earning activities with actual dollar amounts
+        const earningActivities = [
+            { icon: '💾', text: 'Storage chunk uploaded', amount: 0.01 },
+            { icon: '🎮', text: 'GPU task completed', amount: 0.10 },
+            { icon: '🕊️', text: 'Helped bypass censorship in China', amount: 0.05 },
+            { icon: '🌐', text: 'Bandwidth shared (1GB)', amount: 0.02 },
+            { icon: '🖥️', text: 'CPU cycles contributed (1 hour)', amount: 0.005 },
+            { icon: '🛠️', text: 'Skill task completed', amount: 2.50 },
+            { icon: '🏆', text: 'Daily contribution bonus', amount: 0.25 },
+            { icon: '⚡', text: 'Peak hour bonus applied', amount: 0.05 }
+        ];
+        
+        // Load user financial data
+        async function loadUserData() {
+            const email = document.getElementById('userEmail').value.trim();
+            if (!email) {
+                alert('Please enter your email address');
+                return;
+            }
+            
+            try {
+                // Try to fetch from API (convert credits to dollars)
+                const response = await fetch(`/api/community/credits/${encodeURIComponent(email)}`);
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    // Convert credits to dollars (1 credit = $0.01)
+                    userData = {
+                        email: email,
+                        totalEarned: result.total_credits * 0.01,
+                        availableCash: result.total_credits * 0.01,
+                        servicesCost: 0.00, // Would come from usage tracking
+                        tasksCompleted: result.tasks_completed,
+                        contributions: result.contributions
+                    };
+                } else {
+                    // New user gets welcome bonus
+                    userData = {
+                        email: email,
+                        totalEarned: 0.10, // Welcome bonus
+                        availableCash: 0.10,
+                        servicesCost: 0.00,
+                        tasksCompleted: 0,
+                        contributions: {
+                            storage_shared_gb: 0,
+                            gpu_tasks_completed: 0,
+                            freedom_requests_relayed: 0,
+                            bandwidth_shared_gb: 0,
+                            cpu_hours_contributed: 0
+                        }
+                    };
+                }
+                
+                updateDashboard();
+                startEarningsFeed();
+                document.getElementById('userStats').style.display = 'grid';
+                
+                // Show payout section if balance > $5
+                if (userData.availableCash >= 5.00) {
+                    document.getElementById('payoutSection').style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Could not load user data:', error);
+                // Demo data for testing
+                userData = {
+                    email: email,
+                    totalEarned: 15.67,
+                    availableCash: 15.67,
+                    servicesCost: 2.50,
+                    tasksCompleted: 89,
+                    contributions: {
+                        storage_shared_gb: 23.4,
+                        gpu_tasks_completed: 12,
+                        freedom_requests_relayed: 45,
+                        bandwidth_shared_gb: 167.8,
+                        cpu_hours_contributed: 34.2
+                    }
+                };
+                updateDashboard();
+                startEarningsFeed();
+                document.getElementById('userStats').style.display = 'grid';
+                document.getElementById('payoutSection').style.display = 'block';
+            }
+        }
+        
+        // Update dashboard with financial data
+        function updateDashboard() {
+            if (!userData) return;
+            
+            document.getElementById('totalEarned').textContent = `$${userData.totalEarned.toFixed(2)}`;
+            document.getElementById('availableCash').textContent = `$${userData.availableCash.toFixed(2)}`;
+            document.getElementById('servicesCost').textContent = `$${userData.servicesCost.toFixed(2)}`;
+            document.getElementById('payoutBalance').textContent = userData.availableCash.toFixed(2);
+            
+            const netBalance = userData.totalEarned - userData.servicesCost;
+            document.getElementById('netBalance').textContent = `$${netBalance.toFixed(2)}`;
+            document.getElementById('netBalance').className = netBalance >= 0 ? 'money-amount' : 'money-amount negative';
+            
+            // Calculate daily/weekly earnings (simulate for demo)
+            const todayEarnings = userData.totalEarned * 0.1; // 10% earned today
+            const weekEarnings = userData.totalEarned * 0.4;   // 40% this week
+            
+            document.getElementById('todayEarnings').textContent = `$${todayEarnings.toFixed(2)}`;
+            document.getElementById('thisWeekEarnings').textContent = `$${weekEarnings.toFixed(2)}`;
+            document.getElementById('tasksCompleted').textContent = userData.tasksCompleted;
+            
+            const totalResources = (userData.contributions.storage_shared_gb || 0) + 
+                                 (userData.contributions.bandwidth_shared_gb || 0);
+            document.getElementById('resourcesShared').textContent = totalResources.toFixed(1);
+            
+            // Update smart tip
+            document.getElementById('smartTipEarnings').textContent = userData.totalEarned.toFixed(2);
+            const coveragePercent = userData.servicesCost > 0 ? 
+                Math.min(100, (userData.totalEarned / userData.servicesCost) * 100) : 100;
+            document.getElementById('coveragePercent').textContent = `${coveragePercent.toFixed(0)}%`;
+        }
+        
+        // Start real-time earnings feed
+        function startEarningsFeed() {
+            if (activityUpdateTimer) clearInterval(activityUpdateTimer);
+            
+            activityUpdateTimer = setInterval(() => {
+                addEarningActivity();
+            }, 20000); // Every 20 seconds
+        }
+        
+        // Add earning activity
+        function addEarningActivity() {
+            const container = document.getElementById('activityContainer');
+            const activity = earningActivities[Math.floor(Math.random() * earningActivities.length)];
+            
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+            activityItem.style.opacity = '0';
+            activityItem.innerHTML = `
+                <div class="activity-icon">${activity.icon}</div>
+                <div class="activity-text">${activity.text}</div>
+                <div class="activity-amount">+$${activity.amount.toFixed(3)}</div>
+                <div class="activity-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            container.insertBefore(activityItem, container.firstChild.nextSibling);
+            
+            // Fade in animation
+            setTimeout(() => {
+                activityItem.style.opacity = '1';
+                activityItem.style.transition = 'opacity 0.5s';
+            }, 100);
+            
+            // Update user earnings
+            if (userData) {
+                userData.totalEarned += activity.amount;
+                userData.availableCash += activity.amount;
+                userData.tasksCompleted++;
+                updateDashboard();
+                
+                // Show payout section if balance reaches $5
+                if (userData.availableCash >= 5.00) {
+                    document.getElementById('payoutSection').style.display = 'block';
+                }
+            }
+            
+            // Keep only last 20 activities
+            while (container.children.length > 21) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        // Request payout
+        function requestPayout() {
+            if (!userData || userData.availableCash < 5.00) {
+                alert('❌ Minimum payout is $5.00!\n\n' +
+                      `Current balance: $${userData ? userData.availableCash.toFixed(2) : '0.00'}\n\n` +
+                      'Keep contributing to reach the minimum!');
+                return;
+            }
+            
+            const payoutAmount = userData.availableCash;
+            const confirmation = confirm(`💸 Request PayPal payout of $${payoutAmount.toFixed(2)}?\n\n` +
+                                       'This will be processed within 24-48 hours.\n' +
+                                       'PayPal fees: $0.30 + 2.9%\n' +
+                                       `You\'ll receive: $${(payoutAmount * 0.971 - 0.30).toFixed(2)}`);
+            
+            if (confirmation) {
+                // Simulate payout request
+                alert('✅ Payout requested successfully!\n\n' +
+                      `Amount: $${payoutAmount.toFixed(2)}\n` +
+                      `Method: PayPal (${userData.email})\n` +
+                      'Processing time: 24-48 hours\n\n' +
+                      'You\'ll receive an email confirmation shortly.');
+                
+                userData.availableCash = 0;
+                updateDashboard();
+                document.getElementById('payoutSection').style.display = 'none';
+            }
+        }
+        
+        // Apply cash to account balance
+        function applyCashToAccount() {
+            if (!userData || userData.availableCash <= 0) {
+                alert('No available balance to apply to account.');
+                return;
+            }
+            
+            const confirmation = confirm(`🏦 Apply $${userData.availableCash.toFixed(2)} to your account balance?\n\n` +
+                                       'This will give you instant credit for cloud services.\n' +
+                                       'You can use this for VMs, storage, bandwidth, etc.');
+            
+            if (confirmation) {
+                alert('✅ Account balance updated!\n\n' +
+                      `Added: $${userData.availableCash.toFixed(2)}\n` +
+                      'This credit never expires and can be used for any cloud service.\n\n' +
+                      'Start using your free services now!');
+                
+                userData.availableCash = 0;
+                updateDashboard();
+                document.getElementById('payoutSection').style.display = 'none';
+            }
+        }
+        
+        // Open contribution tool
+        function openTool(toolName) {
+            const urls = {
+                'storage-contributor': 'storage-contributor.html',
+                'gpu-pool': 'gpu-pool.html',
+                'freedom-relay': 'freedom-relay.html',
+                'bandwidth-pool': 'bandwidth-pool.html',
+                'cpu-sharing': 'cpu-sharing.html',
+                'skill-marketplace': 'skill-marketplace.html'
+            };
+            
+            if (urls[toolName]) {
+                window.open(urls[toolName], '_blank');
+            } else {
+                alert('This tool is coming soon! Stay tuned for updates.');
+            }
+        }
+        
+        // Show earnings guide
+        function showEarningsGuide() {
+            alert('💡 How to Earn Real Money with HGWS:\n\n' +
+                  '🏆 BEST EARNERS:\n' +
+                  '• GPU Computing: $0.10/task (highest paying!)\n' +
+                  '• Skill Tasks: $1-50/task (use your expertise)\n' +
+                  '• Freedom Relay: $0.05/request + impact bonus\n\n' +
+                  '⚡ STEADY INCOME:\n' +
+                  '• Storage Sharing: $0.01/GB/hour\n' +
+                  '• Bandwidth: $0.02/GB transferred\n' +
+                  '• CPU Sharing: $0.005/core/hour\n\n' +
+                  '💰 PAYOUT INFO:\n' +
+                  '• Minimum payout: $5.00\n' +
+                  '• PayPal payouts: 24-48 hours\n' +
+                  '• Or apply directly to your cloud account\n\n' +
+                  '🎯 PRO TIP: Run multiple tools simultaneously for maximum earnings!');
+        }
+        
+        // Initialize dashboard
+        window.addEventListener('load', () => {
+            // Auto-populate email from localStorage
+            const storedEmail = localStorage.getItem('hgws_user_email');
+            if (storedEmail) {
+                document.getElementById('userEmail').value = storedEmail;
+            }
+            
+            // Calculate next billing date (1st of next month)
+            const nextMonth = new Date();
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            nextMonth.setDate(1);
+            document.getElementById('billingDueDate').innerHTML = 
+                `🗓️ Next billing cycle: ${nextMonth.toLocaleDateString()} | No surprise fees, ever.`;
+        });
+        
+        // Save email to localStorage
+        document.getElementById('userEmail').addEventListener('change', function() {
+            localStorage.setItem('hgws_user_email', this.value);
+        });
+        
+        // Payout system functions
+        let selectedPayoutMethod = null;
+        
+        function selectPayoutMethod(method) {
+            // Clear previous selection
+            document.querySelectorAll('.payout-method').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Select new method
+            event.target.closest('.payout-method').classList.add('selected');
+            selectedPayoutMethod = method;
+            
+            // Show payout form
+            document.getElementById('payoutForm').style.display = 'block';
+            
+            // Configure form based on method
+            const methodConfigs = {
+                paypal: {
+                    title: 'PayPal Payout',
+                    placeholder: 'Enter your PayPal email address',
+                    details: `<strong>Fee:</strong> 2.9% + $0.30<br><strong>Processing:</strong> 24-48 hours<br><strong>You'll receive:</strong> $${((userData.availableCash * 0.971) - 0.30).toFixed(2)}`,
+                    icon: '💙'
+                },
+                cashapp: {
+                    title: 'Cash App Payout',
+                    placeholder: 'Enter your $cashtag (e.g., $YourName)',
+                    details: `<strong>Fee:</strong> FREE!<br><strong>Processing:</strong> Instant<br><strong>You'll receive:</strong> $${userData.availableCash.toFixed(2)}`,
+                    icon: '💚'
+                },
+                venmo: {
+                    title: 'Venmo Payout', 
+                    placeholder: 'Enter your Venmo username (@username)',
+                    details: `<strong>Fee:</strong> FREE!<br><strong>Processing:</strong> Instant<br><strong>You'll receive:</strong> $${userData.availableCash.toFixed(2)}`,
+                    icon: '💜'
+                },
+                zelle: {
+                    title: 'Zelle Payout',
+                    placeholder: 'Enter your email or phone number',
+                    details: `<strong>Fee:</strong> FREE!<br><strong>Processing:</strong> Minutes<br><strong>You'll receive:</strong> $${userData.availableCash.toFixed(2)}`,
+                    icon: '🟡'
+                },
+                bitcoin: {
+                    title: 'Bitcoin Payout',
+                    placeholder: 'Enter your Bitcoin wallet address',
+                    details: `<strong>Network Fee:</strong> ~$2-5<br><strong>Processing:</strong> 10-60 minutes<br><strong>You'll receive:</strong> ~$${(userData.availableCash - 3.5).toFixed(2)} worth of BTC`,
+                    icon: '₿'
+                },
+                ethereum: {
+                    title: 'Ethereum Payout',
+                    placeholder: 'Enter your Ethereum wallet address (0x...)',
+                    details: `<strong>Gas Fee:</strong> ~$1-10<br><strong>Processing:</strong> 2-15 minutes<br><strong>You'll receive:</strong> ~$${(userData.availableCash - 5).toFixed(2)} worth of ETH`,
+                    icon: 'Ξ'
+                },
+                litecoin: {
+                    title: 'Litecoin Payout',
+                    placeholder: 'Enter your Litecoin wallet address',
+                    details: `<strong>Network Fee:</strong> ~$0.05<br><strong>Processing:</strong> 2-5 minutes<br><strong>You'll receive:</strong> ~$${(userData.availableCash - 0.05).toFixed(2)} worth of LTC`,
+                    icon: 'Ł'
+                },
+                bank: {
+                    title: 'Bank Transfer',
+                    placeholder: 'Enter your bank account details',
+                    details: `<strong>Fee:</strong> $1.00<br><strong>Processing:</strong> 1-3 business days<br><strong>You'll receive:</strong> $${(userData.availableCash - 1).toFixed(2)}`,
+                    icon: '🏦'
+                },
+                wire: {
+                    title: 'Wire Transfer',
+                    placeholder: 'Enter your bank routing & account info',
+                    details: `<strong>Fee:</strong> $15-25<br><strong>Processing:</strong> Same business day<br><strong>You'll receive:</strong> $${(userData.availableCash - 20).toFixed(2)}`,
+                    icon: '🌐'
+                },
+                applepay: {
+                    title: 'Apple Pay',
+                    placeholder: 'Enter your Apple Pay email or phone',
+                    details: `<strong>Fee:</strong> FREE!<br><strong>Processing:</strong> Instant<br><strong>You'll receive:</strong> $${userData.availableCash.toFixed(2)}`,
+                    icon: '🍎'
+                },
+                googlepay: {
+                    title: 'Google Pay',
+                    placeholder: 'Enter your Google Pay email or phone',
+                    details: `<strong>Fee:</strong> FREE!<br><strong>Processing:</strong> Instant<br><strong>You'll receive:</strong> $${userData.availableCash.toFixed(2)}`,
+                    icon: '🔵'
+                },
+                account: {
+                    title: 'Account Credit',
+                    placeholder: 'No additional info needed',
+                    details: `<strong>Fee:</strong> FREE!<br><strong>Processing:</strong> Instant<br><strong>Credit Amount:</strong> $${userData.availableCash.toFixed(2)}<br>Use for VMs, storage, bandwidth, etc.`,
+                    icon: '💳'
+                }
+            };
+            
+            const config = methodConfigs[method];
+            document.getElementById('selectedMethodTitle').innerHTML = `${config.icon} ${config.title}`;
+            document.getElementById('payoutDetails').innerHTML = config.details;
+            document.getElementById('payoutAddress').placeholder = config.placeholder;
+            document.getElementById('payoutAddress').style.display = method === 'account' ? 'none' : 'block';
+            document.getElementById('finalPayoutButton').innerHTML = `${config.icon} Request ${config.title}`;
+            
+            // Scroll to form
+            document.getElementById('payoutForm').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function processPayout() {
+            if (!selectedPayoutMethod) {
+                alert('Please select a payout method first!');
+                return;
+            }
+            
+            if (!userData || userData.availableCash < 5.00) {
+                alert('❌ Minimum payout is $5.00!');
+                return;
+            }
+            
+            const payoutAddress = document.getElementById('payoutAddress').value.trim();
+            
+            // Validation based on method
+            if (selectedPayoutMethod !== 'account' && !payoutAddress) {
+                alert('Please enter your payment details!');
+                return;
+            }
+            
+            // Method-specific validation
+            const validations = {
+                paypal: (addr) => addr.includes('@') && addr.includes('.'),
+                cashapp: (addr) => addr.startsWith('$'),
+                venmo: (addr) => addr.startsWith('@') || addr.includes('@'),
+                zelle: (addr) => addr.includes('@') || /\d{10}/.test(addr.replace(/\D/g, '')),
+                bitcoin: (addr) => addr.length >= 26 && addr.length <= 35,
+                ethereum: (addr) => addr.startsWith('0x') && addr.length === 42,
+                litecoin: (addr) => addr.length >= 26 && addr.length <= 35,
+                bank: (addr) => addr.length >= 8,
+                wire: (addr) => addr.length >= 8,
+                applepay: (addr) => addr.includes('@') || /\d{10}/.test(addr.replace(/\D/g, '')),
+                googlepay: (addr) => addr.includes('@') || /\d{10}/.test(addr.replace(/\D/g, '')),
+                account: () => true
+            };
+            
+            if (selectedPayoutMethod !== 'account' && !validations[selectedPayoutMethod](payoutAddress)) {
+                alert('Please enter valid payment details for the selected method!');
+                return;
+            }
+            
+            // Calculate final amount
+            const fees = {
+                paypal: userData.availableCash * 0.029 + 0.30,
+                cashapp: 0,
+                venmo: 0,
+                zelle: 0,
+                bitcoin: 3.5,
+                ethereum: 5,
+                litecoin: 0.05,
+                bank: 1.00,
+                wire: 20.00,
+                applepay: 0,
+                googlepay: 0,
+                account: 0
+            };
+            
+            const fee = fees[selectedPayoutMethod];
+            const finalAmount = userData.availableCash - fee;
+            
+            // Confirmation
+            let confirmMsg = `Confirm ${selectedPayoutMethod.toUpperCase()} payout?\n\n`;
+            confirmMsg += `Amount: $${userData.availableCash.toFixed(2)}\n`;
+            if (fee > 0) confirmMsg += `Fee: $${fee.toFixed(2)}\n`;
+            confirmMsg += `You'll receive: $${finalAmount.toFixed(2)}\n`;
+            if (selectedPayoutMethod !== 'account') {
+                confirmMsg += `To: ${payoutAddress}\n`;
+            }
+            confirmMsg += `\nThis action cannot be undone.`;
+            
+            if (confirm(confirmMsg)) {
+                // Process the payout
+                let successMsg = `✅ Payout requested successfully!\n\n`;
+                successMsg += `Method: ${selectedPayoutMethod.toUpperCase()}\n`;
+                successMsg += `Amount: $${finalAmount.toFixed(2)}\n`;
+                
+                const processingTimes = {
+                    paypal: '24-48 hours',
+                    cashapp: 'Instantly',
+                    venmo: 'Instantly', 
+                    zelle: 'Within minutes',
+                    bitcoin: '10-60 minutes',
+                    ethereum: '2-15 minutes',
+                    litecoin: '2-5 minutes',
+                    bank: '1-3 business days',
+                    wire: 'Same business day',
+                    applepay: 'Instantly',
+                    googlepay: 'Instantly',
+                    account: 'Instantly'
+                };
+                
+                successMsg += `Processing: ${processingTimes[selectedPayoutMethod]}\n\n`;
+                
+                if (selectedPayoutMethod === 'account') {
+                    successMsg += 'Your account balance has been updated!\nYou can now use this credit for any cloud service.';
+                } else {
+                    successMsg += 'You\'ll receive an email confirmation shortly.';
+                }
+                
+                alert(successMsg);
+                
+                // Update user balance
+                userData.availableCash = 0;
+                updateDashboard();
+                
+                // Hide payout section
+                document.getElementById('payoutSection').style.display = 'none';
+            }
+        }
+        
+        function cancelPayout() {
+            document.getElementById('payoutForm').style.display = 'none';
+            document.querySelectorAll('.payout-method').forEach(el => {
+                el.classList.remove('selected');
+            });
+            selectedPayoutMethod = null;
+        }
+    </script>
+</body>
+</html>

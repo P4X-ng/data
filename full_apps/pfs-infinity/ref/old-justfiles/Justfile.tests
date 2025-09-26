@@ -1,0 +1,20 @@
+# Playwright E2E tests
+
+help-tests:
+    @echo "tests commands: e2e|e2e-install|e2e-open"
+
+# Install Playwright deps locally (node modules under this directory)
+e2e-install:
+    @bash -eu -o pipefail -c '\
+    if ! command -v node >/dev/null 2>&1; then echo "node is required" >&2; exit 2; fi; \
+    npm install; \
+    npx playwright install --with-deps'
+
+# Run headless tests against https://127.0.0.1:8811
+e2e:
+    @bash -eu -o pipefail -c '\
+    npm test --silent --scripts-prepend-node-path=auto -- "test:e2e" || npx playwright test'
+
+# (Optional) Open UI mode
+e2e-open:
+    npx playwright test --ui

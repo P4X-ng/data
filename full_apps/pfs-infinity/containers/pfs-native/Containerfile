@@ -1,0 +1,105 @@
+# PacketFS-native container with translated binaries
+# Build with: podman build -t packetfs/pfs-native:latest -f containers/pfs-native/Containerfile .
+
+FROM docker.io/library/python:3.11-slim AS translator
+
+# Stage 1: Build translation environment and translate core binaries
+WORKDIR /translate
+ENV VENV=/opt/venv
+ENV PYTHONPATH="/packetfs/src"
+RUN python -m venv $VENV && \
+    $VENV/bin/pip install -U pip setuptools wheel numpy
+
+# Copy only essential PacketFS source (avoid large binary patterns)
+COPY src/packetfs/__init__.py /packetfs/src/packetfs/
+COPY src/packetfs/filesystem /packetfs/src/packetfs/filesystem
+COPY src/packetfs/tools /packetfs/src/packetfs/tools
+COPY setup.py pyproject.toml /packetfs/
+
+# Install PacketFS (includes translation tools)
+WORKDIR /packetfs
+RUN cd /packetfs && $VENV/bin/python -m pip install -e . || echo "Install attempted"
+
+# Create blob and translate core binaries
+WORKDIR /translate
+RUN mkdir -p /translate/iprog /translate/blob /translate/ingest
+
+# Initialize a 256MB blob for core binaries
+COPY full_apps/pfs-infinity/containers/pfs-native/init_blob.py /translate/init_blob.py
+RUN $VENV/bin/python /translate/init_blob.py
+
+# Translate essential binaries
+RUN cp /bin/ls /bin/cat /bin/echo /bin/sh /usr/bin/python3 /translate/ingest/ || true
+
+# Run translation (this creates IPROGs)
+RUN $VENV/bin/python -m packetfs.tools.translate_daemon \
+    --watch-dir /translate/ingest \
+    --out-dir /translate/iprog \
+    --blob-name pfs_core \
+    --blob-size 33554432 \
+    --blob-seed 1337 \
+    --window 65536 \
+    --once || echo "Translation attempted"
+
+# Stage 2: Runtime container with FUSE support
+FROM docker.io/library/python:3.11-slim AS runtime
+
+# Install FUSE and runtime deps
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        fuse3 \
+        libfuse3-dev \
+        iproute2 \
+        procps \
+        curl \
+        jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Setup venv
+WORKDIR /app
+ENV VENV=/opt/venv
+ENV PYTHONPATH="/packetfs/src"
+RUN python -m venv $VENV
+ENV PATH="$VENV/bin:$PATH"
+
+# Install runtime packages
+COPY full_apps/pfs-infinity/containers/backend/requirements.txt /tmp/requirements.txt
+RUN pip install -U pip setuptools wheel && \
+    pip install -r /tmp/requirements.txt
+
+# Install PacketFS with FUSE support  
+COPY src/packetfs/__init__.py /packetfs/src/packetfs/
+COPY src/packetfs/filesystem /packetfs/src/packetfs/filesystem
+COPY src/packetfs/tools /packetfs/src/packetfs/tools
+COPY setup.py pyproject.toml /packetfs/
+WORKDIR /packetfs
+RUN cd /packetfs && pip install -e . || echo "Install attempted"
+
+# Copy translated artifacts from stage 1
+COPY --from=translator /translate/iprog /pfs/iprog
+COPY --from=translator /translate/blob /pfs/blob
+
+# Copy pfs-infinity app
+WORKDIR /app
+COPY full_apps/pfs-infinity/app /app/app
+COPY full_apps/pfs-infinity/scripts /app/scripts
+
+# Create mount points
+RUN mkdir -p /pfs/mount /pfs/meta /pfs/share
+
+# Startup script that mounts PacketFS then starts the server
+COPY full_apps/pfs-infinity/containers/pfs-native/start.sh /start.sh
+RUN chmod +x /start.sh
+
+# Expose ports
+EXPOSE 8811
+
+# Set environment
+ENV PFS_BLOB_DIR=/pfs/blob \
+    PFS_IPROG_DIR=/pfs/iprog \
+    PFS_MOUNT_DIR=/pfs/mount \
+    PFS_META_DIR=/pfs/meta \
+    PFS_SHARE_DIR=/pfs/share
+
+# Run with FUSE support requires --privileged or specific caps
+CMD ["/start.sh"]

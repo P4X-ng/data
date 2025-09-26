@@ -1,0 +1,71 @@
+# PacketFS-native container operations
+import "./justfile.vars"
+
+# PacketFS help (no default - imported file)
+help-pfs:
+    @echo "PacketFS-native container commands:"
+    @echo "  pfs-build        Build the PacketFS-native container"
+    @echo "  pfs-run          Run container with FUSE support"
+    @echo "  pfs-run-overlay  Run with experimental overlay mode"
+    @echo "  pfs-shell        Shell into running container"
+    @echo "  pfs-translate    Pre-translate binaries (outside container)"
+
+# Build the PacketFS-native container
+pfs-build:
+    @echo "[PFS] Building PacketFS-native container..."
+    cd ../.. && podman build -t packetfs/pfs-native:latest \
+        -f full_apps/pfs-infinity/containers/pfs-native/Containerfile \
+        --build-arg BUILDKIT_INLINE_CACHE=1 .
+    @echo "[PFS] Image built: packetfs/pfs-native:latest"
+
+# Run with FUSE support (requires privileged or device)
+pfs-run name="pfs-native" port="{{WS_PORT}}":
+    @echo "[PFS] Starting PacketFS-native container..."
+    podman run -d --name {{name}} \
+        --privileged \
+        --device /dev/fuse \
+        -p {{port}}:8811 \
+        -e PFS_META_DIR=/app/meta \
+        -v $(pwd)/var/pfsmeta:/app/meta:Z \
+        -v /mnt/huge1G:/mnt/huge1G:Z \
+        packetfs/pfs-native:latest
+
+# Run with experimental overlay mode
+pfs-run-overlay name="pfs-native-overlay" port="{{WS_PORT}}":
+    @echo "[PFS] Starting with overlay mode (experimental)..."
+    podman run -d --name {{name}} \
+        --privileged \
+        --device /dev/fuse \
+        -p {{port}}:8811 \
+        -e PFS_OVERLAY=1 \
+        -e PFS_META_DIR=/app/meta \
+        -v $(pwd)/var/pfsmeta:/app/meta:Z \
+        -v /mnt/huge1G:/mnt/huge1G:Z \
+        packetfs/pfs-native:latest
+
+# Shell into the container
+pfs-shell name="pfs-native":
+    podman exec -it {{name}} /bin/bash
+
+# Stop and remove container
+pfs-stop name="pfs-native":
+    podman stop {{name}} || true
+    podman rm {{name}} || true
+
+# Pre-translate binaries on host (for development)
+pfs-translate blob_size="268435456" window="65536":
+    @echo "[PFS] Translating binaries on host..."
+    @mkdir -p var/pfs/ingest var/pfs/iprog var/pfs/blob
+    @cp /bin/ls /bin/cat /bin/echo /usr/bin/python3 var/pfs/ingest/ || true
+    {{VENV_PATH}}/bin/python -m packetfs.tools.translate_daemon \
+        --watch-dir var/pfs/ingest \
+        --out-dir var/pfs/iprog \
+        --blob-name pfs_host \
+        --blob-size {{blob_size}} \
+        --blob-seed 1337 \
+        --window {{window}} \
+        --once
+
+# Dispatcher: `just pfs <cmd>`
+pfs cmd="help":
+    @bash -eu -o pipefail -c 'case "{{cmd}}" in build) just pfs-build ;; run) just pfs-run ;; run-overlay) just pfs-run-overlay ;; shell) just pfs-shell ;; stop) just pfs-stop ;; translate) just pfs-translate ;; *) just help-pfs; exit 0 ;; esac'

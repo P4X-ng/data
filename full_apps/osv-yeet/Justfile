@@ -1,0 +1,91 @@
+# Justfile for OSv yeet tools (host build + AF_PACKET runs)
+
+# Default: help
+default: help
+
+help:
+	@just --list
+
+# Variables
+root_dir := `pwd`
+app_dir := "{{root_dir}}/full_apps/osv-yeet"
+bin_dir := "{{app_dir}}/bin"
+
+# Build and clean
+
+dev-yeet-build:
+	@echo "[build] yeet (sender/listener + AF_PACKET)"
+	make -C {{app_dir}} all -j
+
+
+dev-yeet-clean:
+	@echo "[clean] yeet artifacts"
+	make -C {{app_dir}} clean
+
+# UDP run helpers (host)
+# Usage examples:
+#   just -f full_apps/osv-yeet/Justfile dev-yeet-run-listener port=9000 addr=0.0.0.0 duration=0 report_ms=500
+#   just -f full_apps/osv-yeet/Justfile dev-yeet-run-sender host=127.0.0.1 port=9000 len=1024 duration=3 pps=0
+
+addr := "0.0.0.0"
+port := "9000"
+duration := "0"
+report_ms := "500"
+quiet := "0"
+
+dev-yeet-run-listener addr="{{addr}}" port="{{port}}" duration="{{duration}}" report_ms="{{report_ms}}" quiet="{{quiet}}":
+	@[ -x {{bin_dir}}/yeet_listener ] || (echo "missing binary, building..." && make -C {{app_dir}} listener -j)
+	cd {{app_dir}} && ADDR={{addr}} PORT={{port}} DURATION={{duration}} REPORT_MS={{report_ms}} QUIET={{quiet}} {{bin_dir}}/yeet_listener
+
+host := "127.0.0.1"
+len := "1024"
+pps := "0"
+
+dev-yeet-run-sender host="{{host}}" port="{{port}}" len="{{len}}" duration="{{duration}}" pps="{{pps}}":
+	@[ -x {{bin_dir}}/yeet_sender ] || (echo "missing binary, building..." && make -C {{app_dir}} sender -j)
+	cd {{app_dir}} && HOST={{host}} PORT={{port}} LEN={{len}} DURATION={{duration}} PPS={{pps}} {{bin_dir}}/yeet_sender
+
+# AF_PACKET helpers
+
+dev-yeet-afp-build:
+	@echo "[build] yeet AF_PACKET (tx/rx)"
+	make -C {{app_dir}} afp -j
+
+# One-time capability so you can run without sudo
+
+dev-yeet-afp-cap:
+	@echo "[cap] grant CAP_NET_RAW to yeet_afp_{tx,rx}"
+	@bash -eu -o pipefail -c '
+	  which setcap >/dev/null || { echo "setcap not found; install libcap2-bin" >&2; exit 1; };
+	  sudo setcap cap_net_raw+ep {{bin_dir}}/yeet_afp_tx {{bin_dir}}/yeet_afp_rx'
+
+
+dev-yeet-afp-cap-status:
+	@bash -eu -o pipefail -c 'which getcap >/dev/null && getcap -r {{bin_dir}} || true'
+
+# AF_PACKET run (rx/tx)
+# Example RX: just -f full_apps/osv-yeet/Justfile dev-yeet-afp-rx iface=enp130s0 duration=5
+# Example TX: just -f full_apps/osv-yeet/Justfile dev-yeet-afp-tx iface=enp130s0 dst_mac=ff:ff:ff:ff:ff:ff len=512 duration=5 batch=256
+
+iface := "lo"
+dst_mac := "ff:ff:ff:ff:ff:ff"
+frame_sz := "2048"
+block_sz := "1048576"
+frames_pb := "512"
+blocks := "64"
+retire_ms := "100"
+op := "0"
+imm := "0"
+batch := "256"
+
+# RX
+
+dev-yeet-afp-rx iface="{{iface}}" duration="{{duration}}" report_ms="{{report_ms}}" frame_sz="{{frame_sz}}" block_sz="{{block_sz}}" frames_pb="{{frames_pb}}" blocks="{{blocks}}" retire_ms="{{retire_ms}}" op="{{op}}" imm="{{imm}}":
+	@[ -x {{bin_dir}}/yeet_afp_rx ] || (echo "missing binary, building..." && make -C {{app_dir}} afp -j)
+	cd {{app_dir}} && IFACE={{iface}} DURATION={{duration}} REPORT_MS={{report_ms}} FRAME_SZ={{frame_sz}} BLOCK_SZ={{block_sz}} FRAMES_PER_BLOCK={{frames_pb}} BLOCKS={{blocks}} RETIRE_MS={{retire_ms}} PFS_OP={{op}} IMM={{imm}} {{bin_dir}}/yeet_afp_rx
+
+# TX
+
+dev-yeet-afp-tx iface="{{iface}}" dst_mac="{{dst_mac}}" len="{{len}}" duration="{{duration}}" batch="{{batch}}" frame_sz="{{frame_sz}}" block_sz="{{block_sz}}" blocks="{{blocks}}" op="{{op}}" imm="{{imm}}":
+	@[ -x {{bin_dir}}/yeet_afp_tx ] || (echo "missing binary, building..." && make -C {{app_dir}} afp -j)
+	cd {{app_dir}} && IFACE={{iface}} DST_MAC={{dst_mac}} LEN={{len}} DURATION={{duration}} BATCH_FRAMES={{batch}} FRAME_SZ={{frame_sz}} BLOCK_SZ={{block_sz}} BLOCKS={{blocks}} PFS_OP={{op}} IMM={{imm}} {{bin_dir}}/yeet_afp_tx

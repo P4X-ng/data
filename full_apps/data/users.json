@@ -1,0 +1,33 @@
+[
+  {
+    "user_id": "63d0eb775280",
+    "username": "testuser",
+    "email": "test@example.com",
+    "full_name": "",
+    "organization": "TestOrg",
+    "vlan_id": 100,
+    "subnet": "10.200.0.0/16",
+    "gateway": "10.200.0.1",
+    "status": "active",
+    "created_at": "2025-09-11T11:48:20.150961",
+    "api_key": "zJJARr93gVTtu2cbOhEzEF5cwM_PQV661QcRYcIEeS4",
+    "tailscale_auth_key": "tskey-63d0eb77",
+    "resources": {
+      "max_vms": 2,
+      "max_containers": 10,
+      "max_storage_gb": 100,
+      "max_memory_gb": 8,
+      "max_vcpus": 4,
+      "used_vms": 0,
+      "used_containers": 0,
+      "used_storage_gb": 0,
+      "used_memory_gb": 0,
+      "used_vcpus": 0
+    },
+    "settings": {
+      "enable_internet": true,
+      "enable_tailscale": true,
+      "isolation_level": "strict"
+    }
+  }
+]

@@ -1,0 +1,45 @@
+# OS-Walk - Complete Distributed Operating System Container
+FROM docker.io/library/python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        fuse3 libfuse3-dev \
+        redis-server \
+        openssh-client \
+        iproute2 procps curl jq \
+        qemu-system-x86 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Setup Python environment
+WORKDIR /app
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONPATH="/app:/packetfs/src"
+
+# Install Python packages
+RUN pip install -U pip setuptools wheel && \
+    pip install redis fuse-python hypercorn fastapi websockets
+
+# Copy PacketFS
+COPY vendor/packetfs /packetfs/src/packetfs
+WORKDIR /packetfs
+RUN pip install -e .
+
+# Copy OS-Walk components
+WORKDIR /app
+COPY full_apps/os_walk/ /app/
+
+# Copy F3 app for web interface
+COPY app /app/f3-app
+
+# Create directories
+RUN mkdir -p /pfs /net /data /var/lib/redis
+
+# Startup script
+COPY full_apps/os_walk/start-oswalk.sh /start-oswalk.sh
+RUN chmod +x /start-oswalk.sh
+
+EXPOSE 8811 6379
+
+CMD ["/start-oswalk.sh"]

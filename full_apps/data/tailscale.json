@@ -1,0 +1,16 @@
+{
+  "auth_keys": [
+    {
+      "key": "tskey-E25eO71qSqEira7IdQYXpA",
+      "ephemeral": true,
+      "reusable": false,
+      "tags": [],
+      "customer": null,
+      "created_at": "2025-09-13T07:50:17.022694",
+      "expires_at": "2025-09-13T08:50:17.022700"
+    }
+  ],
+  "devices": [],
+  "subnet_routers": [],
+  "customer_tailnets": []
+}

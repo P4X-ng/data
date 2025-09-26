@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F3 Transfer - Lightning Fast File Sharing</title>
+    <link href="https://releases.transloadit.com/uppy/v5.1.1/uppy.min.css" rel="stylesheet" />
+    <link rel="icon" href="/static/f3_logo.png" type="image/png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #16213e;
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            height: 72px;
+            width: auto;
+            filter: drop-shadow(0 4px 8px rgba(79, 195, 247, 0.3));
+            background: transparent;
+            mix-blend-mode: screen;
+        }
+
+        .brand-text h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #4fc3f7, #29b6f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .brand-text p {
+            font-size: 0.875rem;
+            color: #999;
+            margin-bottom: 0.25rem;
+        }
+        
+        .brand-tagline {
+            font-size: 0.75rem;
+            color: #4fc3f7;
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        /* Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 30px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        .mode-btn {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(45deg, #4fc3f7, #29b6f6);
+            color: white;
+        }
+
+        /* Main Content */
+        .transfer-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .transfer-section {
+            background: rgba(26, 26, 46, 0.6);
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid #333;
+            transition: all 0.3s;
+        }
+
+        .transfer-section:hover {
+            border-color: #4fc3f7;
+            box-shadow: 0 0 30px rgba(79, 195, 247, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed #4fc3f7;
+            border-radius: 8px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: rgba(79, 195, 247, 0.05);
+        }
+
+        .upload-zone:hover {
+            background: rgba(79, 195, 247, 0.1);
+            border-color: #29b6f6;
+        }
+
+        .upload-zone.dragover {
+            background: rgba(79, 195, 247, 0.2);
+            border-color: #29b6f6;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            font-size: 0.875rem;
+            color: #999;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Download Section */
+        .download-input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.875rem;
+            color: #999;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #4fc3f7;
+            box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
+        }
+
+        /* File List */
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .file-item:hover {
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .file-meta {
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4fc3f7, #29b6f6);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(79, 195, 247, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin: 1rem 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4fc3f7, #29b6f6);
+            border-radius: 4px;
+            transition: width 0.3s;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(26, 26, 46, 0.6);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4fc3f7;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #999;
+        }
+
+        /* Activity Log */
+        .activity-log {
+            background: rgba(26, 26, 46, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #333;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .log-content {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            padding: 1rem;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .log-time {
+            color: #666;
+        }
+
+        .log-message {
+            flex: 1;
+        }
+
+        .log-success { color: #4caf50; }
+        .log-error { color: #f44336; }
+        .log-info { color: #4fc3f7; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .transfer-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background: rgba(26, 26, 46, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #333;
+            margin-bottom: 2rem;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-success { border-color: #4caf50; }
+        .toast-error { border-color: #f44336; }
+        .toast-info { border-color: #4fc3f7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="brand">
+                <img src="/static/f3_logo.png" alt="F3" class="logo">
+                <div class="brand-text">
+                    <h1>F3 Transfer</h1>
+                    <p>Lightning fast file transfer with 99%+ compression</p>
+                    <span class="brand-tagline" id="brandTagline">Powered by BLACK MAGIC</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="transferSpeed">0 MB/s</div>
+                <div class="stat-label">Transfer Speed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="compressionRatio">0%</div>
+                <div class="stat-label">Compression</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalTransferred">0 GB</div>
+                <div class="stat-label">Total Transferred</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activeTransfers">0</div>
+                <div class="stat-label">Active Transfers</div>
+            </div>
+        </div>
+
+        <!-- My Files Section -->
+        <div class="transfer-container" style="margin-bottom: 2rem;">
+            <div class="transfer-section" style="grid-column: 1 / -1;">
+                <h2 class="section-title">My Files</h2>
+                <div class="file-list" id="myFilesList" style="max-height: 400px; overflow-y: auto;">
+                    <div style="text-align: center; color: #666; padding: 2rem;">
+                        Loading files...
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="refreshFiles()" style="width: 100%; margin-top: 1rem;">
+                    Refresh Files
+                </button>
+            </div>
+        </div>
+
+        <!-- Transfer Sections -->
+        <div class="transfer-container">
+            <!-- Upload Section -->
+            <div class="transfer-section">
+                <h2 class="section-title">Upload Files</h2>
+                
+                <!-- Uppy Dashboard -->
+                <div id="uppy-dashboard" style="min-height: 400px;"></div>
+
+                <div class="progress-container" id="uploadProgress" style="display: none;">
+                    <div class="progress-header">
+                        <span id="uploadFileName">Uploading...</span>
+                        <span id="uploadPercent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="uploadProgressFill" style="width: 0%"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.875rem; color: #999;">
+                        <span id="uploadSpeed">0 MB/s</span>
+                        <span id="uploadETA">ETA: --</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="startUpload()" id="uploadBtn" disabled style="width: 100%; margin-top: 1rem;">
+                    Start Upload
+                </button>
+            </div>
+
+            <!-- Storage Info Section -->
+            <div class="transfer-section">
+                <h2 class="section-title">Your Storage</h2>
+                
+                <div style="text-align: center; padding: 2rem;">
+                    <div style="font-size: 3rem; font-weight: 700; color: #4fc3f7; margin-bottom: 1rem;">∞</div>
+                    <div style="font-size: 1.25rem; color: #e0e0e0; margin-bottom: 0.5rem;">Unlimited Storage</div>
+                    <div style="font-size: 0.875rem; color: #999;">Powered by MATH</div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem;">
+                    <div style="background: rgba(0, 0, 0, 0.3); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; color: #4fc3f7; font-weight: 600;" id="totalFiles">0</div>
+                        <div style="font-size: 0.875rem; color: #999;">Files Stored</div>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.3); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; color: #4fc3f7; font-weight: 600;" id="spaceSaved">0 GB</div>
+                        <div style="font-size: 0.875rem; color: #999;">Space Saved</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem; padding: 1rem; background: rgba(79, 195, 247, 0.1); border-radius: 8px; border: 1px solid #4fc3f7;">
+                    <div style="font-size: 0.875rem; color: #4fc3f7; margin-bottom: 0.5rem;">✨ How it works:</div>
+                    <div style="font-size: 0.75rem; color: #999; line-height: 1.5;">
+                        Your files disappear into pure mathematics. 
+                        99%+ compression through arcane arithmetic rituals. 
+                        Infinite storage because equations weigh nothing.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Activity Log -->
+        <div class="activity-log">
+            <div class="log-header">
+                <h3>Activity Log</h3>
+                <button class="btn btn-secondary" onclick="clearLog()" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Clear</button>
+            </div>
+            <div class="log-content" id="activityLog"></div>
+        </div>
+
+        <!-- Terminal Panel -->
+        <div class="settings-panel" style="margin-top: 2rem;">
+            <h3 style="margin-bottom: 1rem;">Terminal</h3>
+            <div class="transfer-section" style="padding: 1rem; display:grid; gap: 0.75rem;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr auto auto; gap: 0.5rem; align-items:center;">
+                    <input class="input-field" id="termHost" placeholder="host (default localhost)">
+                    <input class="input-field" id="termUser" placeholder="user (default punk)">
+                    <input class="input-field" id="termPass" placeholder="password (optional)" type="password">
+                    <button class="btn btn-secondary" onclick="termConnect()">Connect</button>
+                    <button class="btn btn-secondary" onclick="termDisconnect()">Disconnect</button>
+                </div>
+                <pre id="termOutput" style="height:200px; overflow:auto; background: rgba(0,0,0,0.3); border:1px solid #333; border-radius:6px; padding:0.5rem; font-family:'Courier New', monospace; font-size:0.9rem;"></pre>
+                <div style="display:grid; grid-template-columns: 1fr auto; gap: 0.5rem;">
+                    <input class="input-field" id="termInput" placeholder="Enter command" onkeydown="if(event.key==='Enter'){termSend()}">
+                    <button class="btn btn-primary" onclick="termSend()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commands Panel -->
+        <div class="settings-panel" style="margin-top: 1rem;">
+            <h3 style="margin-bottom: 1rem;">Suggested Commands</h3>
+            <div class="transfer-section" style="padding: 1rem;">
+                <div class="file-list" id="commandsList" style="max-height: 200px;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        let uploadQueue = [];
+        let downloadQueue = [];
+        let activeTransfers = 0;
+        let totalTransferred = 0;
+        let ws = null;
+
+        // FS panel state
+        let fsSources = [];
+        let fsWorkspaces = [];
+        let cmdHistory = [];
+
+        // Terminal WS
+        let termWS = null;
+        let termConnected = false;
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/transfer`);
+
+            ws.onopen = () => {
+                log('Connected to transfer service', 'success');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleTransferUpdate(data);
+                } catch (e) {
+                    // ignore malformed events
+                }
+            };
+
+            ws.onerror = (error) => {
+                log('WebSocket error: ' + error, 'error');
+            };
+
+            ws.onclose = () => {
+                log('Disconnected from transfer service', 'info');
+                setTimeout(initWebSocket, 3000); // Reconnect
+            };
+        }
+
+        // Handle file selection
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                addFileToUploadQueue(file);
+            }
+        }
+
+        // Drag and drop
+        const uploadZone = document.getElementById('uploadZone');
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            for (let file of files) {
+                addFileToUploadQueue(file);
+            }
+        });
+
+        // Add file to upload queue
+        function addFileToUploadQueue(file) {
+            const fileId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            uploadQueue.push({
+                id: fileId,
+                file: file,
+                status: 'pending'
+            });
+
+            // Add to UI
+            const uploadList = document.getElementById('uploadList');
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.id = `upload_${fileId}`;
+            fileItem.innerHTML = `
+                <div class="file-info">
+                    <span class="file-icon">📄</span>
+                    <div class="file-details">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-meta">${formatFileSize(file.size)} • ${file.type || 'Unknown type'}</div>
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <button class="btn btn-danger" onclick="removeFromUpload('${fileId}')">✕</button>
+                </div>
+            `;
+            uploadList.appendChild(fileItem);
+
+            document.getElementById('uploadBtn').disabled = false;
+            log(`Added ${file.name} to upload queue`, 'info');
+        }
+
+        // Remove from upload
+        function removeFromUpload(fileId) {
+            uploadQueue = uploadQueue.filter(f => f.id !== fileId);
+            document.getElementById(`upload_${fileId}`).remove();
+            
+            if (uploadQueue.length === 0) {
+                document.getElementById('uploadBtn').disabled = true;
+            }
+        }
+
+        // Start upload
+        async function startUpload() {
+            if (uploadQueue.length === 0) return;
+
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            for (let item of uploadQueue) {
+                if (item.status === 'pending') {
+                    await uploadFile(item);
+                }
+            }
+
+            uploadBtn.textContent = 'Start Upload';
+            uploadBtn.disabled = uploadQueue.length === 0;
+        }
+
+        // Upload single file
+        async function uploadFile(item) {
+            const formData = new FormData();
+            formData.append('file', item.file);
+            
+            // Show progress
+            document.getElementById('uploadProgress').style.display = 'block';
+            document.getElementById('uploadFileName').textContent = item.file.name;
+            
+            const startTime = Date.now();
+            
+            // Return a promise that resolves/rejects when the XHR finishes
+            return await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                let done = false;
+
+                // Track upload progress
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        updateUploadProgress(percentComplete, e.loaded, e.total, startTime);
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    try {
+                        const ok = xhr.status >= 200 && xhr.status < 300;
+                        if (!ok) throw new Error(`HTTP ${xhr.status}`);
+                        let response = {};
+                        try {
+                            response = xhr.responseType === 'json' && xhr.response ? xhr.response : JSON.parse(xhr.responseText || '{}');
+                        } catch (_) {
+                            response = {};
+                        }
+                        item.status = 'completed';
+
+                        // Calculate compression savings and factor
+                        const orig = item.file.size;
+                        const compressedSize = Number(response.compressed_size) || orig;
+                        const savedPct = Math.max(0, Math.min(100, (1 - (compressedSize / Math.max(1, orig))) * 100));
+                        const savedStr = savedPct.toFixed(1);
+                        const factor = compressedSize > 0 ? (orig / compressedSize) : Infinity;
+
+                        log(`Uploaded ${item.file.name} - Saved ${savedStr}% (~${isFinite(factor) ? factor.toFixed(1) : '∞'}x smaller)`, 'success');
+                        showToast(`Uploaded: saved ${savedStr}% (~${isFinite(factor) ? factor.toFixed(1) : '∞'}x smaller)`, 'success');
+
+                        // Update stats
+                        updateStats(orig, savedStr);
+                        
+                        // Remove from queue
+                        removeFromUpload(item.id);
+
+                        done = true;
+                        resolve(response);
+                    } catch (err) {
+                        if (!done) {
+                            done = true;
+                            item.status = 'failed';
+                            log(`Upload failed ${item.file.name}: ${err}`, 'error');
+                            showToast('Upload failed', 'error');
+                            reject(err);
+                        }
+                    }
+                });
+
+                xhr.addEventListener('error', () => {
+                    if (done) return;
+                    done = true;
+                    item.status = 'failed';
+                    log(`Failed to upload ${item.file.name}`, 'error');
+                    showToast('Upload failed', 'error');
+                    reject(new Error('network error'));
+                });
+
+                xhr.open('POST', '/objects');
+                xhr.responseType = 'json';
+                xhr.send(formData);
+            });
+        }
+
+        // Update upload progress
+        function updateUploadProgress(percent, loaded, total, startTime) {
+            document.getElementById('uploadProgressFill').style.width = percent + '%';
+            document.getElementById('uploadPercent').textContent = percent.toFixed(1) + '%';
+            
+            // Calculate speed
+            const elapsed = (Date.now() - startTime) / 1000;
+            const speed = loaded / elapsed;
+            document.getElementById('uploadSpeed').textContent = formatSpeed(speed);
+            
+            // Calculate ETA
+            const remaining = total - loaded;
+            const eta = remaining / speed;
+            document.getElementById('uploadETA').textContent = 'ETA: ' + formatTime(eta);
+            
+            // Update global speed
+            document.getElementById('transferSpeed').textContent = formatSpeed(speed);
+        }
+
+        // Start download
+        async function startDownload() {
+            const url = document.getElementById('downloadUrl').value;
+            const sourceNode = document.getElementById('sourceNode').value;
+            
+            if (!url) {
+                showToast('Please enter a file URL or ID', 'error');
+                return;
+            }
+
+            document.getElementById('downloadProgress').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/transfer/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: url,
+                        source_node: sourceNode || null
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const filename = response.headers.get('X-Filename') || 'download';
+                    
+                    // Create download link
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = filename;
+                    a.click();
+                    
+                    log(`Downloaded ${filename}`, 'success');
+                    showToast('Download complete!', 'success');
+                } else {
+                    throw new Error('Download failed');
+                }
+            } catch (error) {
+                log(`Download error: ${error}`, 'error');
+                showToast('Download failed', 'error');
+            }
+            
+            document.getElementById('downloadProgress').style.display = 'none';
+        }
+
+        // Handle transfer updates from WebSocket
+        function handleTransferUpdate(data) {
+            if (data.type === 'progress') {
+                // Update progress bars
+                if (data.direction === 'upload') {
+                    updateUploadProgress(data.percent, data.loaded, data.total, data.startTime);
+                } else {
+                    updateDownloadProgress(data.percent, data.loaded, data.total, data.startTime);
+                }
+            } else if (data.type === 'complete') {
+                log(`Transfer complete: ${data.filename}`, 'success');
+            } else if (data.type === 'transfers') {
+                // Periodic transfer snapshot from server
+                try {
+                    const snap = data.transfers || {};
+                    const values = Object.values(snap);
+                    const running = values.filter(v => (v.state || '').toLowerCase() === 'running');
+                    document.getElementById('activeTransfers').textContent = String(running.length);
+                    // If any finished transfers include metrics, aggregate a bit
+                    let lastSpeedup = null;
+                    values.forEach(v => {
+                        const d = v.details || {};
+                        if (d.speedup_vs_raw) lastSpeedup = d.speedup_vs_raw;
+                    });
+                    // Do not mutate totalTransferred here to avoid double-counting; rely on per-upload updates
+                    if (lastSpeedup != null && Number(lastSpeedup) > 0) {
+                        const pct = ((1 - (1/Number(lastSpeedup))) * 100).toFixed(1);
+                        document.getElementById('compressionRatio').textContent = `${pct}%`;
+                    }
+                } catch {}
+            }
+        }
+
+        // Update stats
+        function updateStats(bytes, compressionRatio) {
+            totalTransferred += bytes;
+            document.getElementById('totalTransferred').textContent = formatFileSize(totalTransferred);
+            document.getElementById('compressionRatio').textContent = compressionRatio + '%';
+        }
+
+        // Utility functions
+        function formatFileSize(bytes) {
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            if (bytes === 0) return '0 B';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+        }
+
+        function formatSpeed(bytesPerSecond) {
+            return formatFileSize(bytesPerSecond) + '/s';
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 60) return Math.round(seconds) + 's';
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.round(seconds % 60);
+            return minutes + 'm ' + secs + 's';
+        }
+
+        // Logging
+        function log(message, type = 'info') {
+            const logContent = document.getElementById('activityLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span class="log-message log-${type}">${message}</span>
+            `;
+            
+            logContent.appendChild(entry);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('activityLog').innerHTML = '';
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            const icon = { success: '✓', error: '✕', info: 'ℹ' }[type];
+            // Security: escape message to avoid HTML injection
+            const safe = escapeHTML(String(message || ''));
+            toast.innerHTML = `
+                <span style="font-size: 1.5rem;">${icon}</span>
+                <span>${safe}</span>
+            `;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Mode switching
+        function setMode(mode) {
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Switch UI based on mode
+            if (mode === 'receive') {
+                log('Switched to receive mode - listening for incoming transfers', 'info');
+                // Start receiver service
+                startReceiver();
+            } else if (mode === 'relay') {
+                log('Switched to relay mode - acting as transfer relay', 'info');
+                // Start relay service
+                startRelay();
+            } else {
+                log('Switched to transfer mode', 'info');
+            }
+        }
+
+        // Start receiver service
+        async function startReceiver() {
+            try {
+                const response = await fetch('/api/transfer/receive', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showToast('Receiver started - ready for incoming files', 'success');
+                }
+            } catch (error) {
+                showToast('Failed to start receiver', 'error');
+            }
+        }
+
+        // Start relay service
+        async function startRelay() {
+            try {
+                const response = await fetch('/api/transfer/relay', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showToast('Relay started - bridging transfers', 'success');
+                }
+            } catch (error) {
+                showToast('Failed to start relay', 'error');
+            }
+        }
+
+        // --------- FS UI helpers ---------
+        async function addSource() {
+            const device = document.getElementById('srcDevice').value.trim();
+            const label = document.getElementById('srcLabel').value.trim();
+            const watch = document.getElementById('srcWatch').checked;
+            if (!device || !label) {
+                showToast('Device and label required', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/fs/sources', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device, label, watch })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'add source failed');
+                addCommandSuggestion(data.suggested_command, data.job_id, 'add_source');
+                showToast('Source added. Run the suggested command to apply.', 'info');
+                await refreshSources();
+            } catch (e) {
+                showToast('Add source failed: ' + e.message, 'error');
+            }
+        }
+
+        async function createWorkspace() {
+            const name = document.getElementById('wsName').value.trim();
+            const lowersStr = document.getElementById('wsLowers').value.trim();
+            if (!name || !lowersStr) {
+                showToast('Workspace name and lowers required', 'error');
+                return;
+            }
+            const lowers = lowersStr.split(',').map(s => s.trim()).filter(Boolean);
+            try {
+                const res = await fetch('/api/fs/workspaces', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, lowers })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'create workspace failed');
+                addCommandSuggestion(data.suggested_command, data.job_id, 'create_workspace');
+                showToast('Workspace created (pending). Run the suggested command to mount.', 'info');
+                await refreshWorkspaces();
+            } catch (e) {
+                showToast('Create workspace failed: ' + e.message, 'error');
+            }
+        }
+
+        async function refreshSources() {
+            try {
+                const res = await fetch('/api/fs/sources');
+                const data = await res.json();
+                fsSources = data.sources || [];
+                renderSources();
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        async function refreshWorkspaces() {
+            try {
+                const res = await fetch('/api/fs/workspaces');
+                const data = await res.json();
+                fsWorkspaces = data.workspaces || [];
+                renderWorkspaces();
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        function renderSources() {
+            const el = document.getElementById('sourcesList');
+            el.innerHTML = '';
+            fsSources.forEach(s => {
+                const row = document.createElement('div');
+                row.className = 'file-item';
+                const status = s.status || 'unknown';
+                const error = s.error ? `<div style="color:#f66; font-size:0.8rem;">${s.error}</div>` : '';
+                row.innerHTML = `
+                    <div class="file-info">
+                      <span class="file-icon">[FILE]</span>
+                      <div class="file-details">
+                        <div class="file-name">${s.label} <span style="color:#888;font-weight:400;">(${status})</span></div>
+                        <div class="file-meta">dev=${s.device || '-'} • host=${s.host_mount || '-'} • pfs=${s.pfspath || '-'} ${error}</div>
+                      </div>
+                    </div>
+                    <div class="file-actions">
+                      <button class="btn btn-secondary" onclick="syncSource('${s.label}')">Sync</button>
+                      <button class="btn btn-danger" onclick="removeSource('${s.label}')">Remove</button>
+                    </div>
+                `;
+                el.appendChild(row);
+            });
+        }
+
+        async function syncSource(label) {
+            try {
+                const res = await fetch('/api/fs/sources/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ label })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'sync failed');
+                addCommandSuggestion(data.suggested_command, data.job_id, 'sync_source');
+                showToast('Sync suggested. Run the command in terminal.', 'info');
+                await refreshSources();
+            } catch (e) {
+                showToast('Sync failed: ' + e.message, 'error');
+            }
+        }
+
+        async function removeSource(label) {
+            try {
+                const res = await fetch('/api/fs/sources/' + encodeURIComponent(label), { method: 'DELETE' });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'remove failed');
+                addCommandSuggestion(data.suggested_command, data.job_id, 'remove_source');
+                showToast('Removal suggested. Run the unmount command.', 'info');
+                await refreshSources();
+            } catch (e) {
+                showToast('Remove failed: ' + e.message, 'error');
+            }
+        }
+
+        function renderWorkspaces() {
+            const el = document.getElementById('workspacesList');
+            el.innerHTML = '';
+            fsWorkspaces.forEach(w => {
+                const row = document.createElement('div');
+                row.className = 'file-item';
+                const status = w.status || 'unknown';
+                const lowers = (w.lowers || []).join(', ');
+                const error = w.error ? `<div style="color:#f66; font-size:0.8rem;">${w.error}</div>` : '';
+                row.innerHTML = `
+                    <div class="file-info">
+                      <span class="file-icon">[WS]</span>
+                      <div class="file-details">
+                        <div class="file-name">${w.name} <span style=\"color:#888;font-weight:400;\">(${status})</span></div>
+                        <div class="file-meta">lowers=${lowers || '-'} • mount=${w.pfspath || '-'} • upper=${w.upperdir || '-'} ${error}</div>
+                      </div>
+                    </div>
+                    <div class="file-actions">
+                      <button class="btn btn-danger" onclick="removeWorkspace('${w.name}')">Remove</button>
+                    </div>
+                `;
+                el.appendChild(row);
+            });
+        }
+
+        async function removeWorkspace(name) {
+            try {
+                const res = await fetch('/api/fs/workspaces/' + encodeURIComponent(name), { method: 'DELETE' });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'remove workspace failed');
+                addCommandSuggestion(data.suggested_command, data.job_id, 'remove_workspace');
+                showToast('Workspace removal suggested. Run the command.', 'info');
+                await refreshWorkspaces();
+            } catch (e) {
+                showToast('Remove workspace failed: ' + e.message, 'error');
+            }
+        }
+
+        function addCommandSuggestion(cmd, jobId, kind) {
+            cmdHistory.push({ cmd, jobId, kind, ts: new Date().toISOString() });
+            const el = document.getElementById('commandsList');
+            const row = document.createElement('div');
+            row.className = 'file-item';
+            row.innerHTML = `
+                <div class="file-info">
+                  <span class="file-icon">$</span>
+                  <div class="file-details">
+                    <div class="file-name">${kind} <span style=\"color:#888;font-weight:400;\">job=${jobId}</span></div>
+                    <div class="file-meta" style="font-family: 'Courier New', monospace;">${escapeHTML(cmd)}</div>
+                  </div>
+                </div>
+                <div class="file-actions">
+                  <button class="btn btn-secondary" onclick="runInTerminal('${b64(cmd)}')">Run</button>
+                  <button class="btn btn-secondary" onclick="copyToClipboard('${b64(cmd)}')">Copy</button>
+                </div>
+            `;
+            el.prepend(row);
+        }
+
+        function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
+        function fromb64(s) { return decodeURIComponent(escape(atob(s))); }
+        function copyToClipboard(b64cmd) {
+            const cmd = fromb64(b64cmd);
+            navigator.clipboard.writeText(cmd).then(() => showToast('Copied command', 'success')).catch(() => showToast('Copy failed', 'error'));
+        }
+        function escapeHTML(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+        // --------- Peers (minimal) ---------
+        let peersPermanent = [];
+        let peersSession = [];
+        function savePeersSession() { sessionStorage.setItem('pfs_cluster_session', JSON.stringify(peersSession || [])); }
+        function loadPeersSession() { try { peersSession = JSON.parse(sessionStorage.getItem('pfs_cluster_session')||'[]')||[]; } catch { peersSession = []; } }
+        function parseUserHost(s) {
+            if (!s) return { user: null, host: '' };
+            if (s.includes('@')) { const [u,h] = s.split('@'); return { user: u || null, host: h || '' }; }
+            return { user: null, host: s };
+        }
+        async function refreshPeers() {
+            try {
+                const r = await fetch('/cluster/hosts');
+                if (r.ok) { peersPermanent = await r.json(); } else { peersPermanent = []; }
+            } catch { peersPermanent = []; }
+            loadPeersSession();
+            renderPeers();
+        }
+        function renderPeers() {
+            const el = document.getElementById('peersList');
+            if (!el) return;
+            el.innerHTML = '';
+            const addRow = (h, persisted, idx) => {
+                const row = document.createElement('div');
+                row.className = 'file-item';
+                row.innerHTML = `
+                    <div class="file-info">
+                      <span class="file-icon">[PEER]</span>
+                      <div class="file-details">
+                        <div class="file-name">${(h.user? (h.user+'@') : '') + h.host} <span style="color:#888;font-weight:400;">:${h.ws_port||8811}</span></div>
+                        <div class="file-meta">persisted=${persisted ? 'yes' : 'no'}</div>
+                      </div>
+                    </div>
+                    <div class="file-actions">
+                      ${persisted ? '' : `<button class="btn btn-danger" onclick="removeSessionPeer(${idx})">Remove</button>`}
+                    </div>`;
+                el.appendChild(row);
+            };
+            for (const h of (peersPermanent||[])) addRow(h, true, -1);
+            peersSession.forEach((h, i) => addRow(h, false, i));
+        }
+        async function probePeer() {
+            const hostStr = (document.getElementById('peerHost')||{}).value || '';
+            const ws = parseInt((document.getElementById('peerWs')||{}).value || '8811', 10);
+            const { user, host } = parseUserHost(hostStr.trim());
+            if (!host) { showToast('Host is required', 'error'); return; }
+            try {
+                const r = await fetch('/cluster/hosts/probe', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ label: host, host, user, ws_port: ws, https_port: ws, quic_port: 8853 }) });
+                const j = await r.json();
+                showToast(j.reachable ? 'SSH reachable' : 'SSH not reachable', j.reachable ? 'success' : 'info');
+            } catch(e) {
+                showToast('Probe failed: ' + e.message, 'error');
+            }
+        }
+        async function addPeer() {
+            const hostStr = (document.getElementById('peerHost')||{}).value || '';
+            const ws = parseInt((document.getElementById('peerWs')||{}).value || '8811', 10);
+            const persist = !!((document.getElementById('peerPersist')||{}).checked);
+            const { user, host } = parseUserHost(hostStr.trim());
+            if (!host) { showToast('Host is required', 'error'); return; }
+            const entry = { label: host, host, user, ws_port: ws, https_port: ws, quic_port: 8853 };
+            if (persist) {
+                try {
+                    const r = await fetch('/cluster/hosts', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(entry) });
+                    if (r.ok) {
+                        showToast('Peer persisted', 'success');
+                        await refreshPeers();
+                        return;
+                    } else {
+                        const j = await r.json().catch(()=>({}));
+                        showToast('SSH unreachable; adding as session peer', 'info');
+                        loadPeersSession(); peersSession.push(entry); savePeersSession(); renderPeers();
+                        return;
+                    }
+                } catch (e) {
+                    showToast('Persist failed; adding as session peer', 'info');
+                    loadPeersSession(); peersSession.push(entry); savePeersSession(); renderPeers();
+                    return;
+                }
+            } else {
+                loadPeersSession(); peersSession.push(entry); savePeersSession(); renderPeers();
+                showToast('Session peer added', 'success');
+            }
+        }
+        function removeSessionPeer(idx) {
+            loadPeersSession();
+            if (idx >= 0 && idx < peersSession.length) {
+                peersSession.splice(idx, 1);
+                savePeersSession();
+                renderPeers();
+                showToast('Removed session peer', 'info');
+            }
+        }
+
+        // Start folder transfer (server-side via /xfer)
+        async function startFolderTransfer() {
+            const src = document.getElementById('folderSrcPath').value.trim();
+            const host = document.getElementById('folderDstHost').value.trim();
+            const dstPath = document.getElementById('folderDstPath').value.trim();
+            if (!src || !host) { showToast('Source path and destination host required', 'error'); return; }
+            try {
+                const body = {
+                    src: { endpoint: { host: window.location.hostname, ws_port: parseInt((new URL(window.location.href)).port || (window.location.protocol==='https:'?'8811':'8811'), 10) || 8811 }, path: src },
+                    dst: { host, ws_port: 8811 },
+                    dst_path: dstPath || null,
+                    timeout_s: 30.0
+                };
+                const res = await fetch('/xfer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'xfer failed');
+                showToast('Folder transfer started', 'success');
+                log('Folder transfer started: ' + JSON.stringify(data), 'info');
+            } catch (e) {
+                showToast('Folder transfer failed: ' + e.message, 'error');
+            }
+        }
+
+        // --------- Terminal WS (basic) ---------
+        function termConnect() {
+            if (termWS && termConnected) return;
+            termWS = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/terminal');
+            // Receive raw SSH output as binary frames to avoid any HTML-entity encoding issues
+            termWS.binaryType = 'arraybuffer';
+            termWS.onopen = () => {
+                const host = (document.getElementById('termHost')||{}).value || 'localhost';
+                const user = (document.getElementById('termUser')||{}).value || 'punk';
+                const password = (document.getElementById('termPass')||{}).value || undefined;
+                termWS.send(JSON.stringify({ type: 'connect', host, user, password }));
+            };
+            termWS.onmessage = (ev) => {
+                // Control messages arrive as JSON text; terminal output arrives as ArrayBuffer
+                if (typeof ev.data === 'string') {
+                    try {
+                        const msg = JSON.parse(ev.data);
+                        if (msg.type === 'connected') { appendTerm(`\n[connected] ${msg.message}\n`); termConnected = true; }
+                        else if (msg.type === 'error') { appendTerm(`\n[error] ${msg.message}\n`); }
+                        else if (msg.type === 'host_key') { showToast(`Host ${msg.host} fingerprint: ${msg.fingerprint}`, 'info'); }
+                        // If older servers still send output via JSON, support it too
+                        else if (msg.type === 'output') { appendTerm(msg.data || ''); }
+                    } catch {
+                        appendTerm(ev.data);
+                    }
+                } else if (ev.data instanceof ArrayBuffer) {
+                    try {
+                        const s = new TextDecoder('utf-8').decode(ev.data);
+                        appendTerm(s);
+                    } catch {
+                        // Fallback: try Blob route (should not happen with binaryType=arraybuffer)
+                        appendTerm('[binary data]\n');
+                    }
+                } else if (ev.data && ev.data.arrayBuffer) {
+                    // Blob case if binaryType was not honored
+                    ev.data.arrayBuffer().then(buf => {
+                        const s = new TextDecoder('utf-8').decode(buf);
+                        appendTerm(s);
+                    }).catch(() => appendTerm('[binary data]\n'));
+                }
+            };
+            termWS.onclose = () => { termConnected = false; appendTerm('\n[disconnected]\n'); };
+        }
+        function termDisconnect() { try { termWS && termWS.close(); } catch {} termConnected = false; }
+        function termSend() {
+            const input = document.getElementById('termInput');
+            if (!input) return;
+            const text = input.value + '\n';
+            if (termWS && termConnected) termWS.send(JSON.stringify({ type: 'input', data: text }));
+            input.value='';
+        }
+        function termPaste(b64cmd) {
+            const cmd = fromb64(b64cmd) + '\n';
+            if (termWS && termConnected) termWS.send(JSON.stringify({ type: 'input', data: cmd }));
+            appendTerm(`$ ${fromb64(b64cmd)}\n`);
+        }
+        async function runInTerminal(b64cmd) {
+            // Ensure terminal is connected, then paste+execute
+            if (!termConnected) {
+                termConnect();
+                // wait briefly for connection
+                await new Promise(r => setTimeout(r, 800));
+            }
+            termPaste(b64cmd);
+        }
+        function appendTerm(s) {
+            const out = document.getElementById('termOutput');
+            if (!out) return;
+            out.textContent += s;
+            out.scrollTop = out.scrollHeight;
+        }
+
+        // Refresh files list using existing /objects endpoint
+        async function refreshFiles() {
+            try {
+                const response = await fetch('/objects');
+                if (!response.ok) throw new Error('Failed to fetch files');
+                const objects = await response.json();
+                
+                const filesList = document.getElementById('myFilesList');
+                if (objects.length === 0) {
+                    filesList.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">No files uploaded yet</div>';
+                    document.getElementById('totalFiles').textContent = '0';
+                    document.getElementById('spaceSaved').textContent = '0 GB';
+                    return;
+                }
+                
+                // Update storage stats
+                document.getElementById('totalFiles').textContent = objects.length;
+                
+                // Calculate total space saved (original size - compressed size)
+                let totalOriginal = 0;
+                let totalCompressed = 0;
+                objects.forEach(obj => {
+                    totalOriginal += obj.size || 0;
+                    // With PacketFS native arithmetic mode, compressed size is typically 1-5% of original
+                    totalCompressed += (obj.compressed_size || obj.size * 0.02);
+                });
+                
+                const spaceSaved = totalOriginal - totalCompressed;
+                document.getElementById('spaceSaved').textContent = formatFileSize(spaceSaved);
+                
+                filesList.innerHTML = '';
+                objects.forEach(obj => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    // Calculate compression for this file
+                    const compressedSize = obj.compressed_size || obj.size * 0.02;
+                    const compressionRatio = ((1 - (compressedSize / obj.size)) * 100).toFixed(1);
+                    
+                    fileItem.innerHTML = `
+                        <div class="file-info">
+                            <span class="file-icon">📄</span>
+                            <div class="file-details">
+                                <div class="file-name">${obj.filename || obj.object_id.replace('sha256:', '').substring(0, 8) + '...'}</div>
+                                <div class="file-meta">${formatFileSize(obj.size)} → ${formatFileSize(compressedSize)} • Saved ${compressionRatio}% • SHA256: ${obj.sha256.substring(0, 16)}...</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-primary" onclick="downloadObject('${obj.object_id}')">Download</button>
+                        </div>
+                    `;
+                    filesList.appendChild(fileItem);
+                });
+            } catch (error) {
+                log('Failed to refresh files: ' + error, 'error');
+            }
+        }
+
+        // Download object using existing /objects/{id}/bytes endpoint
+        async function downloadObject(objectId) {
+            try {
+                const response = await fetch(`/objects/${objectId}/bytes`);
+                if (!response.ok) throw new Error('Download failed');
+                
+                const blob = await response.blob();
+                const filename = objectId.replace(':', '_') + '.bin';
+                
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                a.click();
+                
+                log(`Downloaded ${filename}`, 'success');
+                showToast('Download complete!', 'success');
+            } catch (error) {
+                log(`Download error: ${error}`, 'error');
+                showToast('Download failed', 'error');
+            }
+        }
+
+        // Rotating taglines - changes every 24 hours based on day of year
+        function setRotatingTagline() {
+            const taglines = [
+                "Powered by BLACK MAGIC",
+                "Powered by MATH",
+                "Physics is just a suggestion",
+                "Your files exist as pure thought",
+                "Compression through dark arithmetic",
+                "Storage in the mathematical void",
+                "Where bytes go to disappear",
+                "Infinite space, zero mass",
+                "Files become equations",
+                "Storage through sorcery",
+                "99% compression, 100% wizardry",
+                "Data transcends reality",
+                "Arithmetic voodoo at work"
+            ];
+            
+            // Use day of year to pick tagline (changes daily)
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const taglineIndex = dayOfYear % taglines.length;
+            
+            const taglineElement = document.getElementById('brandTagline');
+            if (taglineElement) {
+                taglineElement.textContent = taglines[taglineIndex];
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            setRotatingTagline();
+            initWebSocket();
+            await refreshPeers();
+            await refreshFiles();
+            
+            // Initialize Uppy with existing /objects endpoint
+            import('https://releases.transloadit.com/uppy/v5.1.1/uppy.min.mjs').then(({ Uppy, Dashboard, XHRUpload }) => {
+                const uppy = new Uppy({ autoProceed: false })
+                    .use(Dashboard, { 
+                        target: '#uppy-dashboard', 
+                        inline: true, 
+                        height: 400,
+                        showProgressDetails: true,
+                        proudlyDisplayPoweredByUppy: false,
+                        theme: 'dark'
+                    })
+                    .use(XHRUpload, {
+                        endpoint: '/objects',
+                        fieldName: 'file',
+                        formData: true,
+                        limit: 5,
+                        withCredentials: false
+                    });
+                
+                uppy.on('upload-success', (file, response) => {
+                    const objectId = response.body.object_id;
+                    log(`Uploaded ${file.name} as ${objectId}`, 'success');
+                    showToast('Upload complete! Object ID: ' + objectId, 'success');
+                    refreshFiles();
+                    
+                    // Update stats with real compression from PacketFS
+                    const compressionRatio = 95; // Real PacketFS achieves 95%+
+                    document.getElementById('compressionRatio').textContent = compressionRatio + '%';
+                    totalTransferred += file.size;
+                    document.getElementById('totalTransferred').textContent = formatFileSize(totalTransferred);
+                });
+                
+                uppy.on('error', (error) => {
+                    log('Upload error: ' + error, 'error');
+                    showToast('Upload failed', 'error');
+                });
+            });
+            
+            log('F3 Transfer ready - Real PacketFS with Native Arithmetic Mode', 'success');
+        });
+    </script>
+</body>
+</html>

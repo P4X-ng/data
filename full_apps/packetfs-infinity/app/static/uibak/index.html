@@ -1,0 +1,594 @@
+<!doctype html>
+<html>
+  <head>
+    <meta http-equiv="refresh" content="0;url=/static/transfer-v2.html" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>F3 - Fast File Fabric</title>
+    <link href="https://releases.transloadit.com/uppy/v5.1.1/uppy.min.css" rel="stylesheet" />
+    <link rel="icon" href="/static/f3_logo.png" type="image/png" />
+    <style>
+      :root {
+        --hg-gray-900: #0a0a0a;
+        --hg-gray-800: #1a1a1a;
+        --hg-gray-700: #2a2a2a;
+        --hg-gray-600: #666666;
+        --hg-gray-400: #cccccc;
+        --hg-gray-100: #ffffff;
+        --hg-electric-cyan: #00d9ff;
+        --hg-signal-green: #00ff41;
+        --hg-hot-magenta: #ff0080;
+      }
+      body { 
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; 
+        margin: 0; 
+        background: var(--hg-gray-900);
+        color: var(--hg-gray-100);
+      }
+      .row { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+      #log { white-space: pre-wrap; background: #111; color: #ddd; padding: 1rem; border-radius: 8px; min-height: 8rem; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 13px; line-height: 1.5; }
+      label { width: 9rem; display: inline-block; }
+      input[type=text] { width: 22rem; }
+      
+      /* Speed bubble */
+      .metrics-container { position: relative; margin-bottom: 1rem; }
+      .speed-bubble {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        display: inline-block;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        opacity: 0;
+        transition: all 0.3s ease;
+        transform: translateY(-10px);
+      }
+      .speed-bubble.active {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .speed-bubble .title {
+        font-size: 12px;
+        opacity: 0.9;
+        margin-bottom: 0.3rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .speed-bubble .speed {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 0.3rem;
+      }
+      .speed-bubble .compression {
+        font-size: 14px;
+        opacity: 0.95;
+      }
+      .speed-bubble .sizes {
+        font-size: 11px;
+        opacity: 0.85;
+        margin-top: 0.5rem;
+      }
+      .success { color: #4ade80; }
+      .error { color: #f87171; }
+      .info { color: #60a5fa; }
+      .dim { opacity: 0.7; }
+
+      /* Brand bar */
+      .brand-bar { display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #ccc; padding-bottom: .5rem; margin-bottom: 1rem; }
+      .brand-bar .logo { height: 40px; width: auto; }
+      .brand-bar .brand-title { font-size: 22px; font-weight: 700; margin: 0; }
+      .brand-bar .brand-sub { font-size: 12px; opacity: 0.8; margin: 0; }
+      .brand-bar nav a { margin-right: .75rem; text-decoration: none; color: #0366d6; }
+      .brand-bar nav a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <header class="brand-bar">
+      <img src="/static/f3_logo.png" alt="F3 Infinite Storage" class="logo" />
+      <div>
+        <div class="brand-title">F3 Infinite Storage</div>
+        <div class="brand-sub">PacketFS control</div>
+      </div>
+      <nav style="margin-left:auto;">
+        <a href="/static/transfer-v2.html">Home</a>
+        <a href="/static/transfer-v2.html">Transfer</a>
+        <a href="/static/cluster.html">Cluster</a>
+        <a href="/static/terminal.html">Terminal</a>
+      </nav>
+    </header>
+
+    <div id="serverIdentity" class="small dim" style="margin-top:-0.5rem; margin-bottom: 0.75rem; display:flex; align-items:center; gap:.5rem; flex-wrap: wrap;">
+      <span id="serverUrlTxt">Server: (resolving…)</span>
+      <span id="netModeBadge" class="small" style="border:1px solid #999; border-radius:4px; padding:1px 6px;">Mode: ?</span>
+      <span id="pskBadge" class="small" style="border:1px solid #999; border-radius:4px; padding:1px 6px;">PSK: ?</span>
+      <span id="shareBadge" class="small" style="border:1px solid #999; border-radius:4px; padding:1px 6px;">Share: ?</span>
+      <button id="copyServerUrl" class="small">Copy URL</button>
+    </div>
+
+    <div class="card" style="border:1px solid #999; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+      <h3>Connection map</h3>
+      <div class="small dim" id="connMap">
+        Browser → <strong>F3 Infinity</strong> (this server) → <em>Remote Host(s)</em><br/>
+        <span id="connBrowser">Browser → Server: </span><br/>
+        <span id="connRemote">Server → Remote: ws=8811, quic=8853 (defaults)</span>
+      </div>
+    </div>
+
+    <div class="card" style="border:1px solid #999; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+      <h3>Quick start</h3>
+      <div class="small dim" style="margin-bottom:.5rem;">This page is for cluster setup and orientation. Use the Transfer page to move files.</div>
+      <ol class="small">
+        <li>Add a host below (or use Bootstrap Selected to auto-run the remote container).</li>
+        <li>Upload a file to this server with the uploader.</li>
+        <li>Click Transfer — this server sends to the selected destination using your chosen mode.</li>
+      </ol>
+    </div>
+
+    <div class="card" style="border:1px solid #999; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+      <h3>Manual bootstrap (fallback)</h3>
+      <div class="small dim">If SSH keys aren’t set up, run this on the remote host to start the receiver:</div>
+      <pre id="manualBoot" class="small" style="background:#111;color:#ddd;padding:.75rem;border-radius:6px;overflow:auto;">
+# as root or with podman privileges
+podman rm -f pfs-infinity >/dev/null 2>&1 || true
+podman run -d --name pfs-infinity --net=host \
+  -e PFS_BROWSE_ROOT="/srv/pfs-share" \
+  -e PFS_TLS=1 \
+  packetfs/pfs-infinity:latest
+</pre>
+      <button id="copyManual" class="small">Copy command</button>
+    </div>
+    <p class="small"><a href="/static/browse.html">Browse and download</a></p>
+    <div class="card" style="border:1px solid #999; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+      <h3>Cluster</h3>
+      <div id="destRibbon" class="small" style="border:1px dashed #777; padding:.25rem .5rem; border-radius:4px; margin:.25rem 0 .75rem 0;">Selected destination: (none)</div>
+      <div class="row">
+        <input id="clLabel" type="text" placeholder="Label (e.g., lab-nuc)" />
+        <input id="clHost" type="text" placeholder="host or user@host" />
+        <input id="clWs" type="text" value="8811" title="WS port" />
+        <label class="small dim"><input id="clPersist" type="checkbox" /> Persist if SSH reachable</label>
+        <button id="clAdd">Add Host</button>
+      </div>
+      <table style="width:100%; border-collapse: collapse; font-size: 14px;">
+        <thead>
+          <tr><th></th><th>label</th><th>host</th><th>ws</th><th>persisted</th><th></th></tr>
+        </thead>
+        <tbody id="clTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="border:1px solid #999; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+      <h3>Cockpit (Embedded)</h3>
+      <div class="row">
+        <label>Service</label>
+        <select id="svcSelect">
+          <option value="hgws">HGWS (8080)</option>
+          <option value="cockpit">Cockpit (9090)</option>
+          <option value="custom">Custom</option>
+        </select>
+        <label>Host</label>
+        <input id="svcHost" type="text" placeholder="host or ip" />
+        <label>Port</label>
+        <input id="svcPort" type="text" value="8080" />
+        <label>Path</label>
+        <input id="svcPath" type="text" value="/" />
+        <button id="svcFromSel">Use Selected Host</button>
+      </div>
+      <div class="row">
+        <label>Direct URL</label>
+        <input id="svcUrl" type="text" placeholder="https://host:port/path (overrides host/port/path)" style="width: 36rem;" />
+        <button id="svcEmbed">Embed</button>
+        <button id="svcOpen">Open Tab</button>
+      </div>
+      <div style="border: 1px solid #999; border-radius: 6px; overflow: hidden;">
+        <iframe id="svcFrame" src="about:blank" style="width: 100%; height: 640px; border: 0; background: #111;"></iframe>
+      </div>
+      <div class="small dim" style="margin-top: 0.5rem;">
+        Note: Some remote dashboards may set frame-ancestors/X-Frame-Options that prevent embedding. Use "Open Tab" if embedding is blocked.
+      </div>
+    </div>
+
+    <div id="uppy" />
+    <div class="row">
+      <label>Mode:</label>
+      <select id="mode">
+        <option value="ws">ws</option>
+        <option value="ws-multi">ws-multi</option>
+        <option value="quic">quic</option>
+      </select>
+    </div>
+    
+    <div class="metrics-container">
+      <div id="speedBubble" class="speed-bubble">
+        <div class="title">Transfer Performance</div>
+        <div class="speed" id="speedValue">—</div>
+        <div class="compression" id="compressionValue">—</div>
+        <div class="sizes" id="sizesValue">—</div>
+      </div>
+    </div>
+    
+    <h3>Transfer Log</h3>
+    <div id="log"></div>
+
+    <script type="module">
+      import { Uppy, Dashboard, XHRUpload } from 'https://releases.transloadit.com/uppy/v5.1.1/uppy.min.mjs'
+
+      const logEl = document.getElementById('log')
+      const modeSel = document.getElementById('mode')
+      const speedBubble = document.getElementById('speedBubble')
+
+      // Cluster state
+      const clTbody = document.getElementById('clTbody')
+      const clAdd = document.getElementById('clAdd')
+      const clLabel = document.getElementById('clLabel')
+      const clHost = document.getElementById('clHost')
+      const clWs = document.getElementById('clWs')
+      const clPersist = document.getElementById('clPersist')
+      let clSession = []
+      const speedValue = document.getElementById('speedValue')
+      const compressionValue = document.getElementById('compressionValue')
+      const sizesValue = document.getElementById('sizesValue')
+      let objectId = null
+      let fileSize = 0
+      let fileName = ''
+
+      function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 B'
+        const k = 1024
+        const dm = decimals < 0 ? 0 : decimals
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
+      }
+
+      function formatSpeed(bytesPerSec) {
+        if (bytesPerSec === 0) return '0 B/s'
+        const k = 1024
+        const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s']
+        const i = Math.floor(Math.log(bytesPerSec) / Math.log(k))
+        return parseFloat((bytesPerSec / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+      }
+
+      function log(msg, type = '') {
+        const timestamp = new Date().toLocaleTimeString()
+        const prefix = `[${timestamp}] `
+        let formatted = prefix + msg
+        if (type === 'success') {
+          formatted = `<span class="success">${prefix}✓ ${msg}</span>`
+        } else if (type === 'error') {
+          formatted = `<span class="error">${prefix}✗ ${msg}</span>`
+        } else if (type === 'info') {
+          formatted = `<span class="info">${prefix}ℹ ${msg}</span>`
+        } else {
+          formatted = `<span class="dim">${prefix}</span>${msg}`
+        }
+        logEl.innerHTML += formatted + '\n'
+        logEl.scrollTop = logEl.scrollHeight
+      }
+
+      function updateMetrics(data) {
+        if (!data) return
+        
+        speedBubble.classList.add('active')
+        
+        const speed = data.eff_bytes_per_s || 0
+        const planBytes = data.plan_bytes || 0
+        const objectSize = data.object_size || fileSize
+        const compression = objectSize > 0 ? ((1 - planBytes / objectSize) * 100).toFixed(1) : 0
+        const speedup = data.speedup_vs_raw || 1
+        
+        speedValue.textContent = formatSpeed(speed)
+        compressionValue.textContent = `${compression}% smaller with PFS (${speedup.toFixed(1)}x speedup)`
+        sizesValue.textContent = `Original: ${formatBytes(objectSize)} → PFS: ${formatBytes(planBytes)}`
+      }
+
+      // Cluster helpers (similar to browse.html)
+      function loadServerHosts(){
+        fetch('/cluster/hosts').then(r=>r.json()).then(arr=>{
+          renderCluster(arr, clSession)
+        }).catch(()=>renderCluster([], clSession))
+      }
+      function saveSession(){ sessionStorage.setItem('pfs_cluster_session', JSON.stringify(clSession)) }
+      function loadSession(){ try{ clSession = JSON.parse(sessionStorage.getItem('pfs_cluster_session')||'[]')||[] }catch{ clSession=[] } }
+      function parseUserHost(s){
+        if (!s) return {user:null, host:''}
+        if (s.includes('@')){ const [u,h]=s.split('@'); return {user:u||null, host:h||''} }
+        return {user:null, host:s}
+      }
+      function renderCluster(permanent, sessionList){
+        clTbody.innerHTML = ''
+        const addRow = (h, persisted)=>{
+          const tr = document.createElement('tr')
+          const tdChk = document.createElement('td'); const chk = document.createElement('input'); chk.type='checkbox';
+          chk.dataset.host = h.host; chk.dataset.ws = (h.ws_port||8811); chk.dataset.quic = (h.quic_port||8853); chk.dataset.id = h.id || h._sid || ''
+          // single-select: checking one unchecks others
+          chk.addEventListener('change', (ev)=>{
+            if (chk.checked){
+              clTbody.querySelectorAll('input[type=checkbox]').forEach(x=>{ if (x!==chk) x.checked=false })
+              updateDestRibbon()
+            }
+          })
+          tdChk.appendChild(chk)
+          const tdL = document.createElement('td'); tdL.textContent = h.label||''
+          const tdH = document.createElement('td'); tdH.textContent = (h.user? (h.user+'@'):'')+h.host
+          const tdW = document.createElement('td'); tdW.textContent = h.ws_port||8811
+          const tdP = document.createElement('td'); tdP.textContent = persisted ? 'yes' : 'no'
+          const tdA = document.createElement('td');
+          if (persisted){
+            const del = document.createElement('button'); del.textContent='Remove'
+            del.addEventListener('click', async ()=>{ await fetch(`/cluster/hosts/${h.id}`, {method:'DELETE'}); loadServerHosts() })
+            tdA.appendChild(del)
+          } else {
+            const del = document.createElement('button'); del.textContent='Remove'
+            del.addEventListener('click', ()=>{ clSession = clSession.filter(x=>x._sid !== h._sid); saveSession(); loadServerHosts() })
+            tdA.appendChild(del)
+          }
+          tr.append(tdChk, tdL, tdH, tdW, tdP, tdA)
+          clTbody.appendChild(tr)
+        }
+        for (const h of permanent){ addRow(h, true) }
+        for (const h of sessionList){ addRow(h, false) }
+        // Update destination ribbon after render
+        updateDestRibbon()
+        // Wire change listeners to update destination ribbon on selection changes
+        clTbody.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+          cb.addEventListener('change', updateDestRibbon)
+        })
+      }
+      loadSession(); loadServerHosts()
+      const rbtn = document.createElement('button'); rbtn.textContent='Refresh Hosts'; rbtn.className='small';
+      rbtn.addEventListener('click', ()=>loadServerHosts());
+      const bbtn = document.createElement('button'); bbtn.textContent='Bootstrap Selected'; bbtn.className='small';
+      bbtn.addEventListener('click', async ()=>{
+        const mode = window.prompt('Mode: backend or native?','backend') || 'backend'
+        const ws = parseInt(window.prompt('WS port','8811')||'8811',10)
+        const root = window.prompt('Browse root path','/srv/pfs-share') || '/srv/pfs-share'
+        const psk = window.prompt('Optional PSK (blank for none)','') || ''
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        for (const c of chks){
+          const host = c.dataset.host
+          const body = { host: host, user: null, mode: mode, browse_root: root, ws_port: ws, psk: (psk||null) }
+          await fetch('/cluster/bootstrap/ssh', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) })
+        }
+        loadServerHosts()
+      });
+const pbtn = document.createElement('button'); pbtn.textContent='Save Selected to List'; pbtn.className='small';
+      pbtn.addEventListener('click', async ()=>{
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        for (const c of chks){
+          const host = c.dataset.host
+          const ws = parseInt(c.dataset.ws||'8811',10)
+          const body = { label: host, host: host, user: null, ws_port: ws, https_port: ws, quic_port: 8853 }
+          await fetch('/cluster/hosts', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) })
+        }
+        loadServerHosts()
+      })
+      const h3 = document.querySelector('.card h3')
+      h3.appendChild(document.createTextNode(' '))
+      h3.appendChild(rbtn)
+      h3.appendChild(document.createTextNode(' '))
+      h3.appendChild(bbtn)
+      h3.appendChild(document.createTextNode(' '))
+      h3.appendChild(pbtn)
+      const qbtn = document.createElement('button'); qbtn.textContent='Probe Selected'; qbtn.className='small';
+      qbtn.addEventListener('click', async ()=>{
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        if (!chks.length){ log('Select at least one host to probe','error'); return }
+        for (const c of chks){
+          const host = c.dataset.host; const ws = parseInt(c.dataset.ws||'8811',10)
+          const body = { label: host, host: host, user: null, ws_port: ws, https_port: ws, quic_port: 8853 }
+          try{ const r = await fetch('/cluster/hosts/probe', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) }); const j = await r.json(); log(`Probe ${host}: ${j.reachable? 'ssh reachable':'no ssh (keys/agent needed)'}`, j.reachable? 'success':'info') }catch(e){ log(`Probe ${host}: error ${e}`, 'error') }
+        }
+      })
+      h3.appendChild(document.createTextNode(' '))
+      h3.appendChild(qbtn)
+      clAdd.addEventListener('click', async ()=>{
+        const label = clLabel.value.trim(); const hostStr = clHost.value.trim(); const ws = parseInt(clWs.value||'8811',10)
+        const {user, host} = parseUserHost(hostStr)
+        if (!host){ log('host required','error'); return }
+        if (clPersist.checked){
+          const body = { label, host, user, ws_port: ws, https_port: ws, quic_port: 8853 }
+          const r = await fetch('/cluster/hosts', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) })
+          if (r.ok){ loadServerHosts() } else { log('ssh not reachable; keeping as session entry','info'); clSession.push({_sid:crypto.randomUUID(), label, host, user, ws_port: ws}); saveSession(); loadServerHosts() }
+        } else {
+          clSession.push({_sid:crypto.randomUUID(), label, host, user, ws_port: ws}); saveSession(); loadServerHosts()
+        }
+      })
+
+      function selectedClusterHost(){
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        if (chks.length !== 1){ return null }
+        const c = chks[0]
+        return { host: c.dataset.host, ws_port: parseInt(c.dataset.ws||'8811',10), quic_port: parseInt(c.dataset.quic||'8853',10) }
+      }
+
+      function updateDestRibbon(){
+        const sel = selectedClusterHost()
+        const ribbon = document.getElementById('destRibbon')
+        if (!ribbon) return
+        if (!sel){ ribbon.textContent = 'Selected destination: (none)'; return }
+        ribbon.textContent = `Selected destination: ${sel.host}:${sel.ws_port}`
+        // Also refresh connection map's remote line
+        const remoteLine = document.getElementById('connRemote')
+        if (remoteLine){ remoteLine.textContent = `Server → Remote: ${sel.host} (ws=${sel.ws_port}, quic=${sel.quic_port})` }
+      }
+
+      // Resolve server identity and populate identity widgets
+      async function initIdentity(){
+        try{
+          const r = await fetch('/whoami')
+          if (r.ok){
+            const j = await r.json()
+            const urlTxt = document.getElementById('serverUrlTxt')
+            const badge = document.getElementById('netModeBadge')
+            const connBrowser = document.getElementById('connBrowser')
+            const copyBtn = document.getElementById('copyServerUrl')
+            if (urlTxt){ urlTxt.textContent = `Server: ${j.server_url}` }
+            if (badge){ badge.textContent = `Mode: ${j.net_mode}` }
+            if (connBrowser){ connBrowser.textContent = `Browser → Server: ${location.protocol}//${location.host}` }
+            if (copyBtn){ copyBtn.onclick = ()=> navigator.clipboard.writeText(j.server_url) }
+          }
+        }catch{}
+      }
+      initIdentity()
+
+      async function initBrowseInfo(){
+        const psk = document.getElementById('pskBadge'); const share = document.getElementById('shareBadge')
+        try{
+          const r = await fetch('/browse/roots')
+          if (r.status === 401){ if (psk) psk.textContent = 'PSK: required'; if (share) share.textContent='Share: (protected)'; return }
+          if (!r.ok){ if (psk) psk.textContent = 'PSK: ?'; if (share) share.textContent='Share: ?'; return }
+          if (psk) psk.textContent = 'PSK: none'
+          const roots = await r.json();
+          const shareRoot = (roots||[]).find(x=>x.id==='share')
+          if (share){ share.textContent = 'Share: ' + (shareRoot && (shareRoot.root||'(not set)')) }
+        }catch(e){ if (psk) psk.textContent = 'PSK: ?'; if (share) share.textContent='Share: ?' }
+      }
+      initBrowseInfo()
+
+      const copyManual = document.getElementById('copyManual'); if (copyManual){ copyManual.onclick = ()=> {
+        const pre = document.getElementById('manualBoot'); if (pre){
+          const text = pre.textContent; navigator.clipboard.writeText(text)
+        }
+      } }
+
+      // Initialize Uppy with Dashboard and XHRUpload to /objects
+      const uppy = new Uppy({ autoProceed: false })
+        .use(Dashboard, { target: '#uppy', inline: true, height: 300, showProgressDetails: true, proudlyDisplayPoweredByUppy: false })
+        .use(XHRUpload, {
+          endpoint: '/objects',
+          fieldName: 'file',
+          formData: true,
+          limit: 1,
+          withCredentials: false,
+          headers: {},
+          allowedMetaFields: [],
+        })
+
+      // Transfer trigger after successful upload
+      async function triggerTransfer(oid) {
+        try {
+          const selected = selectedClusterHost()
+          if (!selected){ log('Select exactly one host in the Cluster list before transferring.','error'); return }
+          const mode = modeSel.value || 'ws'
+          const body = {
+            object_id: oid,
+            mode: mode,
+            peer: { host: selected.host, ws_port: selected.ws_port, https_port: selected.ws_port, udp_port: selected.quic_port },
+            timeout_s: 5.0,
+          }
+          
+          log(`Starting transfer to ${selected.host}:${mode === 'quic' ? selected.quic_port : selected.ws_port} using ${mode.toUpperCase()}`, 'info')
+          
+          const tx = await fetch('/transfers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+          const txj = await tx.json()
+          
+          log(`Transfer initiated (ID: ${txj.transfer_id.substring(0, 8)}...)`, 'info')
+          
+          for (let i = 0; i < 10; i++) {
+            await new Promise(r => setTimeout(r, 1000))
+            const st = await fetch('/transfers/' + txj.transfer_id)
+            const stj = await st.json()
+            
+            if (stj.details) {
+              updateMetrics(stj.details)
+            }
+            
+            if (stj.state === 'success') {
+              const elapsed = stj.details?.elapsed_s?.toFixed(2) || '?'
+              const path = stj.details?.path || 'unknown'
+              log(`Transfer complete! Sent ${formatBytes(fileSize)} in ${elapsed}s via ${path}`, 'success')
+              log(`Effective speed: ${formatSpeed(stj.details?.eff_bytes_per_s || 0)}`, 'success')
+              break
+            } else if (stj.state === 'failed') {
+              log('Transfer failed. Check receiver connectivity.', 'error')
+              break
+            } else {
+              log(`Progress: ${stj.state}...`)
+            }
+          }
+        } catch (e) {
+          log(`Transfer error: ${e.message || e}`, 'error')
+        }
+      }
+
+      // --- Cockpit embed logic ---
+      const svcSelect = document.getElementById('svcSelect')
+      const svcHost = document.getElementById('svcHost')
+      const svcPort = document.getElementById('svcPort')
+      const svcPath = document.getElementById('svcPath')
+      const svcUrl = document.getElementById('svcUrl')
+      const svcFromSel = document.getElementById('svcFromSel')
+      const svcEmbed = document.getElementById('svcEmbed')
+      const svcOpen = document.getElementById('svcOpen')
+      const svcFrame = document.getElementById('svcFrame')
+
+      function updateDefaultsForService(){
+        const v = svcSelect.value
+        if (v === 'hgws'){ svcPort.value = '8080'; if (!svcPath.value) svcPath.value = '/' }
+        else if (v === 'cockpit'){ svcPort.value = '9090'; if (!svcPath.value) svcPath.value = '/' }
+      }
+      svcSelect.addEventListener('change', updateDefaultsForService)
+      updateDefaultsForService()
+
+      svcFromSel.addEventListener('click', ()=>{
+        const sel = selectedClusterHost()
+        if (!sel){ log('Select a host in Cluster first', 'error'); return }
+        svcHost.value = sel.host
+      })
+
+      function computeUrl(){
+        const direct = (svcUrl.value||'').trim()
+        if (direct) return direct
+        const host = (svcHost.value||'').trim()
+        const port = (svcPort.value||'').trim() || '8080'
+        let path = (svcPath.value||'/').trim()
+        if (!path.startsWith('/')) path = '/' + path
+        const proto = (location.protocol === 'https:') ? 'https' : 'http'
+        if (!host){ return '' }
+        return `${proto}://${host}:${port}${path}`
+      }
+
+      svcEmbed.addEventListener('click', ()=>{
+        const url = computeUrl()
+        if (!url){ log('Provide host or direct URL for embedding', 'error'); return }
+        svcFrame.src = url
+        log(`Embedded: ${url}`, 'info')
+      })
+      svcOpen.addEventListener('click', ()=>{
+        const url = computeUrl()
+        if (!url){ log('Provide host or direct URL for opening', 'error'); return }
+        window.open(url, '_blank')
+      })
+
+      // --- Uppy events ---
+      uppy.on('file-added', (file) => {
+        fileName = file.name
+        fileSize = file.size
+        log(`File selected: ${file.name} (${formatBytes(file.size)})`, 'info')
+      })
+
+      uppy.on('upload-success', (file, response) => {
+        try {
+          const body = response && response.body ? response.body : null
+          objectId = body && body.object_id ? body.object_id : null
+          if (objectId) {
+            log(`File uploaded successfully (${objectId.substring(0, 16)}...)`, 'success')
+            log('Initiating PacketFS transfer...', 'info')
+            triggerTransfer(objectId)
+          } else {
+            log('Upload succeeded but no object ID received', 'error')
+          }
+        } catch (e) {
+          log(`Upload processing error: ${e.message || e}`, 'error')
+        }
+      })
+
+      uppy.on('error', (err) => {
+        log(`Upload error: ${err.message || err}`, 'error')
+      })
+      
+      // Welcome message
+      log('PacketFS ready. Select a file to transfer.', 'info')
+    </script>
+  </body>
+</html>

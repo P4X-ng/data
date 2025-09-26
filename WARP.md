@@ -373,6 +373,22 @@ Notes
 
 ---
 
+Fake pNIC + pCPU harness (staging)
+- Purpose: simulate a NIC producing “packet” descriptor frames into lock-free SPSC rings and a pCPU worker applying bytewise ops (xor/add/crc32c/fnv/counteq) over a hugepage blob. No kernel device required; ideal for fast iteration and realistic end-to-end numbers.
+- Build:
+  - just dev-pnic-build
+- Run (smoke, 5s):
+  - just dev-pnic-smoke
+    - Tunables: blob_mb, ports, queues, ring_pow2, dpf, align, pcpu_threads, nic_threads, mode, op, imm
+  - Example (2 queues, xor imm=255):
+    - just dev-pnic-smoke duration="5" blob_mb="1024" ports="1" queues="2" ring_pow2="16" dpf="64" align="64" pcpu_threads="2" nic_threads="1" mode="scatter" op="xor" imm="255"
+- Notes:
+  - Uses src/packetfs/ring/pfs_shm_ring (lock-free SPSC) and pfs_pcpu_apply for ops.
+  - Backing store is a hugepage blob (map via /mnt/huge1G by default). Adjust with --huge-dir.
+  - This is staging-only (not production). Keep demo data under demo/ and do not mix with production flows.
+
+---
+
 SHM ring bench — glossary and quick recipes (2025-09-15)
 
 Terms (as used by dev/wip/native/pfs_shm_ring_bench)

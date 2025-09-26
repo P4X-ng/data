@@ -1,0 +1,17 @@
+# Dev tasks (local)
+# Default help rule provided in root Justfile
+help-dev:
+    @echo "dev commands: install|up|test|clean"
+
+# Thin wrappers to existing dev targets
+install:
+    just dev-install
+
+up:
+    just dev-up
+
+test:
+    just dev-test
+
+clean:
+    just dev-clean

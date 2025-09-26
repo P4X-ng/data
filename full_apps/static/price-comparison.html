@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💸 HGWS vs Big Cloud - Price Shock Calculator</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #ff6b6b, #ffa726, #ff4757);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+        
+        .shock-alert {
+            background: rgba(255, 71, 87, 0.2);
+            border: 2px solid #ff4757;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { box-shadow: 0 0 20px rgba(255, 71, 87, 0.5); }
+            to { box-shadow: 0 0 30px rgba(255, 71, 87, 0.8); }
+        }
+        
+        .calculator-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .resource-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .input-group {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #00ff88;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .calculate-btn {
+            background: linear-gradient(135deg, #ff4757 0%, #ff6b6b 100%);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+            transition: transform 0.2s;
+        }
+        
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
+        }
+        
+        .pricing-comparison {
+            display: none;
+            margin: 30px 0;
+        }
+        
+        .provider-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .provider-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .provider-card.hgws {
+            background: rgba(0, 255, 136, 0.2);
+            border: 2px solid #00ff88;
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+        
+        .provider-card.expensive {
+            background: rgba(255, 71, 87, 0.2);
+            border: 2px solid #ff4757;
+        }
+        
+        .provider-logo {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .provider-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .price-display {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        
+        .price-display.hgws {
+            color: #00ff88;
+        }
+        
+        .price-display.expensive {
+            color: #ff4757;
+        }
+        
+        .savings-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #00ff88;
+            color: black;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            transform: rotate(15deg);
+        }
+        
+        .price-breakdown {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+        
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .breakdown-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .total-savings {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .savings-amount {
+            font-size: 3em;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+        
+        .reality-check {
+            background: rgba(255, 167, 38, 0.2);
+            border: 2px solid #ffa726;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .provider-details {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+        
+        .egress-warning {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.8em;
+        }
+        
+        .contribute-cta {
+            background: linear-gradient(135deg, #00ff88 0%, #00d2ff 100%);
+            color: black;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .contribute-cta h3 {
+            margin-top: 0;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💸 Big Cloud Price SHOCK Calculator</h1>
+        
+        <div class="shock-alert">
+            <h2>⚠️ WARNING: You're about to see some BRUTAL pricing! ⚠️</h2>
+            <p>Compare what the big cloud giants would charge you vs. our transparent community pricing!</p>
+        </div>
+        
+        <div class="calculator-section">
+            <h3>🔥 Enter Your Resource Needs (Don't Worry, We Got You!)</h3>
+            
+            <div class="resource-inputs">
+                <div class="input-group">
+                    <label>💻 Virtual Machines</label>
+                    <select id="vmSize">
+                        <option value="small">Small (1 vCPU, 1GB RAM)</option>
+                        <option value="medium">Medium (2 vCPU, 4GB RAM)</option>
+                        <option value="large">Large (4 vCPU, 8GB RAM)</option>
+                        <option value="xlarge">X-Large (8 vCPU, 16GB RAM)</option>
+                    </select>
+                    <input type="number" id="vmHours" placeholder="Hours per month" value="720" min="1" max="8760">
+                </div>
+                
+                <div class="input-group">
+                    <label>💾 Storage</label>
+                    <select id="storageType">
+                        <option value="standard">Standard SSD</option>
+                        <option value="performance">High Performance SSD</option>
+                        <option value="archive">Archive Storage</option>
+                    </select>
+                    <input type="number" id="storageGB" placeholder="GB needed" value="100" min="1">
+                </div>
+                
+                <div class="input-group">
+                    <label>🌐 Bandwidth/Transfer</label>
+                    <input type="number" id="bandwidthGB" placeholder="GB outbound per month" value="100" min="0">
+                    <small style="opacity: 0.7;">⚠️ This is where they RIP YOU OFF!</small>
+                </div>
+                
+                <div class="input-group">
+                    <label>🎮 GPU Instances</label>
+                    <select id="gpuType">
+                        <option value="none">No GPU needed</option>
+                        <option value="basic">Basic GPU (T4)</option>
+                        <option value="performance">Performance GPU (V100)</option>
+                        <option value="enterprise">Enterprise GPU (A100)</option>
+                    </select>
+                    <input type="number" id="gpuHours" placeholder="GPU hours per month" value="0" min="0">
+                </div>
+                
+                <div class="input-group">
+                    <label>🔗 Load Balancers</label>
+                    <input type="number" id="loadBalancers" placeholder="Number needed" value="0" min="0">
+                </div>
+                
+                <div class="input-group">
+                    <label>📊 Database Hours</label>
+                    <select id="dbSize">
+                        <option value="none">No Database</option>
+                        <option value="small">Small DB (1 vCPU, 2GB)</option>
+                        <option value="medium">Medium DB (2 vCPU, 8GB)</option>
+                        <option value="large">Large DB (4 vCPU, 16GB)</option>
+                    </select>
+                    <input type="number" id="dbHours" placeholder="DB hours per month" value="0" min="0">
+                </div>
+            </div>
+            
+            <button class="calculate-btn" onclick="calculatePrices()">
+                💀 CALCULATE THE DAMAGE 💀
+            </button>
+        </div>
+        
+        <div class="pricing-comparison" id="pricingResults">
+            <h2>🔥 THE BRUTAL TRUTH: Here's What You'd Pay</h2>
+            
+            <div class="provider-grid" id="providerGrid">
+                <!-- Results will be populated here -->
+            </div>
+            
+            <div class="total-savings" id="totalSavings">
+                <!-- Savings calculation will appear here -->
+            </div>
+            
+            <div class="reality-check">
+                <h3>💡 Reality Check: Why Are Big Clouds So Expensive?</h3>
+                <ul>
+                    <li><strong>💰 Massive Profit Margins:</strong> They charge 300-1000% markup</li>
+                    <li><strong>📈 Vendor Lock-in:</strong> Hard to leave once you're hooked</li>
+                    <li><strong>🌐 Egress Fees:</strong> They charge you to get YOUR data back!</li>
+                    <li><strong>🏢 Corporate Overhead:</strong> Fancy offices, massive marketing budgets</li>
+                    <li><strong>📊 Complex Pricing:</strong> Intentionally confusing to hide costs</li>
+                </ul>
+            </div>
+            
+            <div class="contribute-cta">
+                <h3>💚 Join the HGWS Community Revolution!</h3>
+                <p><strong>Instead of paying these ridiculous prices, contribute to our community and get resources for FREE!</strong></p>
+                <p>🎯 Share your idle resources → Earn real money → Use free cloud services</p>
+                <button onclick="window.location.href='/static/money-dashboard.html'" 
+                        style="background: rgba(0,0,0,0.2); border: none; color: black; padding: 15px 30px; border-radius: 25px; cursor: pointer; font-size: 1.1em; font-weight: bold;">
+                    💰 Start Earning Money Now!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HGWS Unified Navigation -->
+    <script src="/static/nav.js"></script>
+
+    <script>
+        // Real pricing data (updated as of 2024)
+        const cloudPricing = {
+            aws: {
+                name: "Amazon AWS",
+                logo: "☁️",
+                vm: {
+                    small: 0.0116,   // t3.micro
+                    medium: 0.0464,  // t3.small  
+                    large: 0.0928,   // t3.medium
+                    xlarge: 0.1856   // t3.large
+                },
+                storage: {
+                    standard: 0.10,      // gp3 per GB
+                    performance: 0.125,   // io2 per GB
+                    archive: 0.004       // Glacier per GB
+                },
+                bandwidth: 0.09,         // per GB outbound
+                gpu: {
+                    basic: 0.526,        // g4dn.xlarge
+                    performance: 3.06,   // p3.2xlarge
+                    enterprise: 32.77    // p4d.24xlarge
+                },
+                loadBalancer: 22.50,     // ALB per month
+                database: {
+                    small: 0.017,        // db.t3.micro
+                    medium: 0.068,       // db.t3.small
+                    large: 0.136         // db.t3.medium
+                }
+            },
+            
+            gcp: {
+                name: "Google Cloud",
+                logo: "🌐",
+                vm: {
+                    small: 0.0104,
+                    medium: 0.0416,
+                    large: 0.0832,
+                    xlarge: 0.1664
+                },
+                storage: {
+                    standard: 0.08,
+                    performance: 0.17,
+                    archive: 0.0025
+                },
+                bandwidth: 0.12,
+                gpu: {
+                    basic: 0.45,
+                    performance: 2.48,
+                    enterprise: 31.99
+                },
+                loadBalancer: 18.00,
+                database: {
+                    small: 0.0150,
+                    medium: 0.0600,
+                    large: 0.1200
+                }
+            },
+            
+            azure: {
+                name: "Microsoft Azure",
+                logo: "🔷",
+                vm: {
+                    small: 0.0124,
+                    medium: 0.0496,
+                    large: 0.0992,
+                    xlarge: 0.1984
+                },
+                storage: {
+                    standard: 0.0875,
+                    performance: 0.125,
+                    archive: 0.002
+                },
+                bandwidth: 0.087,
+                gpu: {
+                    basic: 0.90,
+                    performance: 3.80,
+                    enterprise: 27.20
+                },
+                loadBalancer: 25.00,
+                database: {
+                    small: 0.0156,
+                    medium: 0.0624,
+                    large: 0.1248
+                }
+            },
+            
+            digitalocean: {
+                name: "DigitalOcean",
+                logo: "🌊",
+                vm: {
+                    small: 0.007,   // More competitive
+                    medium: 0.015,
+                    large: 0.030,
+                    xlarge: 0.060
+                },
+                storage: {
+                    standard: 0.10,
+                    performance: 0.15,
+                    archive: 0.05
+                },
+                bandwidth: 0.01,  // More generous
+                gpu: {
+                    basic: 0.75,
+                    performance: 2.50,
+                    enterprise: 15.00
+                },
+                loadBalancer: 12.00,
+                database: {
+                    small: 0.0107,
+                    medium: 0.0428,
+                    large: 0.0856
+                }
+            },
+            
+            linode: {
+                name: "Linode (Akamai)",
+                logo: "⚡",
+                vm: {
+                    small: 0.0068,
+                    medium: 0.0134,
+                    large: 0.0268,
+                    xlarge: 0.0536
+                },
+                storage: {
+                    standard: 0.10,
+                    performance: 0.15,
+                    archive: 0.06
+                },
+                bandwidth: 0.02,
+                gpu: {
+                    basic: 1.00,
+                    performance: 1.50,
+                    enterprise: 12.00
+                },
+                loadBalancer: 10.00,
+                database: {
+                    small: 0.0090,
+                    medium: 0.0360,
+                    large: 0.0720
+                }
+            },
+            
+            vultr: {
+                name: "Vultr",
+                logo: "🚀",
+                vm: {
+                    small: 0.007,
+                    medium: 0.014,
+                    large: 0.028,
+                    xlarge: 0.056
+                },
+                storage: {
+                    standard: 0.10,
+                    performance: 0.15,
+                    archive: 0.05
+                },
+                bandwidth: 0.01,
+                gpu: {
+                    basic: 0.65,
+                    performance: 2.25,
+                    enterprise: 11.00
+                },
+                loadBalancer: 5.00,
+                database: {
+                    small: 0.0083,
+                    medium: 0.0333,
+                    large: 0.0666
+                }
+            },
+            
+            hgws: {
+                name: "HGWS Community",
+                logo: "🌟",
+                vm: {
+                    small: 0.002,    // 80% cheaper
+                    medium: 0.004,
+                    large: 0.008,
+                    xlarge: 0.016
+                },
+                storage: {
+                    standard: 0.01,   // 90% cheaper
+                    performance: 0.02,
+                    archive: 0.001
+                },
+                bandwidth: 0.005,     // 95% cheaper!
+                gpu: {
+                    basic: 0.10,      // Earn by contributing!
+                    performance: 0.25,
+                    enterprise: 2.00
+                },
+                loadBalancer: 2.00,   // Community-powered
+                database: {
+                    small: 0.001,
+                    medium: 0.004,
+                    large: 0.008
+                }
+            }
+        };
+        
+        function calculatePrices() {
+            const vmSize = document.getElementById('vmSize').value;
+            const vmHours = parseInt(document.getElementById('vmHours').value) || 720;
+            const storageType = document.getElementById('storageType').value;
+            const storageGB = parseInt(document.getElementById('storageGB').value) || 100;
+            const bandwidthGB = parseInt(document.getElementById('bandwidthGB').value) || 100;
+            const gpuType = document.getElementById('gpuType').value;
+            const gpuHours = parseInt(document.getElementById('gpuHours').value) || 0;
+            const loadBalancers = parseInt(document.getElementById('loadBalancers').value) || 0;
+            const dbSize = document.getElementById('dbSize').value;
+            const dbHours = parseInt(document.getElementById('dbHours').value) || 0;
+            
+            const results = [];
+            let hgwsPrice = 0;
+            
+            for (const [providerId, provider] of Object.entries(cloudPricing)) {
+                let totalCost = 0;
+                let breakdown = [];
+                
+                // VM costs
+                if (vmHours > 0) {
+                    const vmCost = provider.vm[vmSize] * vmHours;
+                    totalCost += vmCost;
+                    breakdown.push({ item: `VM (${vmSize})`, cost: vmCost });
+                }
+                
+                // Storage costs
+                if (storageGB > 0) {
+                    const storageCost = provider.storage[storageType] * storageGB;
+                    totalCost += storageCost;
+                    breakdown.push({ item: `Storage (${storageGB}GB)`, cost: storageCost });
+                }
+                
+                // Bandwidth costs (the big ripoff!)
+                if (bandwidthGB > 0) {
+                    const bandwidthCost = provider.bandwidth * bandwidthGB;
+                    totalCost += bandwidthCost;
+                    breakdown.push({ item: `Bandwidth (${bandwidthGB}GB)`, cost: bandwidthCost });
+                }
+                
+                // GPU costs
+                if (gpuType !== 'none' && gpuHours > 0) {
+                    const gpuCost = provider.gpu[gpuType] * gpuHours;
+                    totalCost += gpuCost;
+                    breakdown.push({ item: `GPU (${gpuType})`, cost: gpuCost });
+                }
+                
+                // Load balancer costs
+                if (loadBalancers > 0) {
+                    const lbCost = provider.loadBalancer * loadBalancers;
+                    totalCost += lbCost;
+                    breakdown.push({ item: `Load Balancers (${loadBalancers})`, cost: lbCost });
+                }
+                
+                // Database costs
+                if (dbSize !== 'none' && dbHours > 0) {
+                    const dbCost = provider.database[dbSize] * dbHours;
+                    totalCost += dbCost;
+                    breakdown.push({ item: `Database (${dbSize})`, cost: dbCost });
+                }
+                
+                results.push({
+                    provider: providerId,
+                    name: provider.name,
+                    logo: provider.logo,
+                    totalCost: totalCost,
+                    breakdown: breakdown
+                });
+                
+                if (providerId === 'hgws') {
+                    hgwsPrice = totalCost;
+                }
+            }
+            
+            // Sort by price (highest first for dramatic effect)
+            results.sort((a, b) => b.totalCost - a.totalCost);
+            
+            displayResults(results, hgwsPrice);
+        }
+        
+        function displayResults(results, hgwsPrice) {
+            const grid = document.getElementById('providerGrid');
+            const savingsDiv = document.getElementById('totalSavings');
+            
+            grid.innerHTML = '';
+            
+            results.forEach(result => {
+                const isHGWS = result.provider === 'hgws';
+                const savings = result.totalCost > hgwsPrice ? 
+                    Math.round(((result.totalCost - hgwsPrice) / result.totalCost) * 100) : 0;
+                
+                const cardClass = isHGWS ? 'hgws' : 'expensive';
+                const priceClass = isHGWS ? 'hgws' : 'expensive';
+                
+                const card = document.createElement('div');
+                card.className = `provider-card ${cardClass}`;
+                
+                let egressWarning = '';
+                if (!isHGWS && result.provider === 'aws') {
+                    egressWarning = '<div class="egress-warning">⚠️ Plus hidden egress fees up to $0.12/GB!</div>';
+                }
+                
+                card.innerHTML = `
+                    <div class="provider-logo">${result.logo}</div>
+                    <div class="provider-name">${result.name}</div>
+                    <div class="price-display ${priceClass}">$${result.totalCost.toFixed(2)}</div>
+                    <div class="provider-details">/month</div>
+                    ${savings > 0 ? `<div class="savings-badge">${savings}% MORE!</div>` : ''}
+                    ${isHGWS ? '<div class="savings-badge" style="background: #00ff88;">BEST DEAL!</div>' : ''}
+                    ${egressWarning}
+                    <div class="price-breakdown">
+                        ${result.breakdown.map(item => 
+                            `<div class="breakdown-item">
+                                <span>${item.item}</span>
+                                <span>$${item.cost.toFixed(2)}</span>
+                            </div>`
+                        ).join('')}
+                        <div class="breakdown-item">
+                            <span><strong>TOTAL</strong></span>
+                            <span><strong>$${result.totalCost.toFixed(2)}</strong></span>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+            
+            // Calculate total potential savings
+            const mostExpensive = results[0].totalCost;
+            const totalSavings = mostExpensive - hgwsPrice;
+            const savingsPercent = Math.round(((totalSavings) / mostExpensive) * 100);
+            
+            savingsDiv.innerHTML = `
+                <h3>💰 Your Monthly Savings with HGWS:</h3>
+                <div class="savings-amount">$${totalSavings.toFixed(2)}</div>
+                <p><strong>${savingsPercent}% CHEAPER</strong> than the most expensive option!</p>
+                <p>That's <strong>$${(totalSavings * 12).toFixed(2)} per year</strong> back in your pocket! 🤑</p>
+            `;
+            
+            document.getElementById('pricingResults').style.display = 'block';
+        }
+        
+        // Auto-calculate with default values on page load
+        window.addEventListener('load', () => {
+            setTimeout(calculatePrices, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+# Transfer tooling (PacketFS senders and related)
+
+# Include central variables (ports) and rely on root-level vars for VENV_PATH
+import "./justfile.vars"
+
+# Help for this file (when used standalone)
+help-transfer:
+    @echo "transfer commands: send|send-quic|mount-drive|unmount-drive|translate-watch|install-pfcp|pfcp|pfcp-ssh|pfcp-rsync"
+    @echo "Usage: just transfer <cmd>"
+    @echo "Env for mount-drive: MNT=./pfs.mnt IPROG_DIR=./iprog BLOB_NAME=pfs_vblob BLOB_SIZE=1073741824 BLOB_SEED=1337 WINDOW=65536 EMBED=1"
+    @echo "Env for translate-watch: WATCH_DIR=./ingest OUT_DIR=./iprog BLOB_NAME=pfs_vblob BLOB_SIZE=1073741824 BLOB_SEED=1337 WINDOW=65536"
+# Send an IPROG plan over WebSocket to this receiver
+transfer-send-iprog iprog="" host="127.0.0.1" port="{{WS_PORT}}":
+    @bash -eu -o pipefail -c '
+    if [ -z "{{iprog}}" ]; then echo "usage: just transfer-send-iprog iprog=PATH [host=H port=P]" >&2; exit 2; fi; \
+    {{VENV_PATH}}/bin/pfs-arith-send --iprog "{{iprog}}" --host "{{host}}" --port "{{port}}"'
+
+# QUIC variant
+transfer-send-iprog-quic iprog="" host="127.0.0.1" port="{{QUIC_PORT}}":
+    @bash -eu -o pipefail -c '
+    if [ -z "{{iprog}}" ]; then echo "usage: just transfer-send-iprog-quic iprog=PATH [host=H port=P]" >&2; exit 2; fi; \
+    {{VENV_PATH}}/bin/pfs-arith-send-quic --iprog "{{iprog}}" --host "{{host}}" --port "{{port}}"'
+
+# Install pfcp command (symlink to PATH)
+transfer-install-pfcp:
+    bash scripts/transfer/install_pfcp.sh "{{VENV_PATH}}"
+
+# Mount PacketFS FUSE (compile-on-close) — env driven
+transfer-mount-drive:
+    MNT="${MNT:-./pfs.mnt}" IPROG_DIR="${IPROG_DIR:-./iprog}" BLOB_NAME="${BLOB_NAME:-pfs_vblob}" BLOB_SIZE="${BLOB_SIZE:-1073741824}" BLOB_SEED="${BLOB_SEED:-1337}" WINDOW="${WINDOW:-65536}" EMBED="${EMBED:-1}" \
+    bash scripts/transfer/mount_drive.sh
+
+# Unmount PacketFS FUSE (if mounted)
+transfer-unmount-drive:
+    MNT="${MNT:-./pfs.mnt}" bash scripts/transfer/unmount_drive.sh
+
+# Translator daemon (watch dir -> IPROGs)
+transfer-translate-watch:
+    WATCH_DIR="${WATCH_DIR:-./ingest}" OUT_DIR="${OUT_DIR:-./iprog}" BLOB_NAME="${BLOB_NAME:-pfs_vblob}" BLOB_SIZE="${BLOB_SIZE:-1073741824}" BLOB_SEED="${BLOB_SEED:-1337}" WINDOW="${WINDOW:-65536}" \
+    bash scripts/transfer/translate_watch.sh
+
+# pfcp: PacketFS copy (scp-like)
+# Example: just transfer pfcp file=/path/to/file dest=host:8811 flags="-m"
+transfer-pfcp file dest flags="":
+    {{VENV_PATH}}/bin/pfcp {{flags}} "{{file}}" "{{dest}}"
+
+# pfcp-ssh: PFS over SSH (no server needed)
+# Example: just transfer pfcp-ssh file=/path/to/file dest=user@host:/path
+transfer-pfcp-ssh file dest:
+    {{VENV_PATH}}/bin/pfcp-ssh "{{file}}" "{{dest}}"
+
+# pfcp-rsync: rsync-like recursive PacketFS copy via receiver
+# Examples:
+#   just transfer pfcp-rsync src=./dir dest=host:8811/sub/dir
+#   just transfer pfcp-rsync src=./file.bin dest=host:8811/uploads
+transfer-pfcp-rsync src dest:
+    {{VENV_PATH}}/bin/pfcp-rsync "{{src}}" "{{dest}}"
+
+# Dispatcher: `just transfer <cmd>`
+transfer cmd="help" iprog="" host="127.0.0.1" port="{{WS_PORT}}":
+    bash scripts/transfer/dispatch.sh "{{cmd}}" "{{iprog}}" "{{host}}" "{{port}}"

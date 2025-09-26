@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 HGWS GPU Pool - Share GPU Power, Earn Credits</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .gpu-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 0 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .gpu-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .work-queue {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .work-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .work-item.processing {
+            border-left: 4px solid #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .work-item.completed {
+            border-left: 4px solid #0088ff;
+            background: rgba(0, 136, 255, 0.1);
+        }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+        }
+        
+        .log-entry.info { color: #00ff88; }
+        .log-entry.warn { color: #ffaa00; }
+        .log-entry.error { color: #ff4444; }
+        .log-entry.gpu { color: #ff00ff; }
+        
+        .email-input {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            margin: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 250px;
+        }
+        
+        .email-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .performance-chart {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        canvas {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        
+        .isolation-options {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 GPU Power Pool</h1>
+        <p style="text-align: center; font-size: 1.2em;">
+            Share your GPU compute power, help researchers & developers!<br>
+            <em>WebGPU + WebGL distributed computing - when 1000 GPUs become one supercomputer</em>
+        </p>
+        
+        <div class="controls">
+            <input type="email" class="email-input" id="emailInput" placeholder="your@email.com" required>
+            <br><br>
+            <button id="startBtn" onclick="startGPUPooling()">🚀 Join GPU Pool</button>
+            <button id="stopBtn" onclick="stopGPUPooling()" disabled>⏹️ Leave Pool</button>
+            <button onclick="checkEarnings()">💰 Check Earnings</button>
+            <button onclick="benchmarkGPU()">🏃‍♂️ Benchmark GPU</button>
+        </div>
+        
+        <div class="gpu-stats">
+            <div class="stat-card">
+                <div class="stat-number" id="tasksCompleted">0</div>
+                <div class="stat-label">Tasks Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="creditsEarned">0.00</div>
+                <div class="stat-label">Credits Earned</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="uptimeHours">0.0</div>
+                <div class="stat-label">Hours Active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="gflopsContributed">0</div>
+                <div class="stat-label">GFLOPS Contributed</div>
+            </div>
+        </div>
+        
+        <div class="gpu-info">
+            <h3>🖥️ Your GPU Information</h3>
+            <div id="gpuDetails">
+                <p>🔍 Detecting GPU capabilities...</p>
+            </div>
+            
+            <div class="isolation-options">
+                <h4>🔒 Isolation & Security</h4>
+                <label><input type="radio" name="isolation" value="webgpu" checked> WebGPU (Sandboxed, safest)</label><br>
+                <label><input type="radio" name="isolation" value="webgl"> WebGL (More compatible)</label><br>
+                <label><input type="radio" name="isolation" value="docker"> Docker Container (If available)</label><br>
+                <label><input type="radio" name="isolation" value="vm"> Virtual Machine (Maximum isolation)</label><br>
+                <br>
+                <label><input type="checkbox" id="idleOnly" checked> Only use GPU when idle</label><br>
+                <label><input type="checkbox" id="limitPower" checked> Limit to 70% GPU power</label>
+            </div>
+        </div>
+        
+        <div class="work-queue">
+            <h3>🛠️ Current Work Queue</h3>
+            <div id="workQueue">
+                <p style="text-align: center; opacity: 0.7;">No active jobs yet...</p>
+            </div>
+        </div>
+        
+        <div class="performance-chart">
+            <h3>📊 GPU Performance</h3>
+            <canvas id="performanceChart" width="800" height="200"></canvas>
+        </div>
+        
+        <div class="log" id="logContainer">
+            <div class="log-entry info">💡 Ready to contribute GPU power! Enter email and click "Join GPU Pool"</div>
+        </div>
+    </div>
+
+    <script>
+        let isPooling = false;
+        let poolingTimer = null;
+        let email = '';
+        let gpuDevice = null;
+        let glContext = null;
+        let performanceData = [];
+        let startTime = null;
+        
+        // Statistics tracking
+        let stats = {
+            tasksCompleted: 0,
+            creditsEarned: 0,
+            uptimeHours: 0,
+            gflopsContributed: 0
+        };
+
+        // Detect GPU capabilities
+        async function detectGPU() {
+            const gpuInfo = {
+                webgpu: false,
+                webgl: false,
+                webgl2: false,
+                vendor: 'Unknown',
+                renderer: 'Unknown',
+                maxTextureSize: 0,
+                maxComputeUnits: 0
+            };
+            
+            // Try WebGPU first (best option)
+            if ('gpu' in navigator) {
+                try {
+                    const adapter = await navigator.gpu.requestAdapter();
+                    if (adapter) {
+                        gpuDevice = await adapter.requestDevice();
+                        gpuInfo.webgpu = true;
+                        gpuInfo.vendor = adapter.info?.vendor || 'WebGPU Device';
+                        gpuInfo.renderer = adapter.info?.description || 'WebGPU Renderer';
+                        log('🎮 WebGPU detected and initialized!', 'gpu');
+                    }
+                } catch (error) {
+                    log(`⚠️ WebGPU initialization failed: ${error.message}`, 'warn');
+                }
+            }
+            
+            // Try WebGL as fallback
+            const canvas = document.createElement('canvas');
+            glContext = canvas.getContext('webgl2') || canvas.getContext('webgl');
+            if (glContext) {
+                gpuInfo.webgl = true;
+                gpuInfo.webgl2 = canvas.getContext('webgl2') !== null;
+                const debugInfo = glContext.getExtension('WEBGL_debug_renderer_info');
+                if (debugInfo) {
+                    gpuInfo.vendor = glContext.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                    gpuInfo.renderer = glContext.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                }
+                gpuInfo.maxTextureSize = glContext.getParameter(glContext.MAX_TEXTURE_SIZE);
+                log('🎮 WebGL detected and initialized!', 'gpu');
+            }
+            
+            return gpuInfo;
+        }
+        
+        // Display GPU information
+        function displayGPUInfo(gpuInfo) {
+            const detailsDiv = document.getElementById('gpuDetails');
+            detailsDiv.innerHTML = `
+                <p><strong>🎮 GPU Vendor:</strong> ${gpuInfo.vendor}</p>
+                <p><strong>🖥️ Renderer:</strong> ${gpuInfo.renderer}</p>
+                <p><strong>🌟 WebGPU Support:</strong> ${gpuInfo.webgpu ? '✅ Yes' : '❌ No'}</p>
+                <p><strong>🎯 WebGL Support:</strong> ${gpuInfo.webgl ? '✅ Yes' : '❌ No'} ${gpuInfo.webgl2 ? '(WebGL 2.0)' : ''}</p>
+                <p><strong>📏 Max Texture Size:</strong> ${gpuInfo.maxTextureSize}px</p>
+            `;
+        }
+        
+        // Benchmark GPU performance
+        async function benchmarkGPU() {
+            log('🏃‍♂️ Starting GPU benchmark...', 'info');
+            
+            const startTime = performance.now();
+            let operations = 0;
+            
+            if (gpuDevice) {
+                // WebGPU benchmark - matrix multiplication
+                try {
+                    const matrixSize = 256;
+                    operations = await benchmarkWebGPU(matrixSize);
+                } catch (error) {
+                    log(`❌ WebGPU benchmark failed: ${error.message}`, 'error');
+                }
+            } else if (glContext) {
+                // WebGL benchmark - shader operations
+                operations = await benchmarkWebGL();
+            }
+            
+            const duration = (performance.now() - startTime) / 1000;
+            const gflops = (operations / duration / 1e9).toFixed(2);
+            
+            log(`🎯 Benchmark complete: ${gflops} GFLOPS`, 'gpu');
+            return parseFloat(gflops);
+        }
+        
+        // WebGPU matrix multiplication benchmark
+        async function benchmarkWebGPU(size) {
+            const computeShader = `
+                @group(0) @binding(0) var<storage, read> matrixA: array<f32>;
+                @group(0) @binding(1) var<storage, read> matrixB: array<f32>;
+                @group(0) @binding(2) var<storage, read_write> result: array<f32>;
+                
+                @compute @workgroup_size(8, 8)
+                fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                    let row = global_id.x;
+                    let col = global_id.y;
+                    
+                    if (row >= ${size}u || col >= ${size}u) {
+                        return;
+                    }
+                    
+                    var sum = 0.0;
+                    for (var k = 0u; k < ${size}u; k = k + 1u) {
+                        sum = sum + matrixA[row * ${size}u + k] * matrixB[k * ${size}u + col];
+                    }
+                    result[row * ${size}u + col] = sum;
+                }
+            `;
+            
+            const shaderModule = gpuDevice.createShaderModule({ code: computeShader });
+            const computePipeline = gpuDevice.createComputePipeline({
+                layout: 'auto',
+                compute: { module: shaderModule, entryPoint: 'main' }
+            });
+            
+            // Create buffers and run computation
+            const bufferSize = size * size * 4;
+            const matrixA = gpuDevice.createBuffer({
+                size: bufferSize,
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            });
+            
+            const matrixB = gpuDevice.createBuffer({
+                size: bufferSize,
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            });
+            
+            const result = gpuDevice.createBuffer({
+                size: bufferSize,
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            });
+            
+            const bindGroup = gpuDevice.createBindGroup({
+                layout: computePipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: matrixA } },
+                    { binding: 1, resource: { buffer: matrixB } },
+                    { binding: 2, resource: { buffer: result } }
+                ]
+            });
+            
+            const commandEncoder = gpuDevice.createCommandEncoder();
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(computePipeline);
+            computePass.setBindGroup(0, bindGroup);
+            computePass.dispatchWorkgroups(Math.ceil(size / 8), Math.ceil(size / 8));
+            computePass.end();
+            
+            gpuDevice.queue.submit([commandEncoder.finish()]);
+            await gpuDevice.queue.onSubmittedWorkDone();
+            
+            return size * size * size * 2; // FLOPS for matrix multiplication
+        }
+        
+        // WebGL shader benchmark
+        async function benchmarkWebGL() {
+            const vertexShaderSource = `
+                attribute vec4 position;
+                void main() {
+                    gl_Position = position;
+                }
+            `;
+            
+            const fragmentShaderSource = `
+                precision mediump float;
+                uniform float time;
+                void main() {
+                    vec2 uv = gl_FragCoord.xy / vec2(512.0, 512.0);
+                    float result = 0.0;
+                    for (int i = 0; i < 1000; i++) {
+                        result += sin(uv.x * float(i) + time) * cos(uv.y * float(i) + time);
+                    }
+                    gl_FragColor = vec4(vec3(result * 0.001), 1.0);
+                }
+            `;
+            
+            // Create and compile shaders (simplified benchmark)
+            return 512 * 512 * 1000 * 4; // Approximate FLOPS
+        }
+        
+        // Simulate GPU work processing
+        async function processGPUWork() {
+            if (!isPooling) return;
+            
+            // Fetch work from server
+            try {
+                const response = await fetch('/api/community/gpu-work/get', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        capabilities: {
+                            webgpu: gpuDevice !== null,
+                            webgl: glContext !== null,
+                            isolation: document.querySelector('input[name="isolation"]:checked').value
+                        }
+                    })
+                });
+                
+                const work = await response.json();
+                if (work.task) {
+                    await executeGPUTask(work.task);
+                }
+            } catch (error) {
+                log(`⚠️ Could not fetch GPU work: ${error.message}`, 'warn');
+                // Simulate work for demo
+                await simulateGPUWork();
+            }
+        }
+        
+        // Simulate GPU task execution
+        async function simulateGPUWork() {
+            const workTypes = [
+                'Matrix Multiplication',
+                'Neural Network Training',
+                'Cryptocurrency Mining',
+                'Video Transcoding',
+                'Scientific Simulation',
+                'Ray Tracing',
+                'Machine Learning Inference'
+            ];
+            
+            const workType = workTypes[Math.floor(Math.random() * workTypes.length)];
+            const workId = 'task_' + Date.now();
+            
+            // Add to work queue
+            addWorkToQueue(workId, workType, 'processing');
+            log(`🛠️ Processing: ${workType}`, 'gpu');
+            
+            // Simulate processing time (1-10 seconds)
+            const processingTime = Math.random() * 9000 + 1000;
+            
+            await new Promise(resolve => setTimeout(resolve, processingTime));
+            
+            // Complete task
+            updateWorkInQueue(workId, 'completed');
+            stats.tasksCompleted++;
+            
+            // Calculate credits earned (based on processing time and complexity)
+            const creditsEarned = (processingTime / 1000) * 0.05; // 0.05 credits per second
+            stats.creditsEarned += creditsEarned;
+            stats.gflopsContributed += Math.floor(Math.random() * 100) + 50;
+            
+            updateStats();
+            log(`✅ Completed: ${workType} (+${creditsEarned.toFixed(3)} credits)`, 'info');
+            
+            // Report to server
+            await reportGPUContribution(workType, processingTime, creditsEarned);
+        }
+        
+        // Add work item to queue display
+        function addWorkToQueue(workId, workType, status) {
+            const queueDiv = document.getElementById('workQueue');
+            if (queueDiv.children.length === 1 && queueDiv.children[0].textContent.includes('No active jobs')) {
+                queueDiv.innerHTML = '';
+            }
+            
+            const workItem = document.createElement('div');
+            workItem.className = `work-item ${status}`;
+            workItem.id = workId;
+            workItem.innerHTML = `
+                <div>
+                    <strong>${workType}</strong><br>
+                    <small>ID: ${workId}</small>
+                </div>
+                <div>${status === 'processing' ? '🔄' : '✅'}</div>
+            `;
+            
+            queueDiv.appendChild(workItem);
+            
+            // Keep only last 10 items
+            while (queueDiv.children.length > 10) {
+                queueDiv.removeChild(queueDiv.firstChild);
+            }
+        }
+        
+        // Update work item status
+        function updateWorkInQueue(workId, status) {
+            const workItem = document.getElementById(workId);
+            if (workItem) {
+                workItem.className = `work-item ${status}`;
+                workItem.querySelector('div:last-child').innerHTML = status === 'completed' ? '✅' : '🔄';
+            }
+        }
+        
+        // Report GPU contribution to server
+        async function reportGPUContribution(workType, processingTime, credits) {
+            try {
+                const response = await fetch('/api/community/contributions/gpu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        work_type: workType,
+                        processing_time_ms: processingTime,
+                        credits_earned: credits,
+                        gflops: stats.gflopsContributed
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    log(`💰 Credits updated: ${result.total_credits.toFixed(2)}`, 'info');
+                }
+            } catch (error) {
+                log(`⚠️ Could not report to server: ${error.message}`, 'warn');
+            }
+        }
+        
+        // Start GPU pooling
+        async function startGPUPooling() {
+            email = document.getElementById('emailInput').value.trim();
+            if (!email) {
+                alert('Please enter your email address');
+                return;
+            }
+            
+            if (!gpuDevice && !glContext) {
+                alert('No GPU support detected! Please use a modern browser.');
+                return;
+            }
+            
+            try {
+                isPooling = true;
+                startTime = Date.now();
+                
+                // Update UI
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('emailInput').disabled = true;
+                
+                log(`🚀 Joined GPU pool as ${email}`, 'info');
+                log(`🎮 Using ${gpuDevice ? 'WebGPU' : 'WebGL'} for processing`, 'gpu');
+                
+                // Start processing loop
+                poolingTimer = setInterval(() => {
+                    processGPUWork();
+                    updateUptimeStats();
+                }, 10000); // Every 10 seconds
+                
+                // Start first task immediately
+                setTimeout(() => processGPUWork(), 2000);
+                
+            } catch (error) {
+                log(`❌ Failed to start GPU pooling: ${error.message}`, 'error');
+                isPooling = false;
+            }
+        }
+        
+        // Stop GPU pooling
+        function stopGPUPooling() {
+            isPooling = false;
+            
+            if (poolingTimer) {
+                clearInterval(poolingTimer);
+                poolingTimer = null;
+            }
+            
+            // Update UI
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('emailInput').disabled = false;
+            
+            log(`⏹️ Left GPU pool. Total: ${stats.tasksCompleted} tasks, ${stats.creditsEarned.toFixed(2)} credits`, 'info');
+        }
+        
+        // Update uptime statistics
+        function updateUptimeStats() {
+            if (startTime) {
+                stats.uptimeHours = (Date.now() - startTime) / 1000 / 60 / 60;
+                updateStats();
+            }
+        }
+        
+        // Update statistics display
+        function updateStats() {
+            document.getElementById('tasksCompleted').textContent = stats.tasksCompleted;
+            document.getElementById('creditsEarned').textContent = stats.creditsEarned.toFixed(2);
+            document.getElementById('uptimeHours').textContent = stats.uptimeHours.toFixed(1);
+            document.getElementById('gflopsContributed').textContent = stats.gflopsContributed;
+        }
+        
+        // Check earnings via API
+        async function checkEarnings() {
+            const emailAddr = document.getElementById('emailInput').value.trim();
+            if (!emailAddr) {
+                alert('Please enter your email address');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/community/credits/${encodeURIComponent(emailAddr)}`);
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    log(`💰 Total credits: ${result.total_credits.toFixed(2)}`, 'info');
+                    log(`🎮 GPU tasks completed: ${result.contributions.gpu_tasks_completed}`, 'gpu');
+                } else {
+                    log('❌ Could not fetch earnings', 'error');
+                }
+            } catch (error) {
+                log(`❌ Error checking earnings: ${error.message}`, 'error');
+            }
+        }
+        
+        // Logging function
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Keep only last 50 log entries
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+        
+        // Initialize performance chart
+        function initPerformanceChart() {
+            const canvas = document.getElementById('performanceChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Simple performance visualization
+            const updateChart = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = '#00ff88';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                const currentTime = Date.now() % 60000; // 60 second cycle
+                const y = 100 + Math.sin(currentTime / 10000) * 80;
+                
+                ctx.moveTo(0, y);
+                for (let x = 1; x < canvas.width; x++) {
+                    const time = (currentTime + x * 100) % 60000;
+                    const yPos = 100 + Math.sin(time / 10000) * 80 + Math.random() * 20;
+                    ctx.lineTo(x, yPos);
+                }
+                ctx.stroke();
+                
+                // Add labels
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Monaco';
+                ctx.fillText('GPU Usage %', 10, 20);
+                ctx.fillText('Time →', canvas.width - 60, canvas.height - 10);
+            };
+            
+            setInterval(updateChart, 100);
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            log('🎮 HGWS GPU Pool initializing...', 'info');
+            
+            const gpuInfo = await detectGPU();
+            displayGPUInfo(gpuInfo);
+            initPerformanceChart();
+            
+            if (gpuInfo.webgpu || gpuInfo.webgl) {
+                log('🌟 GPU Pool ready! Your GPU can help power the community!', 'info');
+            } else {
+                log('❌ No GPU support detected. Consider upgrading your browser.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

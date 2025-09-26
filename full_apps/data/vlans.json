@@ -1,0 +1,14 @@
+[
+  {
+    "vlan_id": 100,
+    "customer_id": "63d0eb775280",
+    "bridge_name": "vlan100",
+    "subnet": "10.200.0.0/16",
+    "gateway": "10.200.0.1",
+    "enable_nat": true,
+    "enable_ipv6": false,
+    "description": "Privacy switch for user testuser",
+    "status": "failed",
+    "created_at": "2025-09-11T11:48:20+00:00"
+  }
+]

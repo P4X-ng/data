@@ -1,0 +1,27 @@
+{
+    servers {
+        timeouts read_body 30s
+    }
+}
+
+# Local HTTPS with internal CA
+pfs.localhost {
+    tls internal
+    encode zstd gzip
+    
+    reverse_proxy 127.0.0.1:8811 {
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Real-IP {remote_host}
+    }
+    
+    # Health endpoint passthrough
+    handle /health {
+        reverse_proxy 127.0.0.1:8811
+    }
+}
+
+# Plain HTTP for quick dev
+:8080 {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8811
+}

@@ -1,0 +1,69 @@
+{
+  "vms": [
+    {
+      "name": "test-vm",
+      "uuid": "378d5bfe-cc36-4649-98b1-89e4821434e3",
+      "template": "ubuntu-24.04",
+      "cpu": 2,
+      "memory": 2048,
+      "disk": 20,
+      "network": "hgws-edge",
+      "user": null,
+      "status": "stopped",
+      "vnc_port": 5967,
+      "created_at": "2025-09-11T16:07:41.752464"
+    },
+    {
+      "name": "alice-dev",
+      "uuid": "049cae14-2b40-498e-874b-1e7ee13ea564",
+      "template": "ubuntu-24.04",
+      "cpu": 4,
+      "memory": 4096,
+      "disk": 50,
+      "network": "tech-edge",
+      "user": "alice",
+      "status": "running",
+      "vnc_port": 5923,
+      "created_at": "2025-09-11T16:19:41.138718"
+    },
+    {
+      "name": "bob-staging",
+      "uuid": "22911315-3525-4ebb-9c56-a23e6ec89d4a",
+      "template": "ubuntu-24.04",
+      "cpu": 2,
+      "memory": 2048,
+      "disk": 30,
+      "network": "tech-edge",
+      "user": "bob",
+      "status": "stopped",
+      "vnc_port": 5996,
+      "created_at": "2025-09-11T16:19:48.368374"
+    },
+    {
+      "name": "test-vm-1757882444999",
+      "uuid": "e7926a78-79e1-4f5d-a2c2-8da7743ea912",
+      "template": "ubuntu-24.04",
+      "cpu": 2,
+      "memory": 2048,
+      "disk": 20,
+      "network": "hgws-edge",
+      "user": null,
+      "status": "stopped",
+      "vnc_port": 5911,
+      "created_at": "2025-09-14T20:40:45.007698"
+    },
+    {
+      "name": "test-vm-1757882464010",
+      "uuid": "e64e31ae-ba4f-4cfb-be1c-726560133db7",
+      "template": "ubuntu-24.04",
+      "cpu": 2,
+      "memory": 2048,
+      "disk": 20,
+      "network": "hgws-edge",
+      "user": null,
+      "status": "stopped",
+      "vnc_port": 5970,
+      "created_at": "2025-09-14T20:41:04.019682"
+    }
+  ]
+}

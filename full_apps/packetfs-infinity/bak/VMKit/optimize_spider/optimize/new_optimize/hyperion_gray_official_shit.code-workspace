@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../k69_real_installer"
+		}
+	],
+	"settings": {
+		"terminal.integrated.cwd": "$HOME"
+	}
+}

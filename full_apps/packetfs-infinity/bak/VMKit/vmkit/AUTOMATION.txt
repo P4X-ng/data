@@ -1,0 +1,3 @@
+OK, this is a big one. You're going to test test test!!! Test the VM creation, attaching, using, all flags, MAN THE SAILS!! You're ROOT! Careful not to run any commands that hang cuz I won't be hear to save you!
+
+REMEMBER: You're REWRITING KUBERNETES, except it'll be way simpler and in python. Follow those rules you outlined to stay on task, stay neat and tidy. Use the kubernetes directories as a guide, read the go files, and just write the parts we give a shit about in python. That way we keep the same structure, similar imports and such, but it'll sooo much easier.

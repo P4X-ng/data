@@ -1,0 +1,84 @@
+# PacketFS Infinity — root Justfile (no emojis)
+
+# Defaults
+PORT := "8811"
+HOST := "127.0.0.1"
+
+# Default target
+default: help
+
+help:
+	@echo "PacketFS Infinity (root)"
+	@echo "  just build                       # build container from root Containerfile"
+	@echo "  just up                          # run container (HTTP)"
+	@echo "  just up-tls TLS_CERT=/path/cert.pem TLS_KEY=/path/key.pem   # run container with TLS (WSS)"
+	@echo "  just logs                        # container logs"
+	@echo "  just down                        # stop/remove container"
+	@echo "  just dev-run-hypercorn           # run API locally with Hypercorn (http://HOST:PORT)"
+	@echo "  just dev-run-hypercorn-tls TLS_CERT=/path/cert.pem TLS_KEY=/path/key.pem  # local TLS"
+	@echo "  just clean-vendor                # remove reference_useful/vendor (requires sudo)"
+
+# Run with Hypercorn (ASGI)
+# Usage: just dev-run-hypercorn HOST=127.0.0.1 PORT=8811
+# Notes: PFS_TLS=0 disables strict TLS-only headers in dev
+# Local dev (Hypercorn)
+dev-run-hypercorn:
+	@PFS_TLS=${PFS_TLS:-0} /home/punk/.venv/bin/hypercorn --bind {{HOST}}:{{PORT}} "app.core.app:create_app()"
+
+dev-run-hypercorn-tls:
+	@if [ -z "${TLS_CERT}" ] || [ -z "${TLS_KEY}" ]; then echo "TLS_CERT and TLS_KEY must be set" >&2; exit 1; fi
+	@PFS_TLS=1 /home/punk/.venv/bin/hypercorn --bind {{HOST}}:{{PORT}} --certfile ${TLS_CERT} --keyfile ${TLS_KEY} "app.core.app:create_app()"
+
+# Run with Uvicorn (alternative)
+# Usage: just dev-run-uvicorn HOST=127.0.0.1 PORT=8811
+dev-run-uvicorn:
+	@PFS_TLS=${PFS_TLS:-0} /home/punk/.venv/bin/python -m uvicorn "app.core.app:create_app" --factory --host ${HOST} --port ${PORT}
+
+# Container build/run helpers (Podman preferred)
+build:
+	@podman build -t packetfs/pfs-infinity:latest -f Containerfile .
+
+# Build web arithmetic library (serves from /static/pfs-arith)
+web-build:
+	@npm --prefix app/web/pfs-arith ci >/dev/null 2>&1 || npm --prefix app/web/pfs-arith install
+	@npm --prefix app/web/pfs-arith run build
+
+up:
+	@podman rm -f pfs-infinity 2>/dev/null || true
+	@podman run -d --name pfs-infinity \
+		--net=host \
+		--shm-size=${PFS_SHM_SIZE:-1g} \
+		-e WS_PORT={{PORT}} \
+		-e BIND=0.0.0.0 \
+		-e PFS_TLS=${PFS_TLS:-0} \
+		-e PFS_ARITH=1 \
+		packetfs/pfs-infinity:latest
+	@echo "Listening on http://localhost:{{PORT}} (TLS off)"
+
+up-tls:
+	@if [ -z "${TLS_CERT}" ] || [ -z "${TLS_KEY}" ]; then echo "TLS_CERT and TLS_KEY must be set" >&2; exit 1; fi
+	@podman rm -f pfs-infinity 2>/dev/null || true
+	@podman run -d --name pfs-infinity \
+		--net=host \
+		--shm-size=${PFS_SHM_SIZE:-1g} \
+		-v ${TLS_CERT}:/app/certs/server.crt:ro \
+		-v ${TLS_KEY}:/app/certs/server.key:ro \
+		-e WS_PORT={{PORT}} \
+		-e BIND=0.0.0.0 \
+		-e PFS_TLS=1 \
+		-e PFS_ARITH=1 \
+		packetfs/pfs-infinity:latest \
+		/opt/venv/bin/hypercorn --bind 0.0.0.0:{{PORT}} --certfile /app/certs/server.crt --keyfile /app/certs/server.key "app.core.app:create_app()"
+	@echo "Listening on https://localhost:{{PORT}} (TLS on)"
+
+logs:
+	@podman logs -f pfs-infinity
+
+down:
+	@podman rm -f pfs-infinity 2>/dev/null || true
+	@echo "Stopped"
+
+# Remove legacy vendor tree (as requested). Requires sudo privileges.
+clean-vendor:
+	@echo "Removing reference_useful/vendor ..."
+	@sudo rm -rf reference_useful/vendor && echo "removed reference_useful/vendor" || echo "failed; check permissions"

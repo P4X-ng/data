@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HGWS Security Research Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c1445 0%, #1e3c72 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00f5ff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 245, 255, 0.3);
+        }
+
+        .card h3 {
+            color: #00f5ff;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .card-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #00f5ff, #0080ff);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: linear-gradient(45deg, #00d4ff, #0066cc);
+            transform: scale(1.05);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(45deg, #ff2222, #aa0000);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00f5ff;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1em;
+        }
+
+        .form-group input::placeholder, .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-running { background-color: #4CAF50; }
+        .status-stopped { background-color: #f44336; }
+        .status-pending { background-color: #ff9800; }
+
+        .container-list {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .container-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #00f5ff;
+        }
+
+        .task-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .rank {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-right: 15px;
+            min-width: 30px;
+        }
+
+        .security-warning {
+            background: linear-gradient(45deg, #ff4444, #ff8888);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(0, 245, 255, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ HGWS Security Research</h1>
+            <p>Community-Powered Cybersecurity Research Platform</p>
+            <p><strong>Free containers • Distributed analysis • Cooperative intelligence</strong></p>
+        </div>
+
+        <div class="security-warning">
+            ⚠️ <strong>SECURITY NOTICE:</strong> All malware analysis must be conducted in isolated containers. 
+            Never download or execute suspicious files on your host system!
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Quick Launch Section -->
+            <div class="card">
+                <div class="card-icon">🚀</div>
+                <h3>Quick Launch Security Container</h3>
+                <form id="quickLaunchForm">
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" required placeholder="researcher@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="researchFocus">Research Focus:</label>
+                        <select id="researchFocus">
+                            <option value="firmware">🔧 Firmware Security</option>
+                            <option value="malware">🦠 Malware Analysis</option>
+                            <option value="reverse_eng">🔍 Reverse Engineering</option>
+                            <option value="osint">🔎 OSINT Investigation</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="includeBinaryNinja"> Include Binary Ninja Pro
+                        </label>
+                    </div>
+                    <button type="submit" class="btn">🚀 Launch PhoenixGuard Container</button>
+                </form>
+            </div>
+
+            <!-- Active Containers -->
+            <div class="card">
+                <div class="card-icon">📦</div>
+                <h3>Your Active Containers</h3>
+                <button class="btn" onclick="refreshContainers()">🔄 Refresh</button>
+                <div id="containersList" class="container-list">
+                    <p>Enter email and click refresh to view your containers</p>
+                </div>
+            </div>
+
+            <!-- Create Security Task -->
+            <div class="card">
+                <div class="card-icon">📋</div>
+                <h3>Create Community Task</h3>
+                <form id="createTaskForm">
+                    <div class="form-group">
+                        <label for="taskType">Task Type:</label>
+                        <select id="taskType">
+                            <option value="firmware-analysis">🔧 Firmware Analysis</option>
+                            <option value="malware-analysis">🦠 Malware Analysis</option>
+                            <option value="vulnerability-research">🔍 Vulnerability Research</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDescription">Description:</label>
+                        <textarea id="taskDescription" placeholder="Describe what needs to be analyzed..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="rewardCredits">Reward Credits:</label>
+                        <input type="number" id="rewardCredits" value="10" min="1" max="100">
+                    </div>
+                    <button type="submit" class="btn">💰 Create Task (Costs Credits)</button>
+                </form>
+            </div>
+
+            <!-- Available Tasks -->
+            <div class="card">
+                <div class="card-icon">🎯</div>
+                <h3>Available Security Tasks</h3>
+                <button class="btn" onclick="refreshTasks()">🔄 Load Tasks</button>
+                <div id="tasksList" class="container-list">
+                    <p>Click refresh to load available tasks</p>
+                </div>
+            </div>
+
+            <!-- Security Tools -->
+            <div class="card">
+                <div class="card-icon">🛠️</div>
+                <h3>Pre-installed Security Tools</h3>
+                <div class="feature-grid">
+                    <div class="feature-item">🛡️<br><strong>PhoenixGuard</strong><br>UEFI Security</div>
+                    <div class="feature-item">🔍<br><strong>Ghidra</strong><br>Reverse Engineering</div>
+                    <div class="feature-item">⚡<br><strong>radare2</strong><br>Binary Analysis</div>
+                    <div class="feature-item">🖥️<br><strong>QEMU</strong><br>Virtualization</div>
+                    <div class="feature-item">🧠<br><strong>Volatility</strong><br>Memory Forensics</div>
+                    <div class="feature-item">🌐<br><strong>Wireshark</strong><br>Network Analysis</div>
+                    <div class="feature-item">🔎<br><strong>Binwalk</strong><br>Firmware Analysis</div>
+                    <div class="feature-item">🎯<br><strong>YARA</strong><br>Malware Detection</div>
+                </div>
+            </div>
+
+            <!-- Community Stats -->
+            <div class="card">
+                <div class="card-icon">🏆</div>
+                <h3>Security Research Leaderboard</h3>
+                <button class="btn" onclick="refreshLeaderboard()">🔄 Refresh</button>
+                <div id="leaderboardList" class="container-list">
+                    <p>Loading community stats...</p>
+                </div>
+            </div>
+
+            <!-- Contribution Options -->
+            <div class="card">
+                <div class="card-icon">🤝</div>
+                <h3>Contribute to Community</h3>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <strong>💾 Share Storage</strong><br>
+                        $0.01/GB/hour<br>
+                        <button class="btn" onclick="shareStorage()">Share</button>
+                    </div>
+                    <div class="feature-item">
+                        <strong>⚡ Share Compute</strong><br>
+                        $0.005/core/hour<br>
+                        <button class="btn" onclick="shareCompute()">Share</button>
+                    </div>
+                    <div class="feature-item">
+                        <strong>🧠 Complete Tasks</strong><br>
+                        $1-50/task<br>
+                        <button class="btn" onclick="browseTasks()">Browse</button>
+                    </div>
+                    <div class="feature-item">
+                        <strong>🔒 Security Research</strong><br>
+                        2x credit multiplier<br>
+                        <button class="btn" onclick="registerResearcher()">Register</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credits & Balance -->
+            <div class="card">
+                <div class="card-icon">💰</div>
+                <h3>Your Community Credits</h3>
+                <form id="creditsForm">
+                    <div class="form-group">
+                        <label for="creditsEmail">Email:</label>
+                        <input type="email" id="creditsEmail" placeholder="your@email.com">
+                    </div>
+                    <button type="submit" class="btn">💳 Check Balance</button>
+                </form>
+                <div id="creditsDisplay" class="container-list">
+                    <p>Enter email to view your credits and contribution history</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 30px;">
+            <h3>🌟 About HGWS Community Security Research</h3>
+            <p style="line-height: 1.6; margin-bottom: 15px;">
+                The HGWS Community Cloud revolutionizes cybersecurity research by providing free, 
+                isolated environments for security analysis. Our platform combines the power of 
+                distributed computing with cooperative intelligence sharing.
+            </p>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <strong>🆓 Ultra-Free Tier</strong><br>
+                    No credit card required<br>
+                    Just email verification
+                </div>
+                <div class="feature-item">
+                    <strong>🤝 Cooperative Model</strong><br>
+                    Contribute resources<br>
+                    Earn credits & money
+                </div>
+                <div class="feature-item">
+                    <strong>🛡️ Security Focused</strong><br>
+                    Pre-configured tools<br>
+                    Isolated environments
+                </div>
+                <div class="feature-item">
+                    <strong>🌍 Global Network</strong><br>
+                    Distributed infrastructure<br>
+                    Tailscale networking
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Quick launch form handler
+        document.getElementById('quickLaunchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const researchFocus = document.getElementById('researchFocus').value;
+            const includeBinaryNinja = document.getElementById('includeBinaryNinja').checked;
+            
+            try {
+                const response = await fetch('/api/security/containers/phoenixguard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        email: email,
+                        research_focus: researchFocus,
+                        include_binary_ninja: includeBinaryNinja
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert(`🚀 Container created successfully!\n\nContainer: ${result.container_name}\nSSH: ${result.ssh_command}\nWeb: ${result.web_url}\n\nExpires: ${result.expires_at}`);
+                    refreshContainers();
+                } else {
+                    alert(`❌ Error: ${result.detail || 'Failed to create container'}`);
+                }
+            } catch (error) {
+                alert(`❌ Network error: ${error.message}`);
+            }
+        });
+
+        // Refresh containers
+        async function refreshContainers() {
+            const email = document.getElementById('email').value;
+            if (!email) {
+                alert('Please enter your email first');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/community/containers/${encodeURIComponent(email)}`);
+                const result = await response.json();
+                
+                const containersList = document.getElementById('containersList');
+                
+                if (result.containers && result.containers.length > 0) {
+                    containersList.innerHTML = result.containers.map(container => `
+                        <div class="container-item">
+                            <div><strong>${container.container_name}</strong> 
+                            <span class="status-indicator status-${container.status}"></span>${container.status}</div>
+                            <div>SSH: <code>${container.ssh_command}</code></div>
+                            <div>Web: <a href="${container.web_url}" target="_blank">${container.web_url}</a></div>
+                            <div>Expires: ${container.expires_at}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    containersList.innerHTML = '<p>No active containers found. Create one above!</p>';
+                }
+            } catch (error) {
+                document.getElementById('containersList').innerHTML = `<p>Error loading containers: ${error.message}</p>`;
+            }
+        }
+
+        // Create task form handler
+        document.getElementById('createTaskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const taskType = document.getElementById('taskType').value;
+            const description = document.getElementById('taskDescription').value;
+            const rewardCredits = document.getElementById('rewardCredits').value;
+            
+            if (!email) {
+                alert('Please enter your email in the Quick Launch section first');
+                return;
+            }
+            
+            try {
+                const endpoint = `/api/security/tasks/${taskType}`;
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        email: email,
+                        firmware_description: description,
+                        malware_hash: description, // For malware tasks
+                        reward_credits: rewardCredits
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert(`✅ Task created successfully!\n\nTask ID: ${result.task_id}\nReward: ${result.reward_credits} credits`);
+                    document.getElementById('createTaskForm').reset();
+                    refreshTasks();
+                } else {
+                    alert(`❌ Error: ${result.detail || 'Failed to create task'}`);
+                }
+            } catch (error) {
+                alert(`❌ Network error: ${error.message}`);
+            }
+        });
+
+        // Refresh tasks
+        async function refreshTasks() {
+            try {
+                const response = await fetch('/api/community/tasks');
+                const result = await response.json();
+                
+                const tasksList = document.getElementById('tasksList');
+                
+                if (result.tasks && result.tasks.length > 0) {
+                    tasksList.innerHTML = result.tasks.map(task => `
+                        <div class="task-item">
+                            <div><strong>${task.title}</strong> 
+                            <span style="color: #ff9800;">💰 ${task.reward_credits} credits</span></div>
+                            <div>Type: ${task.task_type} | Time: ~${task.estimated_minutes}min</div>
+                            <div>${task.description.substring(0, 200)}...</div>
+                            <button class="btn" onclick="claimTask('${task.task_id}')">🎯 Claim Task</button>
+                        </div>
+                    `).join('');
+                } else {
+                    tasksList.innerHTML = '<p>No tasks available. Create one above!</p>';
+                }
+            } catch (error) {
+                document.getElementById('tasksList').innerHTML = `<p>Error loading tasks: ${error.message}</p>`;
+            }
+        }
+
+        // Claim task
+        async function claimTask(taskId) {
+            const email = document.getElementById('email').value;
+            if (!email) {
+                alert('Please enter your email first');
+                return;
+            }
+            
+            // Implementation would depend on the claim endpoint
+            alert(`Task claiming not yet implemented. Task ID: ${taskId}`);
+        }
+
+        // Check credits
+        document.getElementById('creditsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('creditsEmail').value;
+            
+            try {
+                const response = await fetch(`/api/community/credits/${encodeURIComponent(email)}`);
+                const result = await response.json();
+                
+                const creditsDisplay = document.getElementById('creditsDisplay');
+                
+                if (result.status === 'ok') {
+                    creditsDisplay.innerHTML = `
+                        <div class="container-item">
+                            <div><strong>💰 Total Credits: ${result.total_credits}</strong></div>
+                            <div>🏆 Tier: ${result.contributor_tier.toUpperCase()}</div>
+                            <div>✅ Tasks Completed: ${result.tasks_completed}</div>
+                            <div>⭐ Quality Score: ${result.task_quality_score}/10</div>
+                            <div>💾 Storage Shared: ${result.contributions.storage_shared_gb} GB</div>
+                            <div>⚡ Compute Shared: ${result.contributions.compute_uptime_hours} hours</div>
+                        </div>
+                    `;
+                } else {
+                    creditsDisplay.innerHTML = '<p>No credits found for this email</p>';
+                }
+            } catch (error) {
+                document.getElementById('creditsDisplay').innerHTML = `<p>Error loading credits: ${error.message}</p>`;
+            }
+        });
+
+        // Refresh leaderboard
+        async function refreshLeaderboard() {
+            try {
+                const response = await fetch('/api/security/leaderboard/security-researchers');
+                const result = await response.json();
+                
+                const leaderboardList = document.getElementById('leaderboardList');
+                
+                if (result.leaders && result.leaders.length > 0) {
+                    leaderboardList.innerHTML = result.leaders.map((leader, index) => `
+                        <div class="leaderboard-item">
+                            <div class="rank">${index + 1}</div>
+                            <div>
+                                <div><strong>${leader.email}</strong></div>
+                                <div>Credits: ${leader.total_credits} | Tier: ${leader.contributor_tier}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    leaderboardList.innerHTML = '<p>No security researchers yet. Be the first!</p>';
+                }
+            } catch (error) {
+                document.getElementById('leaderboardList').innerHTML = `<p>Error loading leaderboard: ${error.message}</p>`;
+            }
+        }
+
+        // Placeholder functions for contribution buttons
+        function shareStorage() {
+            alert('Storage sharing coming soon! This will deploy a lightweight container that shares disk space.');
+        }
+        
+        function shareCompute() {
+            alert('Compute sharing coming soon! This will process background jobs for other users.');
+        }
+        
+        function browseTasks() {
+            refreshTasks();
+        }
+        
+        function registerResearcher() {
+            alert('Security researcher registration coming soon! Get 2x credit multiplier for security work.');
+        }
+
+        // Load initial data
+        refreshTasks();
+        refreshLeaderboard();
+    </script>
+</body>
+</html>

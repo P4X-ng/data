@@ -1,8 +1,8 @@
 # PacketFS root orchestrator (single-target steps, no inline chaining)
 
 # Import split justfiles (network, builds, tests, cleanup, dev) if present
-import ./Justfile.vars
-import ./Justfile.bench
+import "./Justfile.vars"
+import "./Justfile.bench"
 
 # (Variables imported from Justfile.vars)
 
@@ -265,28 +265,45 @@ build-staging-fastpath-prog:
       src/packetfs/memory/pfs_hugeblob.c \
       src/packetfs/pcpu/pfs_pcpu.c
 
+# Build fake pNIC+pCPU harness + aggregator + shm producer (staging)
+dev-pnic-build:
+    @echo "[staging] Building fake pNIC+pCPU + aggregator + shm tx"
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o staging/pnic/pnic_pcpu \
+      staging/pnic/pnic_pcpu.c \
+      src/packetfs/ring/pfs_shm_ring.c \
+      src/packetfs/memory/pfs_hugeblob.c \
+      src/packetfs/pcpu/pfs_pcpu.c \
+      src/packetfs/gram/pfs_gram.c
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o staging/pnic/pnic_tx_shm \
+      staging/pnic/pnic_tx_shm.c \
+      src/packetfs/gram/pfs_gram.c
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o staging/pnic/pnic_agg \
+      staging/pnic/pnic_agg.c \
+      src/packetfs/memory/pfs_hugeblob.c \
+      src/packetfs/pcpu/pfs_pcpu.c \
+      src/packetfs/gram/pfs_gram.c
+
+# Run a 5s smoke of the fake pNIC+pCPU harness
+dev-pnic-smoke duration="5" blob_mb="1024" ports="1" queues="2" ring_pow2="16" dpf="64" align="64" pcpu_threads="2" nic_threads="1" mode="scatter" op="xor" imm="255":
+    @echo "[staging] pNIC+pCPU smoke: {{duration}}s blob={{blob_mb}}MB ports={{ports}} queues={{queues}} ring=2^{{ring_pow2}} dpf={{dpf}} align={{align}} pcpu_threads={{pcpu_threads}} nic_threads={{nic_threads}} mode={{mode}} op={{op}} imm={{imm}}"
+    staging/pnic/pnic_pcpu \
+      --duration {{duration}} --blob-mb {{blob_mb}} \
+      --ports {{ports}} --queues {{queues}} --ring-pow2 {{ring_pow2}} --dpf {{dpf}} --align {{align}} \
+      --pcpu 1 --pcpu-threads {{pcpu_threads}} --nic-threads {{nic_threads}} --mode {{mode}} --op {{op}} --imm {{imm}}
+
+# Simulate N producers into /dev/shm and run aggregator for {{duration}} seconds
+dev-pnic-agg-sim n="4" duration="5" ring_pow2="14" dpf="64" align="64" blob_mb="1024" threads_n="4":
+    @bash -eu -o pipefail -c 'paths=""; for i in $(seq -f "%03g" 1 {{n}}); do p=/dev/shm/pnic_vm_$i; rm -f "$p"; (staging/pnic/pnic_tx_shm --path "$p" --ring-pow2 {{ring_pow2}} --dpf {{dpf}} --align {{align}} --duration {{duration}} --blob-mb {{blob_mb}} >/dev/null 2>&1 &); paths="$paths${paths:+,}$p"; done; sleep 0.2; staging/pnic/pnic_agg --endpoints "$paths" --threads {{threads_n}} --duration {{duration}} --blob-mb {{blob_mb}} --op xor --imm 255'
+
 # Demo: staging program-carrying TX/RX
 run-staging-fastpath-prog duration="5" prog="xor:255":
     @echo "[staging] program-carrying RX/TX for {{duration}}s prog={{prog}}"
-    @bash -eu -o pipefail -c '
-      set -m; \
-      ./staging/fastpath/pfs_prog_rx --duration {{duration}} & \
-      rxpid=$$!; \
-      sleep 0.2; \
-      ./staging/fastpath/pfs_prog_tx --duration {{duration}} --prog "{{prog}}"; \
-      wait $$rxpid || true'
+    @bash -eu -o pipefail -c 'set -m; ./staging/fastpath/pfs_prog_rx --duration {{duration}} & rxpid=$!; sleep 0.2; ./staging/fastpath/pfs_prog_tx --duration {{duration}} --prog "{{prog}}"; wait $rxpid || true'
 
 # Quick demo: start RX then TX for 5s (local hugeblob)
 run-fastpath-demo duration="5":
     @echo "[demo] fastpath RX/TX for {{duration}}s"
-    @bash -eu -o pipefail -c '
-      set -m; \
-      dev={{justfile_directory()}}/dev/wip/native; \
-      ( $$dev/pfs_stream_fastpath_rx --duration {{duration}} ) & \
-      rxpid=$$!; \
-      sleep 0.2; \
-      $$dev/pfs_stream_fastpath_tx --duration {{duration}}; \
-      wait $$rxpid || true'
+    @bash -eu -o pipefail -c 'set -m; dev={{justfile_directory()}}/dev/wip/native; ($dev/pfs_stream_fastpath_rx --duration {{duration}}) & rxpid=$!; sleep 0.2; $dev/pfs_stream_fastpath_tx --duration {{duration}}; wait $rxpid || true'
 
 # Build process-per-pcore runner (no VMs)
 build-proc-pcores:
@@ -320,14 +337,7 @@ run-staging-pcores pcores="256" duration="10" blob_mb="4096" dpf="64" align="64"
       --pcores {{pcores}} --duration {{duration}} --blob-mb {{blob_mb}} \
       --dpf {{dpf}} --align {{align}} --ring-pow2 {{ring_pow2}} --op {{op}} --imm {{imm}}
     @echo "[demo] fastpath RX/TX for {{duration}}s"
-    @bash -eu -o pipefail -c '
-      set -m; \
-      dev={{justfile_directory()}}/dev/wip/native; \
-      ( $$dev/pfs_stream_fastpath_rx --duration {{duration}} ) & \
-      rxpid=$$!; \
-      sleep 0.2; \
-      $$dev/pfs_stream_fastpath_tx --duration {{duration}}; \
-      wait $$rxpid || true'
+    @bash -eu -o pipefail -c 'set -m; dev={{justfile_directory()}}/dev/wip/native; ($dev/pfs_stream_fastpath_rx --duration {{duration}}) & rxpid=$!; sleep 0.2; $dev/pfs_stream_fastpath_tx --duration {{duration}}; wait $rxpid || true'
     @echo "Building WIP native executables"
     mkdir -p bin
     {{CC}} {{CFLAGS}} {{INCLUDES}} -o bin/memory_executor dev/wip/native/memory_executor.c
@@ -973,6 +983,15 @@ dev-shm-maxwin-sweep queues="1,3" cthreads="1,2,4,8" seg_len="80" rp2="19" dpf="
     @echo "[maxwin] rp2={{rp2}} queues={{queues}} cthreads={{cthreads}} seg_len={{seg_len}} dpf={{dpf}} -> {{out}}"
     bash scripts/benchmarks/shm_maxwin_sweep.sh --ring-pow2 "{{rp2}}" --queues-list "{{queues}}" --pcpu-threads-list "{{cthreads}}" --seg-len "{{seg_len}}" --dpf "{{dpf}}" --duration "{{duration}}" --out "{{out}}"
 
+# CPU baseline (multi-core aggregation)
+build-cpu-baseline:
+    @echo "Building CPU baseline tool"
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -o dev/wip/native/pfs_cpu_baseline src/dev/wip/native/pfs_cpu_baseline.c
+
+dev-cpu-multi-baseline threads="16" size_mb="4096" op="xor8" imm="255":
+    @echo "[cpu-multi] threads={{threads}} size_mb={{size_mb}} op={{op}} imm={{imm}}"
+    bash scripts/benchmarks/cpu_multi_baseline.sh --threads "{{threads}}" --size-mb "{{size_mb}}" --op "{{op}}" --imm "{{imm}}"
+
 # =====================
 # Merge service (Podman)
 # =====================
@@ -1067,6 +1086,67 @@ dev-run-pfs-merge: dev-build-pfs-merge _dev_run_pfs_merge_internal
     @echo "Tip: enable jumbo frames and turn off GRO/LRO on enp130s0:"
     @echo "  sudo ip link set enp130s0 mtu 9000 && sudo ethtool -K enp130s0 gro off lro off tso off gso off"
     @echo "Consider pinning IRQs and threads to the same core for enp130s0"
+
+# =====================
+# OSv scanner + local registry + VMKit
+# =====================
+
+dev-registry-up port="5000" data_dir="logs/registry":
+    @echo "[registry] starting local registry on :{{port}}"
+    PORT={{port}} DATA_DIR={{data_dir}} bash scripts/registry/setup_local_registry.sh
+
+# Build and push the OSv scanner container to a registry
+# Usage: just dev-osv-build-push osv=./osv.img registry=127.0.0.1:5000 tag=osv-scanner:latest
+# Note: Provide a raw OSv image; convert qcow2 with: qemu-img convert -O raw src.qcow2 osv.img
+
+dev-osv-build-push osv="" registry="127.0.0.1:5000" tag="osv-scanner:latest":
+    @if [ -z "{{osv}}" ]; then echo "Usage: just dev-osv-build-push osv=./osv.img [registry=H:P] [tag=osv-scanner:latest]"; exit 2; fi
+    REGISTRY={{registry}} TAG={{tag}} bash scripts/registry/push_osv_scanner.sh --osv "{{osv}}"
+
+# Run OSv scanner container locally with KVM
+# Args forwarded via ARGS env; default CIDR/ports/rate used if not provided
+
+dev-osv-run-local args="--cidr 10.0.0.0/8 --ports 80,443 --rate 200000" registry="":
+    @echo "[osv] running locally (KVM if available)"
+    ARGS="{{args}}" REGISTRY="{{registry}}" bin/osv-scan
+
+# Create a tiny VM that pulls and runs the OSv scanner container on boot
+# Usage: just dev-vmkit-scan-create image=~/vm-images/ubuntu-22.04-server-cloudimg-amd64.img registry=192.168.122.1:5000 tag=osv-scanner:latest name=pfs-scan mem=512M cpus=1 args="--cidr ..."
+
+dev-vmkit-scan-create image="" registry="192.168.122.1:5000" tag="osv-scanner:latest" name="pfs-scan" mem="512M" cpus="1" args="--cidr 10.0.0.0/8 --ports 80,443 --rate 200000":
+    @if [ -z "{{image}}" ]; then echo "Usage: just dev-vmkit-scan-create image=PATH [registry=H:P] [tag=T] [name=N] [mem=512M] [cpus=1] [args=...]"; exit 2; fi
+    bash scripts/vmkit/pfs_scan_vm.sh --name "{{name}}" --image "{{image}}" --registry "{{registry}}" --tag "{{tag}}" --memory "{{mem}}" --cpus "{{cpus}}" --args "{{args}}"
+
+# ivshmem helpers: create a shared backing file and build ring demo
+
+dev-ivshmem-create path="/dev/shm/pfs_scan_ring.bin" size_mb="64" name="pfs-scan-shm":
+    @echo "[ivshmem] creating backing file {{path}} ({{size_mb}} MiB) name={{name}}"
+    bash scripts/ivshmem/create_ivshmem.sh --path "{{path}}" --size-mb "{{size_mb}}" --name "{{name}}"
+
+build-scan-ring:
+    @echo "[build] dev/tools pfs_scan_host/agent"
+    mkdir -p dev/tools
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -Idev/tools -o dev/tools/pfs_scan_host dev/tools/pfs_scan_host.c
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -Isrc -Idev/tools -o dev/tools/pfs_scan_agent dev/tools/pfs_scan_agent.c
+
+# Build minimal raw SYN scanner
+build-syn-scan:
+    @echo "[build] dev/tools/syn_scan"
+    mkdir -p dev/tools
+    {{CC}} -O3 -march=native -DNDEBUG -pthread -o dev/tools/syn_scan dev/tools/syn_scan.c
+
+# Run SYN scanner (use only on networks you own)
+# Example: just dev-syn-scan-run cidr=10.0.0.0/24 ports=80,443 src_ip=10.0.0.10 src_port=40000 pps=200000 ttl=64
+
+dev-syn-scan-run cidr="" ports="" src_ip="" src_port="40000" pps="100000" ttl="64":
+    @if [ -z "{{cidr}}" ] || [ -z "{{ports}}" ] || [ -z "{{src_ip}}" ]; then echo "Usage: just dev-syn-scan-run cidr=A.B.C.D/NN ports=LIST src_ip=A.B.C.D [src_port=40000] [pps=100000] [ttl=64]"; exit 2; fi
+    sudo dev/tools/syn_scan --cidr "{{cidr}}" --ports "{{ports}}" --src-ip "{{src_ip}}" --src-port "{{src_port}}" --pps "{{pps}}" --ttl "{{ttl}}"
+
+# Local ring simulation: produce tasks into /dev/shm and consume them
+
+dev-run-scan-ring-sim cidr="192.0.2.0/24" port="80" path="/dev/shm/pfs_scan_ring.bin":
+    @echo "[ring-sim] host->agent path={{path}} cidr={{cidr}} port={{port}}"
+    @bash -eu -o pipefail -c 'set -m; (dev/tools/pfs_scan_agent --path {{path}} --region-bytes $((64*1024*1024))) & ag=$!; sleep 0.2; dev/tools/pfs_scan_host --path {{path}} --cidr {{cidr}} --port {{port}} --slots-pow2 12 --batch 64 --region-bytes $((64*1024*1024)); wait $ag || true'
 
 # Stop and remove container
 _dev_stop_pfs_merge_internal:

@@ -1,0 +1,153 @@
+# Production build and run
+
+# Include central variables
+import "./justfile.vars"
+
+# Default help
+_default: (help-prod)
+
+help-prod:
+    @echo "prod commands: image-build|run|run-huge1g|rebuild|image-up|image-up-sans|up|up-rebuild|up-sans|down|tls-trust|tls-untrust|tls-bootstrap"
+    @echo "Usage: just prod <cmd>"
+
+# Prod builds (Podman > Docker per repo rule)
+prod-image-build:
+    @bash -eu -o pipefail -c '\
+    REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"; \
+    podman build -t packetfs/pfs-infinity:latest -f "$REPO_ROOT/full_apps/pfs-infinity/containers/backend/Containerfile" "$REPO_ROOT"; \
+    echo "Image built: packetfs/pfs-infinity:latest"'
+
+prod-run:
+    podman run --rm --net=host \
+      -e WS_PORT={{WS_PORT}} -e BIND=0.0.0.0 -e PFS_NET=host \
+      -e PFS_TLS=1 -e PFS_TLS_INSECURE=1 \
+      -e PFS_BLOB_AUTO="${PFS_BLOB_AUTO:-0}" \
+      -e PFS_QUIC_ENABLE="${PFS_QUIC_ENABLE:-0}" \
+      --name pfs-infinity packetfs/pfs-infinity:latest
+
+# Prod: verify hugetlbfs mount and run container with bind mounts
+prod-run-huge1g share_dir="/srv/pfs-share" huge_dir="/mnt/huge1G":
+    @bash -eu -o pipefail -c '
+    sd="{{share_dir}}"; hd="{{huge_dir}}"; \
+    mkdir -p "$sd"; \
+    if ! mountpoint -q "$hd"; then echo "huge dir $hd not mounted; run deb setup or mount manually"; exit 1; fi; \
+    podman run -d --name pfs-infinity --net=host \
+      -v "$hd":"$hd":Z -v "$sd":"/share":Z \
+      -e PFS_BLOB_DIR="$hd" -e PFS_SHARE_DIR="/share" \
+      packetfs/pfs-infinity:latest'
+
+# Alias: rebuild container image
+prod-rebuild:
+    just prod-image-build
+
+# Convenience: build + run (alias)
+prod-up:
+    just prod-image-up
+
+# Convenience: build + run with SANs (alias)
+prod-up-sans sans="" sans_cidr="":
+    just prod-image-up-sans sans="{{sans}}" sans_cidr="{{sans_cidr}}"
+
+# Full rebuild (no cache) + run
+prod-up-rebuild:
+    @bash -eu -o pipefail -c '\
+    port="${PORT:-{{WS_PORT}}}"; \
+    echo "[prod] Full rebuild (no-cache) and run (host networking, PORT=$port)"; \
+    REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"; \
+    podman build --no-cache -t packetfs/pfs-infinity:latest -f "$REPO_ROOT/full_apps/pfs-infinity/containers/backend/Containerfile" "$REPO_ROOT"; \
+    podman rm -f pfs-infinity >/dev/null 2>&1 || true; \
+    podman run --rm -d --name pfs-infinity \
+      --net=host \
+      -e WS_PORT="$port" \
+      -e BIND="${BIND:-{{BIND_ADDR}}}" \
+      -e PFS_NET="host" \
+      -e PFS_TLS="1" \
+      -e PFS_TLS_INSECURE="1" \
+      -e PFS_BLOB_AUTO="${PFS_BLOB_AUTO:-0}" \
+      -e PFS_QUIC_ENABLE="${PFS_QUIC_ENABLE:-0}" \
+      packetfs/pfs-infinity:latest'
+
+# Stop and remove the running container (if present)
+prod-down:
+    @bash -eu -o pipefail -c '\
+    echo "[prod] Stopping and removing pfs-infinity"; \
+    podman stop -t 3 pfs-infinity >/dev/null 2>&1 || true; \
+    podman rm -f pfs-infinity >/dev/null 2>&1 || true'
+
+# One-shot: build then run with configurable bind/port
+prod-image-up:
+    @bash -eu -o pipefail -c '\
+    port="${PORT:-{{WS_PORT}}}"; \
+    echo "[prod] Building and running (host networking, PORT=$port)"; \
+    just prod-image-build; \
+    podman rm -f pfs-infinity >/dev/null 2>&1 || true; \
+    podman run --rm -d --name pfs-infinity \
+      --net=host \
+      -e WS_PORT="$port" \
+      -e BIND="${BIND:-{{BIND_ADDR}}}" \
+      -e PFS_NET="host" \
+      -e PFS_TLS="1" \
+      -e PFS_TLS_INSECURE="1" \
+      -e PFS_BLOB_AUTO="${PFS_BLOB_AUTO:-0}" \
+      -e PFS_QUIC_ENABLE="${PFS_QUIC_ENABLE:-0}" \
+      packetfs/pfs-infinity:latest'
+
+# Build then run with extra TLS SANs (comma-separated, e.g., "punk-ripper,192.168.1.23")
+prod-image-up-sans sans="" sans_cidr="":
+    @bash -eu -o pipefail -c '\
+    port="${PORT:-{{WS_PORT}}}"; \
+    echo "[prod] Building and running (host networking, PORT=$port, SANs={{sans}}, CIDRs={{sans_cidr}})"; \
+    just prod-image-build; \
+    podman rm -f pfs-infinity >/dev/null 2>&1 || true; \
+    podman run --rm -d --name pfs-infinity \
+      --net=host \
+      -e WS_PORT="$port" \
+      -e BIND="${BIND:-{{BIND_ADDR}}}" \
+      -e PFS_NET="host" \
+      -e PFS_TLS="1" \
+      -e PFS_TLS_INSECURE="1" \
+      -e PFS_TLS_REISSUE="1" \
+      -e PFS_TLS_SANS="{{sans}}" \
+      -e PFS_TLS_SANS_CIDR="{{sans_cidr}}" \
+      -e PFS_BLOB_AUTO="${PFS_BLOB_AUTO:-0}" \
+      -e PFS_QUIC_ENABLE="${PFS_QUIC_ENABLE:-0}" \
+      packetfs/pfs-infinity:latest'
+
+# Trust the dev CA from the running container (installs to /usr/local/share/ca-certificates)
+prod-tls-trust:
+    bash scripts/tls/install_dev_ca.sh pfs-infinity
+
+# Back-compat alias
+prod-tls-dev-trust:
+    bash scripts/tls/install_dev_ca.sh pfs-infinity
+
+# Remove the dev CA trust from the host
+prod-tls-untrust:
+    @bash -eu -o pipefail -c '\
+    if [ -f /usr/local/share/ca-certificates/pfs-infinity-dev-ca.crt ]; then \
+      echo "[tls] Removing dev CA"; \
+      sudo rm -f /usr/local/share/ca-certificates/pfs-infinity-dev-ca.crt; \
+      sudo update-ca-certificates; \
+    else \
+      echo "[tls] No dev CA installed"; \
+    fi'
+
+# Back-compat alias
+prod-tls-dev-untrust:
+    @bash -eu -o pipefail -c '\
+    if [ -f /usr/local/share/ca-certificates/pfs-infinity-dev-ca.crt ]; then \
+      echo "[tls] Removing dev CA"; \
+      sudo rm -f /usr/local/share/ca-certificates/pfs-infinity-dev-ca.crt; \
+      sudo update-ca-certificates; \
+    else \
+      echo "[tls] No dev CA installed"; \
+    fi'
+
+# Dispatcher: `just prod <cmd>`
+prod cmd="help":
+    bash scripts/dispatch/prod_dispatch.sh "{{cmd}}"
+
+# Bootstrap TLS end-to-end: run image (SANs optional), trust CA locally, push CA to remotes
+# Usage: just prod tls-bootstrap SANS="a,b" SANS_CIDR="192.168.1.0/24" HOSTS="user@h1,h2"
+prod-tls-bootstrap:
+    SANS="${SANS:-}" SANS_CIDR="${SANS_CIDR:-}" HOSTS="${HOSTS:-}" scripts/tls/bootstrap_tls.sh

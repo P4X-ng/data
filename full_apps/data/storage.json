@@ -1,0 +1,109 @@
+{
+  "peers": [
+    {
+      "hostname": "host1.example.com",
+      "tailscale_ip": null,
+      "uuid": "peer-1",
+      "state": "Connected",
+      "connected": true,
+      "probed_at": "2025-09-11T16:07:17.194430"
+    },
+    {
+      "hostname": "storage1.techstartup.local",
+      "tailscale_ip": null,
+      "uuid": "peer-2",
+      "state": "Connected",
+      "connected": true,
+      "probed_at": "2025-09-11T16:20:23.253483"
+    },
+    {
+      "hostname": "storage2.techstartup.local",
+      "tailscale_ip": null,
+      "uuid": "peer-3",
+      "state": "Connected",
+      "connected": true,
+      "probed_at": "2025-09-11T16:20:30.744400"
+    },
+    {
+      "hostname": "storage1.local",
+      "tailscale_ip": null,
+      "uuid": "peer-4",
+      "state": "Connected",
+      "connected": true,
+      "probed_at": "2025-09-14T19:52:55.551931"
+    }
+  ],
+  "volumes": [
+    {
+      "name": "test-vol",
+      "type": "distributed",
+      "replica_count": 0,
+      "bricks": [
+        "host1:/data/brick1",
+        "host2:/data/brick2"
+      ],
+      "brick_count": 2,
+      "status": "Started",
+      "size": "0",
+      "created_at": "2025-09-11T16:08:18.910298",
+      "quotas": [
+        {
+          "path": "/alice",
+          "size": "100GB",
+          "set_at": "2025-09-11T16:08:43.162530"
+        }
+      ]
+    },
+    {
+      "name": "techstartup-data",
+      "type": "replicated",
+      "replica_count": 2,
+      "bricks": [
+        "storage1:/data/tech",
+        "storage2:/data/tech"
+      ],
+      "brick_count": 2,
+      "status": "Started",
+      "size": "0",
+      "created_at": "2025-09-11T16:20:38.364753",
+      "quotas": [
+        {
+          "path": "/alice",
+          "size": "500GB",
+          "set_at": "2025-09-11T16:20:52.780454"
+        },
+        {
+          "path": "/bob",
+          "size": "100GB",
+          "set_at": "2025-09-11T16:21:00.218384"
+        },
+        {
+          "path": "/shared",
+          "size": "1TB",
+          "set_at": "2025-09-11T16:21:07.223954"
+        }
+      ]
+    },
+    {
+      "name": "test-volume",
+      "type": "replicated",
+      "replica_count": 2,
+      "bricks": [
+        "storage1:/gluster/brick1",
+        "storage2:/gluster/brick2"
+      ],
+      "brick_count": 2,
+      "status": "Created",
+      "size": "0",
+      "created_at": "2025-09-14T19:52:55.556753"
+    }
+  ],
+  "mounts": [
+    {
+      "volume": "techstartup-data",
+      "mountpoint": "/mnt/alice",
+      "user": "alice",
+      "mounted_at": "2025-09-11T16:22:35.970520"
+    }
+  ]
+}

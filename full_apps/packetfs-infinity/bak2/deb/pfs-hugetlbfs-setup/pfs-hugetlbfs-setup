@@ -1,0 +1,31 @@
+#!/bin/sh
+set -e
+# Configure hugepages and mount hugetlbfs.
+# 1GiB default; fallback to 2MiB if needed.
+
+SYSCTL_D=/etc/sysctl.d/pfs-hugepages.conf
+FSTAB=/etc/fstab
+MOUNT_POINT=/mnt/huge1G
+
+mkdir -p "$MOUNT_POINT" || true
+
+# Default: try 2x 1GiB pages
+if [ -f /sys/kernel/mm/hugepages/hugepages-1048576kB/nr_hugepages ]; then
+  echo "vm.nr_hugepages=2" > "$SYSCTL_D"
+  sysctl --system || true
+  if ! grep -q "^hugetlbfs $MOUNT_POINT" "$FSTAB" 2>/dev/null; then
+    echo "hugetlbfs $MOUNT_POINT hugetlbfs mode=1770,pagesize=1G 0 0" >> "$FSTAB"
+  fi
+  mount -a || true
+else
+  # Fallback: 2MiB hugepages
+  echo "vm.nr_hugepages=1024" > "$SYSCTL_D"
+  sysctl --system || true
+  if ! grep -q "^hugetlbfs /dev/hugepages" "$FSTAB" 2>/dev/null; then
+    mkdir -p /dev/hugepages || true
+    echo "hugetlbfs /dev/hugepages hugetlbfs mode=1770 0 0" >> "$FSTAB"
+  fi
+  mount -a || true
+fi
+
+echo "pfs-hugetlbfs-setup: completed"

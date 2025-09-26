@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PacketFS Infinity - 2600x Faster Transfers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            background: #000;
+            color: #0f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #0f0;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #0f0;
+        }
+
+        .subtitle {
+            color: #090;
+            font-size: 1.2em;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .metric {
+            background: #001100;
+            border: 1px solid #0f0;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+        }
+
+        .metric-label {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #090;
+        }
+
+        .upload-section {
+            background: #001100;
+            border: 2px solid #0f0;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .upload-zone {
+            border: 2px dashed #0f0;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone:hover {
+            background: #002200;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .upload-zone.dragover {
+            background: #003300;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: #001100;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #0f0;
+            color: #000;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .file-list {
+            margin-top: 30px;
+        }
+
+        .file-item {
+            background: #001100;
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .file-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+            color: #090;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #003300;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0f0, #0ff);
+            width: 0%;
+            transition: width 0.3s;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        .transfer-stats {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            color: #0f0;
+        }
+
+        .compression-indicator {
+            font-size: 3em;
+            text-align: center;
+            margin: 20px 0;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .speedup-display {
+            font-size: 4em;
+            text-align: center;
+            color: #0ff;
+            text-shadow: 0 0 20px #0ff;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .alert {
+            background: #003300;
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .alert.success {
+            border-color: #0f0;
+            color: #0f0;
+        }
+
+        .alert.error {
+            border-color: #f00;
+            color: #f00;
+            background: #330000;
+        }
+
+        .blob-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #001100;
+            border: 1px solid #0f0;
+            padding: 10px;
+            font-size: 0.9em;
+        }
+
+        .blob-status.ready {
+            border-color: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        .blob-status.not-ready {
+            border-color: #f00;
+            color: #f00;
+        }
+    </style>
+</head>
+<body>
+    <div class="blob-status" id="blobStatus">
+        <div>BLOB: <span id="blobState">CHECKING...</span></div>
+        <div>SIZE: <span id="blobSize">-</span></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>PACKETFS INFINITY</h1>
+            <div class="subtitle">ARITHMETIC MODE - 2600X FASTER TRANSFERS</div>
+        </div>
+
+        <div class="metrics">
+            <div class="metric">
+                <div class="metric-value" id="compressionRatio">--</div>
+                <div class="metric-label">COMPRESSION</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="speedup">--</div>
+                <div class="metric-label">SPEEDUP</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="dataSaved">--</div>
+                <div class="metric-label">DATA SAVED</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="throughput">--</div>
+                <div class="metric-label">THROUGHPUT</div>
+            </div>
+        </div>
+
+        <div class="upload-section">
+            <h2>UPLOAD FILE FOR PACKETFS COMPRESSION</h2>
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📡</div>
+                <div>DROP FILES HERE OR CLICK TO SELECT</div>
+                <div style="margin-top: 10px; color: #090;">
+                    Files are compressed to &lt;0.04% using shared memory references
+                </div>
+                <input type="file" id="fileInput" multiple>
+            </div>
+        </div>
+
+        <div class="alert" id="alert"></div>
+
+        <div class="speedup-display" id="speedupDisplay" style="display: none;">
+            TRANSFER SPEEDUP: <span id="speedupValue">--</span>
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <div class="transfer-stats" id="transferStats" style="display: none;">
+            <h3>TRANSFER STATISTICS</h3>
+            <div class="stat-line">
+                <span>Original Size:</span>
+                <span id="statOriginal">--</span>
+            </div>
+            <div class="stat-line">
+                <span>Compressed Size:</span>
+                <span id="statCompressed">--</span>
+            </div>
+            <div class="stat-line">
+                <span>Compression Ratio:</span>
+                <span id="statRatio">--</span>
+            </div>
+            <div class="stat-line">
+                <span>Transfer Time:</span>
+                <span id="statTime">--</span>
+            </div>
+            <div class="stat-line">
+                <span>Effective Speed:</span>
+                <span id="statSpeed">--</span>
+            </div>
+            <div class="stat-line">
+                <span>Protocol:</span>
+                <span>PACKETFS ARITHMETIC MODE (BREF)</span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const API_BASE = window.location.origin;
+        
+        // Global stats tracking
+        let totalOriginalBytes = 0;
+        let totalCompressedBytes = 0;
+        let totalTransfers = 0;
+        
+        // Format bytes for display
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Format percentage
+        function formatPercent(value) {
+            return (value * 100).toFixed(2) + '%';
+        }
+        
+        // Show alert
+        function showAlert(message, type = 'success') {
+            const alert = document.getElementById('alert');
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Update metrics display
+        function updateMetrics() {
+            if (totalTransfers > 0 && totalOriginalBytes > 0) {
+                const compressionRatio = 1 - (totalCompressedBytes / totalOriginalBytes);
+                const speedup = totalOriginalBytes / totalCompressedBytes;
+                const dataSaved = totalOriginalBytes - totalCompressedBytes;
+                
+                document.getElementById('compressionRatio').textContent = formatPercent(compressionRatio);
+                document.getElementById('speedup').textContent = speedup.toFixed(0) + 'x';
+                document.getElementById('dataSaved').textContent = formatBytes(dataSaved);
+                document.getElementById('throughput').textContent = totalTransfers + ' files';
+            }
+        }
+        
+        // Check blob status
+        async function checkBlobStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/blob/status`);
+                const data = await response.json();
+                
+                const blobStatus = document.getElementById('blobStatus');
+                const blobState = document.getElementById('blobState');
+                const blobSize = document.getElementById('blobSize');
+                
+                if (data.attached) {
+                    blobStatus.className = 'blob-status ready';
+                    blobState.textContent = 'READY';
+                    blobSize.textContent = formatBytes(data.size || 0);
+                } else {
+                    blobStatus.className = 'blob-status not-ready';
+                    blobState.textContent = 'NOT READY';
+                    blobSize.textContent = '-';
+                }
+            } catch (error) {
+                console.error('Blob status check failed:', error);
+            }
+        }
+        
+        // Upload file and get IPROG
+        async function uploadFile(file) {
+            const startTime = Date.now();
+            
+            // Create file item in list
+            const fileList = document.getElementById('fileList');
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <div class="file-info">
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-stats">
+                        <span>Size: ${formatBytes(file.size)}</span>
+                        <span id="file-${file.name}-compression">Compressing...</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="file-${file.name}-progress"></div>
+                    </div>
+                </div>
+            `;
+            fileList.insertBefore(fileItem, fileList.firstChild);
+            
+            // Upload file
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                // Show upload progress
+                const progressBar = document.getElementById(`file-${file.name}-progress`);
+                progressBar.style.width = '50%';
+                
+                const response = await fetch(`${API_BASE}/objects`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                const uploadTime = (Date.now() - startTime) / 1000;
+                
+                // Update progress
+                progressBar.style.width = '100%';
+                
+                // Update compression stats
+                const compressionSpan = document.getElementById(`file-${file.name}-compression`);
+                const compressionRatio = result.tx_ratio ? (1 - result.tx_ratio) : 0;
+                const compressedSize = result.compressed_size || 0;
+                const speedup = file.size / compressedSize;
+                
+                compressionSpan.innerHTML = `
+                    Compression: ${formatPercent(compressionRatio)} | 
+                    Speedup: ${speedup.toFixed(0)}x | 
+                    Time: ${uploadTime.toFixed(2)}s
+                `;
+                
+                // Update global stats
+                totalOriginalBytes += file.size;
+                totalCompressedBytes += compressedSize;
+                totalTransfers += 1;
+                updateMetrics();
+                
+                // Show transfer stats
+                const transferStats = document.getElementById('transferStats');
+                transferStats.style.display = 'block';
+                document.getElementById('statOriginal').textContent = formatBytes(file.size);
+                document.getElementById('statCompressed').textContent = formatBytes(compressedSize);
+                document.getElementById('statRatio').textContent = formatPercent(compressionRatio);
+                document.getElementById('statTime').textContent = uploadTime.toFixed(2) + 's';
+                document.getElementById('statSpeed').textContent = formatBytes(file.size / uploadTime) + '/s';
+                
+                // Show speedup display
+                const speedupDisplay = document.getElementById('speedupDisplay');
+                speedupDisplay.style.display = 'block';
+                document.getElementById('speedupValue').textContent = speedup.toFixed(0) + 'x FASTER';
+                
+                showAlert(`File compressed to ${formatPercent(compressionRatio)} - ${speedup.toFixed(0)}x speedup achieved!`);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                showAlert(`Upload failed: ${error.message}`, 'error');
+                
+                // Update file item to show error
+                const compressionSpan = document.getElementById(`file-${file.name}-compression`);
+                compressionSpan.style.color = '#f00';
+                compressionSpan.textContent = 'Failed';
+            }
+        }
+        
+        // Setup upload handlers
+        function setupUpload() {
+            const uploadZone = document.getElementById('uploadZone');
+            const fileInput = document.getElementById('fileInput');
+            
+            uploadZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                files.forEach(file => uploadFile(file));
+                fileInput.value = ''; // Reset input
+            });
+            
+            // Drag and drop
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+            
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+            
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                
+                const files = Array.from(e.dataTransfer.files);
+                files.forEach(file => uploadFile(file));
+            });
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkBlobStatus();
+            setupUpload();
+            
+            // Periodic blob status check
+            setInterval(checkBlobStatus, 5000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤡 AWS: The Ultimate Ripoff Exposed - HGWS</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .hero {
+            text-align: center;
+            background: rgba(255, 71, 87, 0.2);
+            border: 2px solid #ff4757;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 20px 0;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { box-shadow: 0 0 20px rgba(255, 71, 87, 0.5); }
+            to { box-shadow: 0 0 40px rgba(255, 71, 87, 0.8); }
+        }
+        
+        .hero h1 {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ffa726, #ff4757);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: bounce 3s ease-in-out infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-30px); }
+            60% { transform: translateY(-15px); }
+        }
+        
+        .subtitle {
+            font-size: 1.8em;
+            margin-bottom: 30px;
+            color: #ffa726;
+            font-weight: bold;
+        }
+        
+        .ripoff-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        .ripoff-card {
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px solid #ff4757;
+            border-radius: 15px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ripoff-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ff4757, #ff6b6b, #ffa726);
+            border-radius: 15px;
+            z-index: -1;
+            animation: rotate 3s linear infinite;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .ripoff-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ff4757;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ripoff-icon {
+            font-size: 2em;
+        }
+        
+        .price-shock {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #ff4757;
+            text-align: center;
+            margin: 15px 0;
+            text-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+        }
+        
+        .vs-price {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #00ff88;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .hidden-fees {
+            background: rgba(255, 167, 38, 0.2);
+            border: 1px solid #ffa726;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .hidden-fees h4 {
+            color: #ffa726;
+            margin: 0 0 10px 0;
+        }
+        
+        .fee-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .fee-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 167, 38, 0.3);
+        }
+        
+        .fee-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .testimonial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+        
+        .testimonial {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .testimonial::before {
+            content: '"';
+            font-size: 4em;
+            color: #00ff88;
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            opacity: 0.3;
+        }
+        
+        .testimonial-text {
+            font-style: italic;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .testimonial-author {
+            font-weight: bold;
+            color: #00ff88;
+            text-align: right;
+        }
+        
+        .savings-amount {
+            font-size: 1.5em;
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .calculator-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 40px 0;
+            border: 2px solid #00ff88;
+        }
+        
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .scenario-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .scenario-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .scenario-card.selected {
+            background: rgba(0, 255, 136, 0.2);
+            border: 2px solid #00ff88;
+        }
+        
+        .results-section {
+            display: none;
+            margin: 30px 0;
+        }
+        
+        .comparison-table {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .aws-price {
+            color: #ff4757;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .hgws-price {
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #00ff88 0%, #00d2ff 100%);
+            color: black;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 40px 0;
+            text-align: center;
+        }
+        
+        .cta-section h2 {
+            color: black;
+            margin: 0 0 20px 0;
+        }
+        
+        .cta-button {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 1.3em;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .real-example {
+            background: rgba(255, 71, 87, 0.15);
+            border-left: 5px solid #ff4757;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        
+        .complexity-meter {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .complexity-bar {
+            background: linear-gradient(90deg, #00ff88 0%, #ffa726 50%, #ff4757 100%);
+            height: 20px;
+            border-radius: 10px;
+            position: relative;
+            margin: 15px 0;
+        }
+        
+        .complexity-marker {
+            position: absolute;
+            top: -30px;
+            background: white;
+            color: black;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .aws-marker {
+            right: 5%;
+        }
+        
+        .hgws-marker {
+            left: 2%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>🤡 AWS: THE ULTIMATE RIPOFF</h1>
+            <div class="subtitle">Let's LMFAO at how ridiculous Amazon's pricing really is!</div>
+            <p style="font-size: 1.2em;">Warning: The following content may cause extreme anger, laughter, and immediate desire to switch to HGWS.</p>
+        </div>
+
+        <div class="complexity-meter">
+            <h2>🧠 Complexity Level: Understanding Your Cloud Bill</h2>
+            <div class="complexity-bar">
+                <div class="complexity-marker hgws-marker">HGWS: "Here's what you pay"</div>
+                <div class="complexity-marker aws-marker">AWS: "Good luck figuring this out"</div>
+            </div>
+            <p><strong>HGWS:</strong> One simple price sheet. Done.</p>
+            <p><strong>AWS:</strong> 200+ services × 50+ pricing models × regional variations × discounts × commitments = 🤯</p>
+        </div>
+
+        <div class="ripoff-grid">
+            <div class="ripoff-card">
+                <div class="ripoff-title">
+                    <span class="ripoff-icon">🌐</span>
+                    Data Transfer (The Big Scam!)
+                </div>
+                <div class="price-shock">AWS: $0.09/GB</div>
+                <div class="vs-price">HGWS: $0.005/GB</div>
+                <div class="hidden-fees">
+                    <h4>🕳️ Hidden AWS Gotchas:</h4>
+                    <ul class="fee-list">
+                        <li>• Cross-AZ transfer: $0.01/GB (your own data!)</li>
+                        <li>• NAT Gateway: $0.045/GB processed</li>
+                        <li>• VPC Endpoints: $0.01/GB + hourly fees</li>
+                        <li>• CloudFront: $0.085/GB (on top of other fees)</li>
+                        <li>• Inter-region: $0.02/GB (moving YOUR data)</li>
+                    </ul>
+                </div>
+                <p><strong>Real talk:</strong> They charge you to move your own data between their own servers. It's like paying extra to move your groceries from one pocket to another! 🤡</p>
+            </div>
+
+            <div class="ripoff-card">
+                <div class="ripoff-title">
+                    <span class="ripoff-icon">💾</span>
+                    Storage (Death by 1000 Cuts)
+                </div>
+                <div class="price-shock">AWS: $0.10+/GB</div>
+                <div class="vs-price">HGWS: $0.01/GB</div>
+                <div class="hidden-fees">
+                    <h4>💸 AWS Storage Ripoffs:</h4>
+                    <ul class="fee-list">
+                        <li>• PUT requests: $0.0005 per 1,000 requests</li>
+                        <li>• GET requests: $0.0004 per 1,000 requests</li>
+                        <li>• LIST requests: $0.005 per 1,000 requests</li>
+                        <li>• Early deletion fees (Glacier)</li>
+                        <li>• Retrieval fees: $0.01-$0.05/GB</li>
+                        <li>• Monitoring fees: $0.30/month per metric</li>
+                    </ul>
+                </div>
+                <p><strong>Translation:</strong> Every time your app checks if a file exists, AWS charges you. It's like paying a fee every time you open your own filing cabinet! 📁💰</p>
+            </div>
+
+            <div class="ripoff-card">
+                <div class="ripoff-title">
+                    <span class="ripoff-icon">⚖️</span>
+                    Load Balancers (Highway Robbery)
+                </div>
+                <div class="price-shock">AWS: $22.50+/month</div>
+                <div class="vs-price">HGWS: $2.00/month</div>
+                <div class="hidden-fees">
+                    <h4>🎯 AWS LB Hidden Costs:</h4>
+                    <ul class="fee-list">
+                        <li>• Load Balancer Capacity Units (LCU): $0.008/hour</li>
+                        <li>• Rule evaluation: $0.36/month per rule</li>
+                        <li>• Certificate management: $0.75/month</li>
+                        <li>• Health check fees</li>
+                        <li>• Cross-zone balancing: data transfer fees</li>
+                    </ul>
+                </div>
+                <p><strong>Reality check:</strong> A simple load balancer that just forwards requests costs more per month than most people's Netflix subscription! 🍿</p>
+            </div>
+
+            <div class="ripoff-card">
+                <div class="ripoff-title">
+                    <span class="ripoff-icon">🎮</span>
+                    GPU Computing (Mortgage Payment)
+                </div>
+                <div class="price-shock">AWS: $32.77/hour</div>
+                <div class="vs-price">HGWS: $2.00/hour</div>
+                <div class="hidden-fees">
+                    <h4>🔥 AWS GPU Madness:</h4>
+                    <ul class="fee-list">
+                        <li>• p4d.24xlarge: $32.77/hour ($787/day!)</li>
+                        <li>• Reserved instances lock you in for 1-3 years</li>
+                        <li>• No per-second billing on some instances</li>
+                        <li>• EBS-optimized fees on top</li>
+                        <li>• Data transfer fees for model loading</li>
+                    </ul>
+                </div>
+                <p><strong>Fun fact:</strong> Running one AWS GPU instance for a month costs more than a decent car payment. Our community-powered GPUs cost less than your coffee budget! ☕</p>
+            </div>
+
+            <div class="ripoff-card">
+                <div class="ripoff-title">
+                    <span class="ripoff-icon">📊</span>
+                    Databases (Subscription Hell)
+                </div>
+                <div class="price-shock">AWS: $0.136+/hour</div>
+                <div class="vs-price">HGWS: $0.008/hour</div>
+                <div class="hidden-fees">
+                    <h4>🗃️ AWS DB Fee Maze:</h4>
+                    <ul class="fee-list">
+                        <li>• Multi-AZ deployment: Double the cost!</li>
+                        <li>• Read replicas: Full cost per replica</li>
+                        <li>• Backup storage: $0.095/GB-month</li>
+                        <li>• Snapshot export: $0.01/GB</li>
+                        <li>• Performance Insights: $0.02/vCPU/day</li>
+                        <li>• Enhanced monitoring: $0.30/instance/month</li>
+                    </ul>
+                </div>
+                <p><strong>The scam:</strong> They charge you full price for a "backup" database that only activates if your primary fails. It's like paying full rent for an empty apartment "just in case"! 🏠💸</p>
+            </div>
+
+            <div class="ripoff-card">
+                <div class="ripoff-title">
+                    <span class="ripoff-icon">👁️</span>
+                    Monitoring & Logs (Spy Tax)
+                </div>
+                <div class="price-shock">AWS: $$$$ per metric</div>
+                <div class="vs-price">HGWS: Included FREE</div>
+                <div class="hidden-fees">
+                    <h4>📈 AWS Monitoring Ripoffs:</h4>
+                    <ul class="fee-list">
+                        <li>• CloudWatch metrics: $0.30/metric/month</li>
+                        <li>• Custom metrics: $0.30/metric/month</li>
+                        <li>• Dashboard: $3.00/month per dashboard</li>
+                        <li>• Alarms: $0.10/alarm/month</li>
+                        <li>• Log ingestion: $0.50/GB</li>
+                        <li>• Log storage: $0.0276/GB-month</li>
+                        <li>• Log insights queries: $0.005/GB scanned</li>
+                    </ul>
+                </div>
+                <p><strong>Insanity:</strong> AWS charges you to see how much money you're spending on AWS! It's like your bank charging you to check your balance after they already robbed you! 🏦💰</p>
+            </div>
+        </div>
+
+        <div class="real-example">
+            <h3>🎭 Real AWS Bill Horror Story</h3>
+            <p><strong>Startup scenario:</strong> Small team, simple web app, 1000 daily users</p>
+            <div class="comparison-table">
+                <table>
+                    <tr>
+                        <th>Service</th>
+                        <th>AWS Cost/Month</th>
+                        <th>Hidden Fees</th>
+                        <th>HGWS Cost/Month</th>
+                        <th>You Save</th>
+                    </tr>
+                    <tr>
+                        <td>2x Web Servers (t3.small)</td>
+                        <td class="aws-price">$67.00</td>
+                        <td>EBS optimization: +$8</td>
+                        <td class="hgws-price">$5.76</td>
+                        <td>$69.24</td>
+                    </tr>
+                    <tr>
+                        <td>Database (db.t3.small)</td>
+                        <td class="aws-price">$49.00</td>
+                        <td>Multi-AZ: +$49, Backups: +$15</td>
+                        <td class="hgws-price">$5.76</td>
+                        <td>$107.24</td>
+                    </tr>
+                    <tr>
+                        <td>Load Balancer</td>
+                        <td class="aws-price">$22.50</td>
+                        <td>LCU charges: +$12</td>
+                        <td class="hgws-price">$2.00</td>
+                        <td>$32.50</td>
+                    </tr>
+                    <tr>
+                        <td>100GB Storage</td>
+                        <td class="aws-price">$10.00</td>
+                        <td>IOPS: +$6, Snapshots: +$5</td>
+                        <td class="hgws-price">$1.00</td>
+                        <td>$20.00</td>
+                    </tr>
+                    <tr>
+                        <td>50GB Bandwidth</td>
+                        <td class="aws-price">$4.50</td>
+                        <td>Cross-AZ: +$2, NAT: +$5</td>
+                        <td class="hgws-price">$0.25</td>
+                        <td>$11.25</td>
+                    </tr>
+                    <tr>
+                        <td>Monitoring</td>
+                        <td class="aws-price">$25.00</td>
+                        <td>Detailed monitoring: +$10</td>
+                        <td class="hgws-price">FREE</td>
+                        <td>$35.00</td>
+                    </tr>
+                    <tr style="border-top: 2px solid #ff4757;">
+                        <td><strong>TOTAL MONTHLY</strong></td>
+                        <td class="aws-price"><strong>$310.00</strong></td>
+                        <td><strong>😱</strong></td>
+                        <td class="hgws-price"><strong>$14.77</strong></td>
+                        <td><strong style="color: #00ff88; font-size: 1.3em;">$295.23/month!</strong></td>
+                    </tr>
+                </table>
+            </div>
+            <p style="text-align: center; font-size: 1.5em; color: #00ff88; font-weight: bold;">
+                💰 That's $3,542.76 saved per year! 💰<br>
+                <span style="font-size: 0.8em;">Enough for a nice vacation, new car, or investment portfolio!</span>
+            </p>
+        </div>
+
+        <div class="testimonial-grid">
+            <div class="testimonial">
+                <div class="testimonial-text">
+                    "AWS charged us $847 in one day because our app went viral. The same traffic on HGWS costs us $23. I'm never going back to Big Cloud."
+                </div>
+                <div class="testimonial-author">- Jake, Indie App Developer</div>
+                <div class="savings-amount">Saved: $824/day = $300k+/year</div>
+            </div>
+            
+            <div class="testimonial">
+                <div class="testimonial-text">
+                    "Our AWS bill was $12K/month for a simple e-commerce site. HGWS runs the same workload for $340/month. The performance is actually BETTER."
+                </div>
+                <div class="testimonial-author">- Maria, CTO @ ShopLocal</div>
+                <div class="savings-amount">Saved: $11,660/month = $140k/year</div>
+            </div>
+            
+            <div class="testimonial">
+                <div class="testimonial-text">
+                    "AWS wanted $50K+ for our AI training workloads. HGWS community GPUs handle the same job for $1,200. Mind = blown."
+                </div>
+                <div class="testimonial-author">- Dr. Chen, ML Research Lab</div>
+                <div class="savings-amount">Saved: $48,800/project</div>
+            </div>
+        </div>
+
+        <div class="calculator-section">
+            <h2>🔥 Try Our "AWS Ripoff Calculator" 🔥</h2>
+            <p>See exactly how much Amazon is overcharging you (prepare to be angry):</p>
+            
+            <div class="scenario-grid">
+                <div class="scenario-card" onclick="showScenario('startup')">
+                    <h4>🚀 Startup</h4>
+                    <p>Small team, growing fast, need to scale</p>
+                </div>
+                <div class="scenario-card" onclick="showScenario('enterprise')">
+                    <h4>🏢 Enterprise</h4>
+                    <p>Large deployment, compliance needs</p>
+                </div>
+                <div class="scenario-card" onclick="showScenario('ai')">
+                    <h4>🤖 AI/ML</h4>
+                    <p>Training models, GPU-heavy workloads</p>
+                </div>
+                <div class="scenario-card" onclick="showScenario('gaming')">
+                    <h4>🎮 Gaming</h4>
+                    <p>Game servers, real-time multiplayer</p>
+                </div>
+            </div>
+            
+            <div class="results-section" id="results">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+
+        <div class="real-example">
+            <h3>🚀 Our Secret Weapons: Why We Can ACTUALLY Deliver</h3>
+            <p><strong>Unlike other "alternatives," we have the R&D to back up our claims:</strong></p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin: 25px 0;">
+                <div style="background: rgba(0, 255, 136, 0.1); border: 2px solid #00ff88; border-radius: 15px; padding: 20px;">
+                    <h4 style="color: #00ff88; margin-top: 0;">🌌 Teleportation TCP</h4>
+                    <p><strong>99% bandwidth reduction</strong> through synchronized PacketFS:</p>
+                    <ul>
+                        <li>• <strong>Pointer-based networking:</strong> Send offsets, not full packets</li>
+                        <li>• <strong>GPU + userspace networking:</strong> Bypass kernel bottlenecks</li>
+                        <li>• <strong>Ring buffers in physical memory:</strong> Maximum throughput</li>
+                        <li>• <strong>100G backbone:</strong> Geographic distance becomes irrelevant</li>
+                    </ul>
+                    <p style="color: #00ff88; font-weight: bold;">🎨 Result: AWS charges $0.09/GB for slow transfers. We deliver 99% faster for $0.005/GB!</p>
+                </div>
+                
+                <div style="background: rgba(0, 255, 136, 0.1); border: 2px solid #00ff88; border-radius: 15px; padding: 20px;">
+                    <h4 style="color: #00ff88; margin-top: 0;">⚡ P4XOS (Live OS Replacement)</h4>
+                    <p><strong>Zero-downtime OS upgrades</strong> in minutes, not days:</p>
+                    <ul>
+                        <li>• <strong>VM-in-container magic:</strong> Upgrade while you work</li>
+                        <li>• <strong>ZFS snapshots at ESP:</strong> Instant rollbacks</li>
+                        <li>• <strong>kexec instead of reboot:</strong> No power cycling</li>
+                        <li>• <strong>NOT_KUBERNETES:</strong> Our own orchestrator</li>
+                    </ul>
+                    <p style="color: #00ff88; font-weight: bold;">🏆 Result: AWS migration = weeks of engineer time. Our migration = 3 minutes!</p>
+                </div>
+            </div>
+            
+            <div style="background: rgba(255, 167, 38, 0.1); border: 1px solid #ffa726; border-radius: 10px; padding: 15px; margin: 15px 0;">
+                <p style="text-align: center; font-size: 1.2em; margin: 0;">
+                    <strong>🤯 This isn't just marketing fluff — this is real R&D that makes AWS look like dial-up internet!</strong>
+                </p>
+            </div>
+        </div>
+        
+        <div class="cta-section">
+            <h2>🎯 Ready to Escape the AWS Ripoff?</h2>
+            <p style="font-size: 1.3em; margin: 20px 0;">
+                <strong>Join 50,000+ developers who ditched Big Cloud and saved millions!</strong>
+            </p>
+            <p style="margin: 20px 0;">
+                No lock-in contracts • No hidden fees • No surprise bills • Just honest, community-powered cloud
+            </p>
+            <button class="cta-button" onclick="signUpWithAWS()" style="background: linear-gradient(135deg, #ff4757 0%, #ff6b6b 100%); font-size: 1.4em;">
+                😈 Login with AWS (ESCAPE THE MATRIX!)
+            </button>
+            <button class="cta-button" onclick="window.location.href='/register'">
+                🚀 Get Started FREE (No Credit Card!)
+            </button>
+            <button class="cta-button" onclick="window.location.href='/static/price-comparison.html'">
+                🧮 Calculate YOUR Savings
+            </button>
+            <button class="cta-button" onclick="window.location.href='/static/money-dashboard.html'">
+                💰 Start Earning Money Today
+            </button>
+        </div>
+    </div>
+
+    <!-- HGWS Unified Navigation -->
+    <script src="/static/nav.js"></script>
+
+    <script>
+        const scenarios = {
+            startup: {
+                title: "💸 Startup Getting Demolished by AWS",
+                description: "Small team, 10K monthly users, basic setup",
+                aws_total: 2850.00,
+                hgws_total: 67.50,
+                breakdown: [
+                    { service: "App Servers (3x t3.medium)", aws: 278.00, hgws: 17.28, aws_hidden: "EBS optimization: +$24" },
+                    { service: "Database Cluster", aws: 380.00, hgws: 11.52, aws_hidden: "Multi-AZ: +$380, Backups: +$45" },
+                    { service: "Redis Cache", aws: 156.00, hgws: 8.64, aws_hidden: "Multi-AZ: +$156" },
+                    { service: "Load Balancer + CDN", aws: 89.00, hgws: 2.00, aws_hidden: "LCU fees: +$67, SSL: +$22" },
+                    { service: "File Storage (500GB)", aws: 115.00, hgws: 5.00, aws_hidden: "IOPS: +$45, Transfer: +$25" },
+                    { service: "Bandwidth (200GB/mo)", aws: 18.00, hgws: 1.00, aws_hidden: "Cross-AZ: +$15, NAT: +$45" },
+                    { service: "Monitoring & Logs", aws: 125.00, hgws: 0.00, aws_hidden: "Per-metric charges: +$87" },
+                    { service: "Backup & Disaster Recovery", aws: 234.00, hgws: 5.00, aws_hidden: "Cross-region: +$156" },
+                    { service: "Security & Compliance", aws: 167.00, hgws: 0.00, aws_hidden: "WAF, GuardDuty, Config: +$89" },
+                    { service: "Auto Scaling & Management", aws: 89.00, hgws: 0.00, aws_hidden: "Systems Manager: +$34" },
+                    { service: "API Gateway & Lambda", aws: 78.00, hgws: 2.50, aws_hidden: "Per-request fees: +$45" },
+                    { service: "Email & Notifications", aws: 45.00, hgws: 0.50, aws_hidden: "SES + SNS fees: +$23" }
+                ]
+            },
+            enterprise: {
+                title: "🏢 Enterprise Getting DESTROYED by AWS",
+                description: "Large company, 1M+ users, enterprise features",
+                aws_total: 47500.00,
+                hgws_total: 1250.00,
+                breakdown: [
+                    { service: "Web Tier (20x c5.2xlarge)", aws: 5600.00, hgws: 345.60, aws_hidden: "Reserved pricing still expensive" },
+                    { service: "Database Cluster (RDS)", aws: 8900.00, hgws: 172.80, aws_hidden: "Multi-AZ: +$8900, PIOPS: +$2400" },
+                    { service: "Data Warehouse", aws: 12400.00, hgws: 259.20, aws_hidden: "Redshift + Spectrum: +$3400" },
+                    { service: "Kubernetes (EKS)", aws: 1840.00, hgws: 86.40, aws_hidden: "Control plane: +$144, Workers: +$1600" },
+                    { service: "Enterprise Load Balancing", aws: 890.00, hgws: 25.00, aws_hidden: "Advanced routing: +$456" },
+                    { service: "Enterprise Storage (10TB)", aws: 2300.00, hgws: 100.00, aws_hidden: "EFS + EBS: +$1200" },
+                    { service: "Global CDN & Edge", aws: 4500.00, hgws: 50.00, aws_hidden: "CloudFront premium: +$2100" },
+                    { service: "Enterprise Monitoring", aws: 2890.00, hgws: 0.00, aws_hidden: "CloudWatch Enterprise: +$1890" },
+                    { service: "Security & Compliance", aws: 3400.00, hgws: 0.00, aws_hidden: "GuardDuty, Config, WAF: +$1900" },
+                    { service: "Backup & DR (Multi-region)", aws: 2345.00, hgws: 75.00, aws_hidden: "Cross-region replication: +$1234" },
+                    { service: "Data Transfer (Global)", aws: 1890.00, hgws: 25.00, aws_hidden: "Inter-region: +$890" },
+                    { service: "API Management", aws: 545.00, hgws: 15.00, aws_hidden: "API Gateway premium: +$234" }
+                ]
+            },
+            ai: {
+                title: "🤖 AI Startup Getting OBLITERATED by AWS",
+                description: "Machine learning workloads, GPU training, model serving",
+                aws_total: 89700.00,
+                hgws_total: 2340.00,
+                breakdown: [
+                    { service: "GPU Training (10x p4d.24xlarge)", aws: 23620.00, hgws: 1440.00, aws_hidden: "Per-hour billing, no flexibility" },
+                    { service: "GPU Inference (20x g4dn.xlarge)", aws: 7584.00, hgws: 288.00, aws_hidden: "Always-on instances required" },
+                    { service: "High-Performance Storage (50TB)", aws: 12500.00, hgws: 500.00, aws_hidden: "EFS Provisioned: +$7500" },
+                    { service: "Data Lakes & Analytics", aws: 8900.00, hgws: 72.00, aws_hidden: "S3, Athena, Glue: +$4500" },
+                    { service: "Container Orchestration (EKS)", aws: 2340.00, hgws: 28.80, aws_hidden: "GPU-optimized nodes: +$1200" },
+                    { service: "Model Registry & MLOps", aws: 3400.00, hgws: 0.00, aws_hidden: "SageMaker Studio: +$2100" },
+                    { service: "Real-time Model Serving", aws: 4560.00, hgws: 7.20, aws_hidden: "SageMaker Endpoints: +$2890" },
+                    { service: "Data Processing Pipeline", aws: 2890.00, hgws: 0.00, aws_hidden: "EMR + Glue: +$1890" },
+                    { service: "Massive Data Transfer", aws: 12340.00, hgws: 2.50, aws_hidden: "Training data movement: +$8900" },
+                    { service: "Experiment Tracking", aws: 1890.00, hgws: 0.00, aws_hidden: "CloudWatch + custom: +$890" },
+                    { service: "Auto Scaling & Spot Management", aws: 890.00, hgws: 0.00, aws_hidden: "Complex spot bidding: +$456" },
+                    { service: "AI/ML Monitoring", aws: 1286.00, hgws: 1.50, aws_hidden: "Model performance tracking: +$786" }
+                ]
+            },
+            gaming: {
+                title: "🎮 Gaming Company Getting PWNED by AWS",
+                description: "Game servers, real-time multiplayer, global deployment",
+                aws_total: 23800.00,
+                hgws_total: 567.00,
+                breakdown: [
+                    { service: "Game Servers (50x c5n.xlarge)", aws: 7300.00, hgws: 230.40, aws_hidden: "Enhanced networking: +$1200" },
+                    { service: "Matchmaking Service", aws: 2890.00, hgws: 57.60, aws_hidden: "Lambda + DynamoDB: +$1890" },
+                    { service: "Real-time Database (DynamoDB)", aws: 3400.00, hgws: 86.40, aws_hidden: "On-demand pricing: +$2100" },
+                    { service: "Global Load Balancing", aws: 890.00, hgws: 36.00, aws_hidden: "Route 53 + ALB: +$456" },
+                    { service: "CDN for Game Assets (5TB)", aws: 2340.00, hgws: 25.00, aws_hidden: "CloudFront data transfer: +$1200" },
+                    { service: "Real-time Messaging", aws: 1890.00, hgws: 14.40, aws_hidden: "API Gateway WebSocket: +$890" },
+                    { service: "Player Data Storage", aws: 1200.00, hgws: 50.00, aws_hidden: "S3 + frequent access: +$600" },
+                    { service: "Analytics & Telemetry", aws: 1560.00, hgws: 7.20, aws_hidden: "Kinesis + Lambda: +$890" },
+                    { service: "Anti-cheat & Security", aws: 780.00, hgws: 0.00, aws_hidden: "WAF + custom rules: +$456" },
+                    { service: "Voice Chat Services", aws: 890.00, hgws: 18.00, aws_hidden: "Chime SDK: +$567" },
+                    { service: "Game State Backup", aws: 456.00, hgws: 36.00, aws_hidden: "Cross-region S3: +$234" },
+                    { service: "Auto-scaling Management", aws: 334.00, hgws: 6.00, aws_hidden: "Application Auto Scaling: +$123" }
+                ]
+            }
+        };
+
+        function showScenario(scenarioName) {
+            // Clear previous selection
+            document.querySelectorAll('.scenario-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Select current card
+            event.target.closest('.scenario-card').classList.add('selected');
+            
+            const scenario = scenarios[scenarioName];
+            const results = document.getElementById('results');
+            
+            let html = `
+                <h3>${scenario.title}</h3>
+                <p style="font-size: 1.2em; margin: 20px 0;">${scenario.description}</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 30px 0; text-align: center;">
+                    <div style="background: rgba(255, 71, 87, 0.2); padding: 20px; border-radius: 15px; border: 2px solid #ff4757;">
+                        <h4 style="color: #ff4757;">💸 AWS Total</h4>
+                        <div style="font-size: 2.5em; font-weight: bold; color: #ff4757;">$${scenario.aws_total.toLocaleString()}</div>
+                        <div>/month</div>
+                    </div>
+                    <div style="background: rgba(0, 255, 136, 0.2); padding: 20px; border-radius: 15px; border: 2px solid #00ff88;">
+                        <h4 style="color: #00ff88;">💚 HGWS Total</h4>
+                        <div style="font-size: 2.5em; font-weight: bold; color: #00ff88;">$${scenario.hgws_total.toLocaleString()}</div>
+                        <div>/month</div>
+                    </div>
+                    <div style="background: rgba(255, 167, 38, 0.2); padding: 20px; border-radius: 15px; border: 2px solid #ffa726;">
+                        <h4 style="color: #ffa726;">🤑 You Save</h4>
+                        <div style="font-size: 2.5em; font-weight: bold; color: #ffa726;">$${(scenario.aws_total - scenario.hgws_total).toLocaleString()}</div>
+                        <div>/month</div>
+                        <div style="font-size: 1.2em; margin-top: 10px;">
+                            ${Math.round(((scenario.aws_total - scenario.hgws_total) / scenario.aws_total) * 100)}% cheaper!
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(255, 167, 38, 0.1); border-radius: 15px; padding: 25px; margin: 20px 0;">
+                    <h4 style="color: #ffa726; text-align: center; font-size: 1.5em;">
+                        💰 Annual Savings: $${((scenario.aws_total - scenario.hgws_total) * 12).toLocaleString()} per year!
+                    </h4>
+                    <p style="text-align: center; font-size: 1.1em;">
+                        That's enough for: A Tesla • Down payment on a house • Full team salaries • Massive marketing budget
+                    </p>
+                </div>
+                
+                <div class="comparison-table">
+                    <h4>📊 Detailed Cost Breakdown (The Brutal Truth)</h4>
+                    <table>
+                        <tr>
+                            <th style="width: 30%;">Service</th>
+                            <th style="width: 20%;">AWS Cost</th>
+                            <th style="width: 25%;">AWS Hidden Fees</th>
+                            <th style="width: 15%;">HGWS Cost</th>
+                            <th style="width: 10%;">Savings</th>
+                        </tr>
+            `;
+            
+            scenario.breakdown.forEach(item => {
+                const savings = item.aws - item.hgws;
+                html += `
+                    <tr>
+                        <td>${item.service}</td>
+                        <td class="aws-price">$${item.aws.toLocaleString()}</td>
+                        <td style="font-size: 0.9em; color: #ffa726;">${item.aws_hidden}</td>
+                        <td class="hgws-price">$${item.hgws.toLocaleString()}</td>
+                        <td style="color: #00ff88; font-weight: bold;">$${savings.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </table>
+                </div>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <button class="cta-button" onclick="window.location.href='/register'">
+                        🚀 Escape This Ripoff - Join HGWS FREE!
+                    </button>
+                    <button class="cta-button" onclick="window.location.href='/static/money-dashboard.html'">
+                        💰 Start Earning Money Instead
+                    </button>
+                </div>
+            `;
+            
+            results.innerHTML = html;
+            results.style.display = 'block';
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Auto-show startup scenario after page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                showScenario('startup');
+            }, 2000);
+        });
+        
+        // AWS OAuth Login (The Ultimate Irony!)
+        function signUpWithAWS() {
+            // Show dramatic confirmation first
+            const confirmed = confirm(
+                '😈 LOGIN WITH AWS TO ESCAPE AWS?!\n\n' +
+                '🤯 This is the ultimate irony!\n\n' +
+                'We\'ll use your AWS account to:\n' +
+                '✅ Pre-fill your billing info (save time!)\n' +
+                '✅ Calculate your EXACT AWS savings\n' +
+                '✅ Import your current AWS usage\n' +
+                '✅ Show you how much you\'ve OVERPAID\n\n' +
+                '🔥 Ready to see the BRUTAL truth about your AWS bills?'
+            );
+            
+            if (!confirmed) return;
+            
+            // In a real implementation, this would:
+            // 1. Redirect to AWS OAuth endpoint
+            // 2. Get authorized access to billing APIs
+            // 3. Pull their current usage and costs
+            // 4. Auto-calculate savings with HGWS
+            // 5. Pre-populate signup with their info
+            
+            // For now, we'll simulate the process
+            alert('🚀 Redirecting to AWS OAuth...\n\n' +
+                  'This will:\n' +
+                  '1. Connect to your AWS account securely\n' +
+                  '2. Import your current services & costs\n' +
+                  '3. Calculate your exact HGWS savings\n' +
+                  '4. Create your free HGWS account\n\n' +
+                  '(In production, this would be a real AWS OAuth flow)');
+            
+            // Simulate AWS OAuth redirect
+            const awsClientId = 'your-aws-app-id';
+            const redirectUri = encodeURIComponent(window.location.origin + '/auth/aws/callback');
+            const scope = encodeURIComponent('billing:read ec2:read');
+            const state = encodeURIComponent('aws_ridicule_signup_' + Date.now());
+            
+            // This would be the real AWS OAuth URL:
+            const awsOAuthUrl = `https://aws.amazon.com/oauth2/authorize?` +
+                `client_id=${awsClientId}&` +
+                `redirect_uri=${redirectUri}&` +
+                `response_type=code&` +
+                `scope=${scope}&` +
+                `state=${state}`;
+            
+            // For demo, show what the process would look like
+            showAWSImportDemo();
+        }
+        
+        function showAWSImportDemo() {
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 40px;
+                border-radius: 20px;
+                max-width: 600px;
+                text-align: center;
+                color: white;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            `;
+            
+            modalContent.innerHTML = `
+                <h2 style="color: #00ff88; margin-bottom: 30px;">😈 AWS Import Complete!</h2>
+                <div style="background: rgba(255, 71, 87, 0.2); border: 2px solid #ff4757; border-radius: 15px; padding: 20px; margin: 20px 0;">
+                    <h3 style="color: #ff4757;">💸 Your AWS Horror Story:</h3>
+                    <div style="font-size: 2em; color: #ff4757; margin: 15px 0;">$8,347.23/month</div>
+                    <p>Last 12 months: <strong>$97,234.12 WASTED!</strong></p>
+                </div>
+                
+                <div style="background: rgba(0, 255, 136, 0.2); border: 2px solid #00ff88; border-radius: 15px; padding: 20px; margin: 20px 0;">
+                    <h3 style="color: #00ff88;">🎉 Your HGWS Savings:</h3>
+                    <div style="font-size: 2em; color: #00ff88; margin: 15px 0;">$287.50/month</div>
+                    <p>Annual savings: <strong>$96,719.76!</strong></p>
+                </div>
+                
+                <div style="background: rgba(255, 167, 38, 0.2); border: 1px solid #ffa726; border-radius: 10px; padding: 15px; margin: 20px 0;">
+                    <h4 style="color: #ffa726;">🔥 Services We Found:</h4>
+                    <ul style="text-align: left; margin: 0; padding-left: 20px;">
+                        <li>23x EC2 instances (mostly idle!)</li>
+                        <li>8x RDS databases (over-provisioned)</li>
+                        <li>12TB S3 storage (charged per request)</li>
+                        <li>$234/month in NAT Gateway fees</li>
+                        <li>$567/month in data transfer costs</li>
+                        <li>$123/month just for CloudWatch!</li>
+                    </ul>
+                </div>
+                
+                <p style="font-size: 1.2em; margin: 25px 0;">
+                    🚀 <strong>Account Created!</strong> Check your email for login details.
+                </p>
+                
+                <button onclick="closeModal()" style="
+                    background: linear-gradient(135deg, #00ff88 0%, #00d2ff 100%);
+                    color: black;
+                    border: none;
+                    padding: 15px 30px;
+                    font-size: 1.2em;
+                    border-radius: 25px;
+                    cursor: pointer;
+                    margin: 10px;
+                    font-weight: bold;
+                ">
+                    🎉 AMAZING! Take Me to My Dashboard
+                </button>
+                
+                <button onclick="closeModal()" style="
+                    background: rgba(255, 255, 255, 0.2);
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    font-size: 1em;
+                    border-radius: 15px;
+                    cursor: pointer;
+                    margin: 10px;
+                ">
+                    Close
+                </button>
+            `;
+            
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            // Add close functionality
+            window.closeModal = () => {
+                document.body.removeChild(modal);
+                window.location.href = '/static/money-dashboard.html?aws_import=success';
+            };
+            
+            // Auto-close after dramatic pause
+            setTimeout(() => {
+                if (document.body.contains(modal)) {
+                    closeModal();
+                }
+            }, 15000);
+        }
+    </script>
+</body>
+</html>

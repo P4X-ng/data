@@ -1,0 +1,40 @@
+FROM docker.io/library/python:3.11-slim
+
+WORKDIR /app
+ENV VIRTUAL_ENV=/opt/venv
+RUN python -m venv $VIRTUAL_ENV && $VIRTUAL_ENV/bin/pip install -U pip setuptools wheel
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Install runtime deps
+COPY containers/backend/requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+
+# Build tools and system deps needed for native extension (_bitpack) and SSH client
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      openssh-client build-essential python3-dev && rm -rf /var/lib/apt/lists/*
+
+# Copy PacketFS (root-level) into image
+COPY packetfs /app/packetfs
+RUN python -c "import packetfs, packetfs.protocol, packetfs.filesystem.virtual_blob"
+
+# Copy app
+COPY app /app/app
+
+# Pre-create development TLS certificates using a separate script (avoids heredoc parser issues)
+COPY containers/backend/gen_dev_cert.py /tmp/gen_dev_cert.py
+RUN python /tmp/gen_dev_cert.py
+
+# Install client tools into image
+COPY scripts/pfcp /usr/local/bin/pfcp
+COPY scripts/pfcp-ssh /usr/local/bin/pfcp-ssh
+COPY scripts/pfcp-rsync /usr/local/bin/pfcp-rsync
+COPY scripts/pfs /usr/local/bin/pfs
+COPY scripts/pfcp-smart /usr/local/bin/pfcp-smart
+RUN chmod +x /usr/local/bin/pfcp /usr/local/bin/pfcp-ssh /usr/local/bin/pfcp-rsync /usr/local/bin/pfs /usr/local/bin/pfcp-smart
+
+# Backend startup wrapper honoring BIND and WS_PORT/PORT
+COPY containers/backend/start-backend.sh /usr/local/bin/start-backend
+RUN chmod +x /usr/local/bin/start-backend
+
+EXPOSE 8811
+CMD ["/usr/local/bin/start-backend"]

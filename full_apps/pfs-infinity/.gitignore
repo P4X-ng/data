@@ -1,0 +1,9 @@
+# TLS artifacts
+var/tls/
+
+# Local mounts and runtime dirs
+pfs.mnt/
+
+# Python caches
+__pycache__/
+*.pyc

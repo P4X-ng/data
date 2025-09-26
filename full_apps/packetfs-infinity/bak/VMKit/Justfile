@@ -1,0 +1,209 @@
+# VMKit Quickemu workflows
+# Default target shows help
+
+set shell := ["bash", "-cu"]
+
+# Base directories (override via env if desired)
+VMS_DIR := env_var_or_default("VMS_DIR", "./vms")
+DOWNLOADS_DIR := env_var_or_default("DOWNLOADS_DIR", "./downloads")
+ABS_DOWNLOADS := `pwd`
+SCRIPTS_DIR := env_var_or_default("SCRIPTS_DIR", "./scripts")
+# NOTKUBERNETES workspace
+NK_DIR := env_var_or_default("NK_DIR", "./NOTKUBERNETES")
+NK_PY := `if [ -x /home/punk/.venv/bin/python ]; then echo /home/punk/.venv/bin/python; else command -v python3; fi`
+
+# Resolve binaries
+QUICKEMU := `command -v quickemu || true`
+QUICKGET := `command -v quickget || true`
+
+# Ensure we run from repo root
+ROOT := `git rev-parse --show-toplevel 2>/dev/null || pwd`
+
+help:
+	@echo "VMKit — Quickemu workflows"
+	@echo
+	@echo "Usage:"
+	@echo "  just doctor                  # Check environment (KVM/HVF, tools, disk space)"
+	@echo "  just setup [INSTALL=1]       # Install Quickemu and deps (per-distro); INSTALL=1 to apply"
+	@echo "  just quickget OS VERSION     # Download image + generate .conf (moves .conf into {{VMS_DIR}})"
+	@echo "  just new NAME [TEMPLATE=linux] # Scaffold vms/NAME.conf from templates/"
+	@echo "  just list                    # List available VM configs in {{VMS_DIR}}"
+	@echo "  just up NAME [HEADLESS=0 KILL=0]    # Boot a VM using quickemu (KILL=1 to kill previous)"
+	@echo "  just stop NAME               # Graceful shutdown via quickemu"
+	@echo "  just ssh NAME [PORT=2222 USER=ubuntu] # SSH helper to forwarded port"
+	@echo "  just delete NAME [CONFIRM=0] # Remove vms/NAME.* (requires CONFIRM=1)"
+	@echo "  just clean [CONFIRM=0]       # Remove downloads/ cache (requires CONFIRM=1)"
+	@echo
+	@echo "NOTKUBERNETES (nk-*)"
+	@echo "  just nk-build                 # Build KubeSimpl components"
+	@echo "  just nk-run                   # Run transforms"
+	@echo "  just nk-test                  # Run tests"
+	@echo "  just nk-regen-copilot         # Regenerate copilot instructions"
+	@echo
+	@echo "Directories:"
+	@echo "  VMS_DIR={{VMS_DIR}}  DOWNLOADS_DIR={{DOWNLOADS_DIR}}  SCRIPTS_DIR={{SCRIPTS_DIR}}"
+
+# Alias default to help
+_default: (help)
+
+doctor:
+	@"{{SCRIPTS_DIR}}/check-virt.sh" "{{VMS_DIR}}" "{{DOWNLOADS_DIR}}"
+
+setup:
+	@INSTALL="${INSTALL:-0}" "{{SCRIPTS_DIR}}/ensure-deps.sh"
+
+# quickget: Download image + generate .conf, then move .conf into VMS_DIR and normalize paths
+quickget OS VERSION +FLAVOR:
+	@if [ -z "{{QUICKGET}}" ]; then echo "quickget not found. Run: just setup" >&2; exit 1; fi
+	@mkdir -p "{{DOWNLOADS_DIR}}" "{{VMS_DIR}}"
+	@cd "{{DOWNLOADS_DIR}}" && quickget "{{OS}}" "{{VERSION}}" {{FLAVOR}}
+	@conf_file=$(cd "{{DOWNLOADS_DIR}}" && ls -1 *.conf 2>/dev/null | tail -n 1 || true); if [ -z "$conf_file" ]; then echo "No .conf produced by quickget" >&2; exit 2; fi
+	@target_conf="{{VMS_DIR}}/$conf_file"; cp -f "{{DOWNLOADS_DIR}}/$conf_file" "$target_conf"
+	@sed -i "s#\(disk_img=\)\"\([^\"]\+\)\"#\1\"{{ABS_DOWNLOADS}}/downloads/\\2\"#" "$target_conf" || true
+	@sed -i "s#\(iso=\)\"\([^\"]\+\)\"#\1\"{{ABS_DOWNLOADS}}/downloads/\\2\"#" "$target_conf" || true
+	@# ensure secure boot & TPM
+	@grep -q '^secureboot=' "$target_conf" && sed -i 's/^secureboot=.*/secureboot="1"/' "$target_conf" || echo 'secureboot="1"' >> "$target_conf"
+	@grep -q '^tpm=' "$target_conf" && sed -i 's/^tpm=.*/tpm="1"/' "$target_conf" || echo 'tpm="1"' >> "$target_conf"
+	@echo "Saved config: $target_conf (secureboot=1, tpm=1)"
+
+# Scaffold new config from template
+new NAME TEMPLATE='linux':
+	@mkdir -p "{{VMS_DIR}}" "{{DOWNLOADS_DIR}}" "templates"
+	@case "${TEMPLATE:-linux}" in \
+		linux) tmpl="templates/generic-linux.conf.tmpl";; \
+		windows) tmpl="templates/generic-windows.conf.tmpl";; \
+		*) echo "Unknown TEMPLATE=${TEMPLATE} (use linux|windows)" >&2; exit 1;; \
+	esac; \
+	if [ ! -f "$tmpl" ]; then echo "Template not found: $tmpl" >&2; exit 2; fi; \
+	conf="{{VMS_DIR}}/{{NAME}}.conf"; \
+	sed \
+		-e "s#__NAME__#{{NAME}}#g" \
+		-e "s#__VMS_DIR__#{{VMS_DIR}}#g" \
+		-e "s#__DOWNLOADS_DIR__#{{DOWNLOADS_DIR}}#g" \
+		"$tmpl" > "$conf"; \
+	chmod 0644 "$conf"; \
+	echo "Created $conf"
+
+list:
+	@mkdir -p "{{VMS_DIR}}"; ls -1 "{{VMS_DIR}}"/*.conf 2>/dev/null || echo "No VMs yet. Try: just quickget ubuntu 24.04 or just new myvm"
+
+# Download Ubuntu cloud image and scaffold a secure Quickemu conf
+cloud-ubuntu NAME VERSION='24.04':
+	@"{{SCRIPTS_DIR}}/cloud_ubuntu.sh" "{{NAME}}" "{{VERSION}}" "{{DOWNLOADS_DIR}}" "{{ABS_DOWNLOADS}}" "{{VMS_DIR}}"
+
+# Download Debian cloud image and scaffold a secure Quickemu conf
+cloud-debian NAME VERSION='12':
+	@"{{SCRIPTS_DIR}}/cloud_debian.sh" "{{NAME}}" "{{VERSION}}" "{{DOWNLOADS_DIR}}" "{{ABS_DOWNLOADS}}" "{{VMS_DIR}}"
+
+# Fedora Cloud Base; secure and cloud-init
+cloud-fedora NAME VERSION='40':
+	@"{{SCRIPTS_DIR}}/cloud_fedora.sh" "{{NAME}}" "{{VERSION}}" "{{DOWNLOADS_DIR}}" "{{ABS_DOWNLOADS}}" "{{VMS_DIR}}"
+
+# CentOS Stream Cloud Base; secure and cloud-init
+cloud-centos NAME VERSION='9':
+	@"{{SCRIPTS_DIR}}/cloud_centos.sh" "{{NAME}}" "{{VERSION}}" "{{DOWNLOADS_DIR}}" "{{ABS_DOWNLOADS}}" "{{VMS_DIR}}"
+
+# Boot VM
+up NAME HEADLESS='0' KILL='0' FORCE='0':
+	@if [ -z "{{QUICKEMU}}" ]; then echo "quickemu not found. Run: just setup" >&2; exit 1; fi
+	@conf="{{VMS_DIR}}/{{NAME}}.conf"; if [ ! -f "$conf" ]; then echo "Missing $conf" >&2; exit 2; fi; \
+	kval="{{KILL}}"; case "$kval" in *=*) kval="${kval#*=}";; esac; \
+	fval="{{FORCE}}"; case "$fval" in *=*) fval="${fval#*=}";; esac; \
+	if [ "$kval" = "1" ] || [ "$fval" = "1" ]; then quickemu --vm "$conf" --kill || true; fi; \
+	hval="{{HEADLESS}}"; [ -z "$hval" ] && hval='0'; case "$hval" in *=*) hval="${hval#*=}";; esac; \
+	if [ "$hval" = "1" ]; then qargs="--display none --viewer none"; else qargs=""; fi; \
+	quickemu --vm "$conf" $qargs
+
+# Stop VM
+stop NAME:
+	@if [ -z "{{QUICKEMU}}" ]; then echo "quickemu not found. Run: just setup" >&2; exit 1; fi
+	@conf="{{VMS_DIR}}/{{NAME}}.conf"; if [ ! -f "$conf" ]; then echo "Missing $conf" >&2; exit 2; fi; \
+	quickemu --vm "$conf" --shutdown || true
+
+# SSH helper defaults to port 2222 and user ubuntu
+ssh NAME PORT='2222' USER='ubuntu':
+	@set -e; conf="{{VMS_DIR}}/{{NAME}}.conf"; if [ ! -f "$conf" ]; then echo "Missing $conf" >&2; exit 2; fi; \
+	port="{{PORT}}"; user="{{USER}}"; \
+	case "$port" in *=*) port="${port#*=}";; esac; \
+	case "$user" in *=*) user="${user#*=}";; esac; \
+	echo "ssh -p $port $user@127.0.0.1"; \
+	ssh -p "$port" "$user"@127.0.0.1 || true
+
+# Delete VM config and associated disk(s) in VMS_DIR only (safe). Requires CONFIRM=1
+delete NAME CONFIRM='0':
+	@cval="${CONFIRM}"; case "$cval" in *=*) cval="${cval#*=}";; esac; \
+	if [ "$cval" != "1" ]; then echo "Refusing to delete. Re-run with CONFIRM=1" >&2; exit 3; fi; \
+	set -e; conf="{{VMS_DIR}}/{{NAME}}.conf"; if [ -f "$conf" ]; then echo "Removing $conf"; rm -f "$conf"; fi; \
+	# Remove disks named {{NAME}}.* under VMS_DIR only
+	find "{{VMS_DIR}}" -maxdepth 1 -type f -regex ".*/{{NAME}}\..*" -print -delete 2>/dev/null || true
+
+# Clean downloads cache. Requires CONFIRM=1
+clean CONFIRM='0':
+	@cval="${CONFIRM}"; case "$cval" in *=*) cval="${cval#*=}";; esac; \
+	if [ "$cval" != "1" ]; then echo "Refusing to clean. Re-run with CONFIRM=1" >&2; exit 3; fi; \
+	rm -rf "{{DOWNLOADS_DIR}}"/*
+
+# Make an existing VM config secure and fix relative paths (works for vms/ or downloads/)
+secure NAME:
+	@"{{SCRIPTS_DIR}}/secureify.sh" "{{NAME}}" "{{VMS_DIR}}" "{{DOWNLOADS_DIR}}" "{{ABS_DOWNLOADS}}"
+
+# Disable secureboot & tpm for a VM
+secure-off NAME:
+	@SECURE=0 "{{SCRIPTS_DIR}}/secureify.sh" "{{NAME}}" "{{VMS_DIR}}" "{{DOWNLOADS_DIR}}" "{{ABS_DOWNLOADS}}" || true
+	@conf="{{VMS_DIR}}/{{NAME}}.conf"; if [ -f "$conf" ]; then sed -i 's/^secureboot=.*/secureboot="0"/' "$conf"; sed -i 's/^tpm=.*/tpm="0"/' "$conf"; fi
+
+# DEMO: Cloud Ubuntu with password login and DEMO banners
+# Usage: just demo-cloud-ubuntu NAME VERSION
+# NOTE: Demo artifacts only; not for production use
+demo-cloud-ubuntu NAME VERSION='24.04':
+	@set -e; name="{{NAME}}"; ver="{{VERSION}}"; \
+	series=""; case "$ver" in \
+		"22.04") series="jammy";; \
+		"24.04") series="noble";; \
+		*) echo "Unsupported Ubuntu version: $ver (supported: 22.04, 24.04)" >&2; exit 2;; \
+	esac; \
+	# download image if needed
+	"{{SCRIPTS_DIR}}/cloud_ubuntu.sh" "$name" "$ver" "{{DOWNLOADS_DIR}}" "{{ABS_DOWNLOADS}}" "{{VMS_DIR}}" >/dev/null || true; \
+	# override seed with demo seed (password auth)
+	seed_iso=$("demo/create-cloudinit-demo.sh" "$name" "$series" "{{DOWNLOADS_DIR}}" "{{ABS_DOWNLOADS}}" "demo" "demo"); \
+	conf="{{VMS_DIR}}/$name.conf"; \
+	sed -i "s#^cloud_init=.*#cloud_init=\"$seed_iso\"#" "$conf"; \
+	echo "DEMO config updated: $conf"
+
+# =============================
+# NOTKUBERNETES (nk-*) category
+# =============================
+
+# Build KubeSimpl components
+nk-build:
+	@"{{NK_PY}}" "{{NK_DIR}}/scripts/build.py"
+
+# Bring up NOTKUBERNETES custom cluster (VMKit + Podman workers)
+# - Creates nk-net, downloads image, creates nk-cp/nk-w1/nk-w2, writes .nk/cluster.json
+nk-up:
+	@"{{NK_PY}}" "{{NK_DIR}}/scripts/nk_up.py"
+
+# Apply a simplified spec to NOTKUBERNETES cluster
+# Usage: just nk-apply FILE=path/to/simple.yaml
+nk-apply FILE:
+	@"{{NK_PY}}" "{{NK_DIR}}/scripts/nk_apply.py" "{{FILE}}"
+
+# Show worker container status
+nk-status:
+	@"{{NK_PY}}" "{{NK_DIR}}/scripts/nk_status.py"
+
+# Destroy NOTKUBERNETES cluster and network
+nk-destroy:
+	@"{{NK_PY}}" "{{NK_DIR}}/scripts/nk_destroy.py"
+
+# Run sample transformations
+nk-run:
+	@"{{NK_PY}}" "{{NK_DIR}}/scripts/run_transforms.py"
+
+# Regenerate copilot instructions
+nk-regen-copilot:
+	@"{{NK_PY}}" "{{NK_DIR}}/scripts/regen_copilot.py"
+
+# Execute tests in NOTKUBERNETES
+nk-test:
+	@"{{NK_PY}}" -m pytest "{{NK_DIR}}/tests" -v

@@ -1,0 +1,304 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>F3 Infinite Storage — Twin</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; margin: 1rem; }
+      .row { display: flex; gap: .5rem; align-items: center; margin-bottom: .5rem; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+      .card { border: 1px solid #999; padding: .75rem; border-radius: 6px; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      th, td { border-bottom: 1px solid #ccc; padding: 4px 6px; text-align: left; }
+      .small { font-size: 12px; opacity: .9; }
+      .log { white-space: pre-wrap; background: #111; color: #ddd; padding: .5rem; border-radius: 6px; min-height: 6rem; font-family: Menlo, Monaco, monospace; font-size: 12px; }
+      input[type=text] { width: 18rem; }
+    /* Brand bar */
+    .brand-bar { display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #ccc; padding-bottom: .5rem; margin-bottom: 1rem; }
+    .brand-bar .logo { height: 40px; width: auto; }
+    .brand-bar .brand-title { font-size: 22px; font-weight: 700; margin: 0; }
+    .brand-bar .brand-sub { font-size: 12px; opacity: 0.8; margin: 0; }
+    .brand-bar nav a { margin-right: .75rem; text-decoration: none; color: #0366d6; }
+    .brand-bar nav a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <header class="brand-bar">
+      <img src="/static/f3_logo.png" alt="F3 Infinite Storage" class="logo" />
+      <div>
+        <div class="brand-title">F3 Infinite Storage</div>
+        <div class="brand-sub">PacketFS control</div>
+      </div>
+      <nav style="margin-left:auto;">
+        <a href="/static/index.html">Home</a>
+        <a href="/static/browse.html">Browse</a>
+        <a href="/static/transfer.html">Transfer</a>
+        <a href="/static/twin.html">Twin</a>
+        <a href="/static/spider.html">Spider</a>
+      </nav>
+    </header>
+    <h1>Twin</h1>
+
+    <div class="card">
+      <h3>Cluster</h3>
+      <div class="row">
+        <input id="clLabel" type="text" placeholder="Label" />
+        <input id="clHost" type="text" placeholder="host or user@host" />
+        <input id="clWs" type="text" value="8811" title="WS port" />
+        <label class="small"><input id="clPersist" type="checkbox" /> Persist if SSH reachable</label>
+        <button id="clAdd">Add Host</button>
+<button id="clRefresh">Refresh Hosts</button>
+        <button id="clSave">Save Selected to List</button>
+      </div>
+      <table>
+        <thead><tr><th></th><th>label</th><th>host</th><th>ws</th><th>persisted</th><th></th></tr></thead>
+        <tbody id="clTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Left</h3>
+        <div class="row">
+          <label class="small">Host:</label>
+          <select id="leftHost"></select>
+          <label class="small">Path:</label>
+          <input id="leftPath" type="text" value="/" />
+          <button id="leftList">List</button>
+        </div>
+        <table>
+          <thead><tr><th><input id="leftAll" type="checkbox"/></th><th>name</th><th>type</th><th>size</th><th>mtime</th></tr></thead>
+          <tbody id="leftTbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Right</h3>
+        <div class="row">
+          <label class="small">Host:</label>
+          <select id="rightHost"></select>
+          <label class="small">Path:</label>
+          <input id="rightPath" type="text" value="/" />
+          <button id="rightList">List</button>
+          <button id="copyLR">Copy Left → Right (PFS)</button>
+          <label class="small">Save as:</label>
+          <input id="rightSaveName" type="text" placeholder="optional filename" />
+          <button id="addDest">Add Destination Pane</button>
+        </div>
+        <table>
+          <thead><tr><th><input id="rightAll" type="checkbox"/></th><th>name</th><th>type</th><th>size</th><th>mtime</th></tr></thead>
+          <tbody id="rightTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3>Log</h3>
+    <div id="log" class="log"></div>
+
+    <script type="module">
+      const clTbody = document.getElementById('clTbody')
+      const clAdd = document.getElementById('clAdd')
+      const clLabel = document.getElementById('clLabel')
+      const clHost = document.getElementById('clHost')
+      const clWs = document.getElementById('clWs')
+      const clPersist = document.getElementById('clPersist')
+      const clRefresh = document.getElementById('clRefresh')
+      const clSave = document.getElementById('clSave')
+      const clBootstrap = document.createElement('button'); clBootstrap.textContent='Bootstrap Selected'; clBootstrap.className='small'
+      document.querySelector('.card .row').appendChild(clBootstrap)
+      let clSession = []
+
+      const leftHost = document.getElementById('leftHost')
+      const rightHost = document.getElementById('rightHost')
+      const leftPath = document.getElementById('leftPath')
+      const rightPath = document.getElementById('rightPath')
+      const rightSaveName = document.getElementById('rightSaveName')
+      const addDest = document.getElementById('addDest')
+      const leftListBtn = document.getElementById('leftList')
+      const rightListBtn = document.getElementById('rightList')
+      const leftTbody = document.getElementById('leftTbody')
+      const rightTbody = document.getElementById('rightTbody')
+      const leftAll = document.getElementById('leftAll')
+      const rightAll = document.getElementById('rightAll')
+      const copyLR = document.getElementById('copyLR')
+      const logEl = document.getElementById('log')
+      const destGrid = document.createElement('div'); destGrid.className='grid'; document.body.insertBefore(destGrid, logEl.parentNode)
+
+      function log(msg){ const ts=new Date().toLocaleTimeString(); logEl.textContent += `[${ts}] ${msg}\n`; logEl.scrollTop=logEl.scrollHeight }
+
+      function saveSession(){ sessionStorage.setItem('pfs_cluster_session', JSON.stringify(clSession)) }
+      function loadSession(){ try{ clSession = JSON.parse(sessionStorage.getItem('pfs_cluster_session')||'[]')||[] }catch{ clSession=[] } }
+      function parseUserHost(s){ if (!s) return {user:null, host:''}; if (s.includes('@')){ const [u,h]=s.split('@'); return {user:u||null, host:h||''} } return {user:null, host:s} }
+
+      async function loadServerHosts(){
+        try{
+          const r= await fetch('/cluster/hosts'); const arr= await r.json(); renderCluster(arr, clSession)
+        }catch{ renderCluster([], clSession) }
+      }
+
+      function getPSKMap(){ try{ return JSON.parse(sessionStorage.getItem('pfs_psk_map')||'{}') }catch{ return {} } }
+      function setPSKMap(m){ sessionStorage.setItem('pfs_psk_map', JSON.stringify(m||{})) }
+
+      function renderCluster(permanent, sessionList){
+        clTbody.innerHTML=''
+        leftHost.innerHTML=''; rightHost.innerHTML=''
+        const addRow=(h,persisted)=>{
+          const tr=document.createElement('tr')
+          const tdChk=document.createElement('td'); const chk=document.createElement('input'); chk.type='checkbox'; chk.dataset.host=h.host; chk.dataset.user=h.user||''; chk.dataset.ws=h.ws_port||8811; tdChk.appendChild(chk)
+          const tdL=document.createElement('td'); tdL.textContent=h.label||''
+          const tdH=document.createElement('td'); tdH.textContent=(h.user?(h.user+'@'):'')+h.host
+          const tdW=document.createElement('td'); tdW.textContent=h.ws_port||8811
+          const tdP=document.createElement('td'); tdP.textContent= persisted?'yes':'no'
+          const tdA=document.createElement('td');
+          if (persisted){ const del=document.createElement('button'); del.textContent='Remove'; del.onclick= async()=>{ await fetch(`/cluster/hosts/${h.id}`, {method:'DELETE'}); loadServerHosts()}; tdA.appendChild(del) }
+          else { const del=document.createElement('button'); del.textContent='Remove'; del.onclick=()=>{ clSession = clSession.filter(x=>x._sid!==h._sid); saveSession(); loadServerHosts() }; tdA.appendChild(del) }
+          tr.append(tdChk, tdL, tdH, tdW, tdP, tdA); clTbody.appendChild(tr)
+          // also add to dropdowns
+          const optL=document.createElement('option'); optL.value=h.host+':'+(h.ws_port||8811); optL.textContent=(h.user?(h.user+'@'):'')+h.host+':'+(h.ws_port||8811); leftHost.appendChild(optL)
+          const optR=document.createElement('option'); optR.value=h.host+':'+(h.ws_port||8811); optR.textContent=(h.user?(h.user+'@'):'')+h.host+':'+(h.ws_port||8811); rightHost.appendChild(optR)
+        }
+        for(const h of permanent){ addRow(h,true) }
+        for(const h of sessionList){ addRow(h,false) }
+      }
+
+      loadSession(); loadServerHosts()
+
+      clAdd.onclick = async ()=>{
+        const label=clLabel.value.trim(); const hostStr=clHost.value.trim(); const ws=parseInt(clWs.value||'8811',10)
+        const {user,host} = parseUserHost(hostStr)
+        if (!host){ log('host required'); return }
+        if (clPersist.checked){
+          const body={label, host, user, ws_port:ws, https_port:ws, quic_port:8853}
+          const r= await fetch('/cluster/hosts',{method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(body)})
+          if (!r.ok){ log('persist failed, session only') ; clSession.push({_sid:crypto.randomUUID(), label, host, user, ws_port:ws}); saveSession() }
+          loadServerHosts()
+        } else {
+          clSession.push({_sid:crypto.randomUUID(), label, host, user, ws_port:ws}); saveSession(); loadServerHosts()
+        }
+      }
+      clRefresh.onclick = ()=> loadServerHosts()
+      // Save selected hosts to list (persist)
+      clSave.onclick = async ()=>{
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        for (const c of chks){
+          const host = c.dataset.host
+          const ws = parseInt(c.dataset.ws||'8811',10)
+          const body = { label: host, host: host, user: null, ws_port: ws, https_port: ws, quic_port: 8853 }
+          await fetch('/cluster/hosts', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) })
+        }
+        loadServerHosts()
+      }
+
+      leftListBtn.onclick = ()=> listPane(leftHost.value, leftPath.value, leftTbody, leftAll)
+      rightListBtn.onclick = ()=> listPane(rightHost.value, rightPath.value, rightTbody, rightAll)
+
+      // Bootstrap selected hosts (start PFS over SSH)
+      clBootstrap.onclick = async ()=>{
+        const mode = window.prompt('Mode: backend or native?','backend') || 'backend'
+        const ws = parseInt(window.prompt('WS port','8811')||'8811',10)
+        const root = window.prompt('Browse root path','/srv/pfs-share') || '/srv/pfs-share'
+        const psk = window.prompt('Optional PSK (blank for none)','') || ''
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        for (const c of chks){
+          const host = c.dataset.host
+          const body = { host: host, user: null, mode: mode, browse_root: root, ws_port: ws, psk: (psk||null) }
+          await fetch('/cluster/bootstrap/ssh', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) })
+        }
+        loadServerHosts()
+      }
+
+      // Set PSK for selected hosts
+      const clSetPSK = document.createElement('button'); clSetPSK.textContent='Set PSK for Selected'; clSetPSK.className='small'
+      document.querySelector('.card .row').appendChild(clSetPSK)
+      clSetPSK.onclick = ()=>{
+        const m = getPSKMap()
+        const psk = window.prompt('Enter PSK (applies to all selected)','') || ''
+        const chks = clTbody.querySelectorAll('input[type=checkbox]:checked')
+        for (const c of chks){ m[c.dataset.host+":"+(c.dataset.ws||'8811')] = psk }
+        setPSKMap(m)
+        log('PSK saved for selected hosts')
+      }
+
+      async function listPane(hostport, path, tbody, allChk){
+        tbody.innerHTML=''
+        const url = `${location.protocol}//${hostport}/browse/list?root=share&path=${encodeURIComponent(path||'/')}`
+        try{
+          const m = getPSKMap(); const hdrs = {}; if (m[hostport]) hdrs['X-PFS-PSK'] = m[hostport]
+          const r= await fetch(url, { headers: hdrs }); const entries= await r.json()
+          for (const e of (entries||[])){
+            const tr=document.createElement('tr')
+            const tdC=document.createElement('td'); const c=document.createElement('input'); c.type='checkbox'; c.dataset.name=e.name; c.dataset.is_dir=e.is_dir?'1':'0'; tdC.appendChild(c)
+            const tdN=document.createElement('td'); tdN.textContent=e.name
+            const tdT=document.createElement('td'); tdT.textContent=e.is_dir?'dir':'file'
+            const tdS=document.createElement('td'); tdS.textContent=e.is_dir?'': (e.size||0)
+            const tdM=document.createElement('td'); tdM.textContent=new Date((e.mtime||0)*1000).toISOString()
+            tr.append(tdC, tdN, tdT, tdS, tdM); tbody.appendChild(tr)
+          }
+          allChk.checked=false
+          allChk.onchange=()=>{ tbody.querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=allChk.checked) }
+        }catch(e){ log('list failed: '+e) }
+      }
+
+      copyLR.onclick = async ()=>{
+        const [srcH, srcP] = [leftHost.value.split(':')[0], leftPath.value]
+        const [dstH, dstWs] = [rightHost.value.split(':')[0], parseInt(rightHost.value.split(':')[1]||'8811',10)]
+        const selected = Array.from(leftTbody.querySelectorAll('input[type=checkbox]:checked'))
+        if (!selected.length){ log('no selection'); return }
+        for (const s of selected){
+          if (s.dataset.is_dir==='1'){ log('skip dir '+s.dataset.name); continue }
+          const p = (srcP.endsWith('/')? srcP : (srcP+'/')) + s.dataset.name
+          const saveAs = (rightSaveName.value||s.dataset.name)
+          const dstPath = (rightPath.value||'/').replace(/\/$/,'/') + saveAs
+          try{
+            const m = getPSKMap(); const srcPsk = m[leftHost.value]||null; const dstPsk = m[rightHost.value]||null
+            const r = await fetch('/xfer', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ src: { endpoint: { host: srcH, ws_port: parseInt(leftHost.value.split(':')[1]||'8811',10) }, path: p }, dst: { host: dstH, ws_port: dstWs }, dst_path: dstPath, src_psk: srcPsk, dst_psk: dstPsk, timeout_s: 10.0 }) })
+            const j = await r.json()
+            if (r.ok){ log(`xfer ${s.dataset.name} → ${dstPath}: ${j.state}`) } else { log(`xfer ${s.dataset.name}: error ${j.detail||r.status}`) }
+          }catch(e){ log('xfer failed: '+e) }
+        }
+      }
+
+      // Add arbitrary destination panes
+      addDest.onclick = ()=>{
+        const pane = document.createElement('div'); pane.className='card'
+        pane.innerHTML = `
+          <h3>Dest</h3>
+          <div class="row">
+            <label class="small">Host:</label>
+            <select class="dh"></select>
+            <label class="small">Path:</label>
+            <input class="dp" type="text" value="/" />
+            <button class="dl">List</button>
+            <label class="small">Save as:</label>
+            <input class="ds" type="text" placeholder="optional filename" />
+            <button class="dc">Copy Left → This</button>
+          </div>
+          <table><thead><tr><th>name</th><th>type</th><th>size</th><th>mtime</th></tr></thead><tbody class="dt"></tbody></table>
+        `
+        destGrid.appendChild(pane)
+        // populate host options
+        const dh = pane.querySelector('.dh');
+        for (const opt of rightHost.querySelectorAll('option')){ const o=document.createElement('option'); o.value=opt.value; o.textContent=opt.textContent; dh.appendChild(o) }
+        const dl = pane.querySelector('.dl'); const dt = pane.querySelector('.dt'); const dp = pane.querySelector('.dp'); const ds = pane.querySelector('.ds'); const dc = pane.querySelector('.dc')
+        dl.onclick = ()=> listPane(dh.value, dp.value, dt, {checked:false, onchange:()=>{}})
+        dc.onclick = async ()=>{
+          const [srcH, srcP] = [leftHost.value.split(':')[0], leftPath.value]
+          const [dstH, dstWs] = [dh.value.split(':')[0], parseInt(dh.value.split(':')[1]||'8811',10)]
+          const selected = Array.from(leftTbody.querySelectorAll('input[type=checkbox]:checked'))
+          if (!selected.length){ log('no selection'); return }
+          for (const s of selected){
+            if (s.dataset.is_dir==='1'){ log('skip dir '+s.dataset.name); continue }
+            const p = (srcP.endsWith('/')? srcP : (srcP+'/')) + s.dataset.name
+            const saveAs = (ds.value||s.dataset.name)
+            const dstPath = (dp.value||'/').replace(/\/$/,'/') + saveAs
+            try{
+              const m = getPSKMap(); const srcPsk = m[leftHost.value]||null; const dstPsk = m[dh.value]||null
+              const r = await fetch('/xfer', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ src: { endpoint: { host: srcH, ws_port: parseInt(leftHost.value.split(':')[1]||'8811',10) }, path: p }, dst: { host: dstH, ws_port: dstWs }, dst_path: dstPath, src_psk: srcPsk, dst_psk: dstPsk, timeout_s: 10.0 }) })
+              const j = await r.json()
+              if (r.ok){ log(`xfer ${s.dataset.name} → ${dstPath}: ${j.state}`) } else { log(`xfer ${s.dataset.name}: error ${j.detail||r.status}`) }
+            }catch(e){ log('xfer failed: '+e) }
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

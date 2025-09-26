@@ -1,0 +1,86 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export PYBUILD_NAME = packetfs-utils
+export DESTDIR = $(CURDIR)/debian/packetfs-utils
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf build dist *.egg-info
+	find . -name "*.pyc" -delete
+	find . -name "__pycache__" -delete
+
+override_dh_auto_build:
+	# Build Python components
+	python3 setup.py build
+	# Compile C extensions if present
+	if [ -d src/native ]; then \
+		cd src/native && \
+		gcc -O3 -fPIC -shared -o _bitpack.so bitpack.c || true; \
+	fi
+
+override_dh_auto_install:
+	dh_auto_install
+	
+	# Install main executables
+	install -D -m 755 full_apps/pfs-infinity/f3transfer.py \
+		$(DESTDIR)/usr/bin/f3transfer
+	
+	# Install web application
+	install -d $(DESTDIR)/usr/share/packetfs-utils/web
+	cp -r full_apps/pfs-infinity/app/* $(DESTDIR)/usr/share/packetfs-utils/web/
+	
+	# Install static files
+	install -d $(DESTDIR)/usr/share/packetfs-utils/web/static
+	install -m 644 full_apps/pfs-infinity/app/static/*.html \
+		$(DESTDIR)/usr/share/packetfs-utils/web/static/
+	
+	# Install Justfile
+	install -D -m 644 full_apps/pfs-infinity/Justfile \
+		$(DESTDIR)/usr/share/packetfs-utils/Justfile
+	
+	# Install pfsrsync if available
+	if [ -f tools/pfsrsync ]; then \
+		install -D -m 755 tools/pfsrsync $(DESTDIR)/usr/bin/pfsrsync; \
+	fi
+	
+	# Install additional tools
+	install -d $(DESTDIR)/usr/share/packetfs-utils/tools
+	for tool in tools/*.py; do \
+		if [ -f "$$tool" ]; then \
+			install -m 755 $$tool $(DESTDIR)/usr/share/packetfs-utils/tools/; \
+		fi \
+	done
+	
+	# Install documentation
+	install -d $(DESTDIR)/usr/share/doc/packetfs-utils
+	install -m 644 README.md $(DESTDIR)/usr/share/doc/packetfs-utils/
+	install -m 644 PROTOCOL.md $(DESTDIR)/usr/share/doc/packetfs-utils/ || true
+	
+	# Install man page
+	install -d $(DESTDIR)/usr/share/man/man1
+	help2man --no-info --name="F3 Transfer - Lightning Fast File Transfer" \
+		$(DESTDIR)/usr/bin/f3transfer > $(DESTDIR)/usr/share/man/man1/f3transfer.1 || true
+	
+	# Install systemd service file
+	install -D -m 644 debian/packetfs-transfer.service \
+		$(DESTDIR)/lib/systemd/system/packetfs-transfer.service
+
+override_dh_installsystemd:
+	dh_installsystemd --name=packetfs-transfer --no-start
+
+override_dh_python3:
+	dh_python3 --shebang=/usr/bin/python3
+
+override_dh_strip:
+	dh_strip --no-automatic-dbgsym
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 755 $(DESTDIR)/usr/bin/f3transfer
+	if [ -f $(DESTDIR)/usr/bin/pfsrsync ]; then \
+		chmod 755 $(DESTDIR)/usr/bin/pfsrsync; \
+	fi

@@ -1,0 +1,49 @@
+import "../../Justfile.vars"
+import "./justfile.vars"
+
+# Stats helpers
+swarm-stats:
+    @scripts/monitor/swarm_top.sh
+
+swarm-stats-watch:
+    @bash -c 'command -v watch >/dev/null 2>&1 && watch -n 1 scripts/monitor/swarm_top.sh || (echo "install 'watch' to use this target" >&2; exit 1)'
+
+# PacketFS CPU swarm (virtiofs + pinned host CPUs)
+# 1) Ensure PacketFS host mount/share exists
+# 2) Launch N VMs pinned across cores with port forwarding
+# 3) Register endpoints into vCPU registry
+
+swarm-cpu-up total="128" base_port="9000" share_dir=".vm/pfs.mnt" huge_dir="/mnt/huge1G" img="pfs-infinity.qcow2" mem="2048" vcpus="1" vmkit="/home/punk/Projects/HGWS/VMKit/vmkit" batch="0" pause="0":
+    @echo "[swarm] mounting PacketFS share at {{share_dir}} if not present"
+    just -f Justfile.vm vm-pfsfs-mount mnt="{{share_dir}}"
+    @echo "[swarm] launching {{total}} VMs from {{img}} base_port={{base_port}} vcpus={{vcpus}} mem={{mem}} batch={{batch}} pause={{pause}}"
+    VMKIT_BIN={{vmkit}} scripts/vm/launch_swarm.sh --total {{total}} --share {{share_dir}}:/share --huge {{huge_dir}}:/mnt/huge1G --base-port {{base_port}} --img {{img}} --mem {{mem}} --vcpus {{vcpus}} --vmkit {{vmkit}} $([ "{{batch}}" != "0" ] && echo --batch {{batch}} || true) $([ "{{pause}}" != "0" ] && echo --pause {{pause}} || true)
+
+# Environment-driven variants (read values from env with sane defaults)
+# Usage example:
+#   TOTAL=128 BASE_PORT=9000 MEM=512 BATCH=16 PAUSE=2 just -f Justfile.swarm swarm-cpu-env-up
+#   TOTAL=128 BASE_PORT=9000 just -f Justfile.swarm swarm-cpu-env-register
+
+swarm-cpu-env-up:
+    scripts/vm/swarm_env_up.sh
+
+swarm-cpu-register start_port="9000" count="128" host="127.0.0.1" kind="vm_http":
+    @echo "[swarm] registering {{count}} endpoints starting at port {{start_port}}"
+    {{VENV_PATH}}/bin/python scripts/vm/register_swarm.py --start-port {{start_port}} --count {{count}} --host {{host}} --kind {{kind}}
+
+swarm-cpu-env-register:
+    scripts/vm/swarm_env_register.sh
+
+swarm-cpu-down:
+    @echo "[swarm] tearing down VMs"
+    bash scripts/vm/kill_swarm.sh
+
+# Consolidated helpers
+swarm-cpu cmd="help" total="128" base_port="9000" batch="0" pause="0":
+    @bash -eu -o pipefail -c '
+    case "{{cmd}}" in \
+      up) just swarm-cpu-up total="{{total}}" base_port="{{base_port}}" batch="{{batch}}" pause="{{pause}}" ;; \
+      register) just swarm-cpu-register start_port="{{base_port}}" count="{{total}}" ;; \
+      down) just swarm-cpu-down ;; \
+      *) echo "swarm-cpu commands: up|register|down"; exit 2 ;; \
+    esac'

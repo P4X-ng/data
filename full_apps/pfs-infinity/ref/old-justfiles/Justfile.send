@@ -1,0 +1,15 @@
+# Deprecated: use Justfile.transfer
+import "./Justfile.transfer"
+
+# Default help
+_default: (help-send)
+
+help-send:
+    @echo "send aliases: send-iprog|send-iprog-quic (backed by transfer)"
+
+# Backwards-compatible aliases
+send-iprog iprog="" host="127.0.0.1" port="{{WS_PORT}}":
+    just transfer-send-iprog iprog="{{iprog}}" host="{{host}}" port="{{port}}"
+
+send-iprog-quic iprog="" host="127.0.0.1" port="{{QUIC_PORT}}":
+    just transfer-send-iprog-quic iprog="{{iprog}}" host="{{host}}" port="{{port}}"

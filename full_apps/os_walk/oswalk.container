@@ -1,0 +1,39 @@
+[Unit]
+Description=OS-Walk - Distributed Operating System
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/oswalk:latest
+ContainerName=oswalk
+AutoUpdate=registry
+
+# Privileged for FUSE mounts and packet bridges
+SecurityLabelDisable=true
+AddCapability=SYS_ADMIN
+AddCapability=DAC_OVERRIDE
+AddDevice=/dev/fuse
+
+# Network access for packet bridges
+PublishPort=8811:8811
+PublishPort=6379:6379
+
+# Persistent storage
+Volume=/var/lib/oswalk/pfs:/pfs:Z
+Volume=/var/lib/oswalk/net:/net:Z
+Volume=/var/lib/oswalk/data:/data:Z
+
+# Environment
+Environment=REDIS_HOST=localhost
+Environment=PFS_BLOB_SIZE_BYTES=1073741824
+Environment=OSWALK_MODE=integrated
+
+# Start integrated shell by default
+Exec=/app/oswalk shell
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target default.target

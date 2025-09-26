@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""
+pfcp-rsync — rsync-like transfers using PacketFS receiver
+
+- Sends file data using the WS transport (same as pfcp)
+- Then instructs the receiver to save the reconstructed bytes to disk (/xfer/save)
+- For directories, walks recursively and preserves relative paths under the destination path
+
+Usage:
+  pfcp-rsync SRC DEST_HOST[:PORT][/DEST_SUBPATH]
+  pfcp-rsync SRC_DIR DEST_HOST[:PORT][/DEST_SUBPATH]
+
+Examples:
+  pfcp-rsync ./big.iso 10.0.0.5:8811/uploads
+  pfcp-rsync ./folder 10.0.0.5:8811/backup/folder
+
+Notes:
+- DEST_SUBPATH is relative to the receiver's browse root (PFS_BROWSE_ROOT inside container).
+- PORT defaults to 8811 if omitted.
+- Requires the receiver to be this transfer backend image (websocket + /xfer/save endpoints).
+"""
+
+import os
+import sys
+import asyncio
+import hashlib
+from pathlib import Path
+
+# Ensure container app path import when script is in /usr/local/bin
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+if os.path.isdir("/app") and "/app" not in sys.path:
+    sys.path.insert(0, "/app")
+
+from app.services.transports.ws_proxy import send_plan_ws  # type: ignore
+import httpx  # type: ignore
+
+
+def parse_dest(dest: str):
+    # dest like: host[:port][/subpath]
+    host_port, slash, sub = dest.partition('/')
+    if ':' in host_port:
+        host, port_s = host_port.split(':', 1)
+        try:
+            port = int(port_s)
+        except ValueError:
+            port = 8811
+    else:
+        host = host_port
+        port = 8811
+    subpath = sub or ''
+    return host, port, subpath
+
+
+def iter_files(src: Path):
+    if src.is_file():
+        yield src, src.name
+        return
+    base = src
+    for p in base.rglob('*'):
+        if p.is_file():
+            rel = str(p.relative_to(base))
+            yield p, rel
+
+
+async def send_and_save(file_path: Path, host: str, port: int, dest_rel: str) -> bool:
+    data = file_path.read_bytes()
+    sha = hashlib.sha256(data).hexdigest()
+    transfer_id = sha[:16]
+    ok = await send_plan_ws(host, port, data, transfer_id, sha)
+    if not ok:
+        return False
+    # Save to disk on receiver
+    base = f"http://{host}:{port}"
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.post(f"{base}/xfer/save", json={"sha256": sha, "path": dest_rel})
+        return r.status_code == 200
+
+
+async def main_async(argv):
+    if len(argv) < 3:
+        print(__doc__)
+        return 2
+    src_s = argv[1]
+    dest_s = argv[2]
+    host, port, sub = parse_dest(dest_s)
+    src = Path(src_s).resolve()
+    if not src.exists():
+        print(f"[ERR] Source not found: {src}", file=sys.stderr)
+        return 2
+    tasks = []
+    if src.is_file():
+        rel = Path(src.name)
+        dest_rel = str(Path(sub) / rel) if sub else rel.name
+        return 0 if await send_and_save(src, host, port, dest_rel) else 1
+    # Directory walk
+    for fp, rel in iter_files(src):
+        rel_path = Path(sub) / rel if sub else Path(rel)
+        tasks.append(send_and_save(fp, host, port, str(rel_path)))
+    # Simple sequential to avoid overwhelming receiver; could add concurrency if needed
+    rc = 0
+    for coro in tasks:
+        ok = await coro
+        if not ok:
+            rc = 1
+    return rc
+
+
+def main():
+    rc = asyncio.run(main_async(sys.argv))
+    sys.exit(rc)
+
+if __name__ == '__main__':
+    main()

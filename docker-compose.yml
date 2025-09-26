@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  packetfs-master:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: pfs-master
+    hostname: pfs-master
+    privileged: true  # Required for FUSE
+    cap_add:
+      - SYS_ADMIN  # For FUSE mount
+      - NET_ADMIN  # For network operations
+    devices:
+      - /dev/fuse:/dev/fuse
+    ports:
+      - "8811:8811"  # Web UI & API
+      - "8812:8812"  # Receiver port
+      - "8813:8813"  # Relay port
+    volumes:
+      - pfs-data:/var/lib/packetfs
+      - pfs-mount:/mnt/packetfs
+      - ./license.key:/etc/packetfs/license.key:ro  # Optional license
+    environment:
+      - F3_HOST=0.0.0.0
+      - F3_PORT=8811
+      - F3_MODE=master
+      - ENABLE_FUSE=true
+      - BLOB_SIZE=1GB
+    networks:
+      - packetfs-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8811/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  packetfs-node1:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: pfs-node1
+    hostname: pfs-node1
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    devices:
+      - /dev/fuse:/dev/fuse
+    ports:
+      - "8821:8811"
+      - "8822:8812"
+      - "8823:8813"
+    volumes:
+      - pfs-node1-data:/var/lib/packetfs
+      - pfs-node1-mount:/mnt/packetfs
+      - ./license.key:/etc/packetfs/license.key:ro
+    environment:
+      - F3_HOST=0.0.0.0
+      - F3_PORT=8811
+      - F3_MODE=node
+      - F3_MASTER=pfs-master:8811
+      - ENABLE_FUSE=true
+    networks:
+      - packetfs-net
+    depends_on:
+      - packetfs-master
+    restart: unless-stopped
+
+  packetfs-node2:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: pfs-node2
+    hostname: pfs-node2
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    devices:
+      - /dev/fuse:/dev/fuse
+    ports:
+      - "8831:8811"
+      - "8832:8812"
+      - "8833:8813"
+    volumes:
+      - pfs-node2-data:/var/lib/packetfs
+      - pfs-node2-mount:/mnt/packetfs
+      - ./license.key:/etc/packetfs/license.key:ro
+    environment:
+      - F3_HOST=0.0.0.0
+      - F3_PORT=8811
+      - F3_MODE=node
+      - F3_MASTER=pfs-master:8811
+      - ENABLE_FUSE=true
+    networks:
+      - packetfs-net
+    depends_on:
+      - packetfs-master
+    restart: unless-stopped
+
+networks:
+  packetfs-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  pfs-data:
+    driver: local
+  pfs-mount:
+    driver: local
+  pfs-node1-data:
+    driver: local
+  pfs-node1-mount:
+    driver: local
+  pfs-node2-data:
+    driver: local
+  pfs-node2-mount:
+    driver: local

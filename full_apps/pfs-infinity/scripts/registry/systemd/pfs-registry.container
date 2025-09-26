@@ -1,0 +1,19 @@
+# Quadlet unit for an insecure Podman registry (dev)
+# Install to: /etc/containers/systemd/pfs-registry.container
+# Then: systemctl daemon-reload && systemctl enable --now pfs-registry.service
+
+[Unit]
+Description=PFS Dev Registry (insecure)
+
+[Container]
+Image=registry:2
+ContainerName=pfs-registry
+Network=host
+# Data dir for registry blobs
+Volume=/srv/pfs-registry/data:/var/lib/registry:Z
+# Listen on port 5000 (HTTP)
+Environment=REGISTRY_HTTP_ADDR=0.0.0.0:5000
+# Auto-restart policy handled by systemd
+
+[Install]
+WantedBy=multi-user.target

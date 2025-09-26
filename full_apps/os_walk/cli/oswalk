@@ -1,0 +1,279 @@
+#!/usr/bin/env python3
+"""
+OS Walk CLI - Main command-line interface for distributed operating system
+"""
+
+import os
+import sys
+import json
+import time
+import argparse
+import subprocess
+from pathlib import Path
+
+# Add project to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from core.unified_fs import mount_unified_fs
+from core.distributed_cpu import DistributedCPU
+from core.file_translator import FileTranslator
+
+def cmd_cluster_init(args):
+    """Initialize a new cluster"""
+    print("[INIT] Initializing OS Walk cluster")
+    
+    nodes = args.nodes.split(',') if args.nodes else ['localhost']
+    
+    # Create cluster config
+    config = {
+        'cluster_name': args.name,
+        'nodes': []
+    }
+    
+    for i, node in enumerate(nodes):
+        node_config = {
+            'id': f'node-{i+1}',
+            'hostname': node.strip(),
+            'mount_path': f'/tmp/oswalk/node-{i+1}',
+            'priority': 10 - i  # First node has highest priority
+        }
+        config['nodes'].append(node_config)
+        
+        # Create mount directory
+        os.makedirs(node_config['mount_path'], exist_ok=True)
+        print(f"  [DIR] Created mount point: {node_config['mount_path']}")
+    
+    # Save config
+    config_path = Path(args.config)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+    
+    print(f"[OK] Cluster config saved to {config_path}")
+    print(f"   Nodes: {len(config['nodes'])}")
+    print(f"   Name: {config['cluster_name']}")
+
+def cmd_mount(args):
+    """Mount the unified filesystem"""
+    print(f"[MOUNT] Mounting unified filesystem at {args.mount_point}")
+    
+    if not os.path.exists(args.config):
+        print(f"[ERR] Config file not found: {args.config}")
+        return 1
+    
+    try:
+        mount_unified_fs(args.config, args.mount_point, args.foreground)
+    except KeyboardInterrupt:
+        print("\n[STOP] Unmounting filesystem")
+    except Exception as e:
+        print(f"[ERR] Mount failed: {e}")
+        return 1
+
+def cmd_umount(args):
+    """Unmount the unified filesystem"""
+    print(f"[UNMOUNT] Unmounting {args.mount_point}")
+    
+    try:
+        subprocess.run(['fusermount', '-u', args.mount_point], check=True)
+        print("[OK] Filesystem unmounted")
+    except subprocess.CalledProcessError as e:
+        print(f"[ERR] Unmount failed: {e}")
+        return 1
+
+def cmd_worker_start(args):
+    """Start a distributed CPU worker"""
+    print("[CPU] Starting distributed CPU worker")
+    
+    cpu = DistributedCPU(args.redis_host, args.redis_port, args.node_id)
+    cpu.start_worker()
+    
+    try:
+        while True:
+            status = cpu.get_cluster_status()
+            print(f"Cluster: {status['healthy_nodes']}/{status['total_nodes']} nodes, "
+                  f"{status['total_cpus']} CPUs, {status['pending_jobs']} pending jobs")
+            time.sleep(30)
+    except KeyboardInterrupt:
+        cpu.stop_worker()
+
+def cmd_job_submit(args):
+    """Submit a job to the distributed queue"""
+    print(f"[JOB] Submitting job: {' '.join(args.command)}")
+    
+    cpu = DistributedCPU(args.redis_host, args.redis_port)
+    job_id = cpu.submit_job(
+        command=args.command,
+        cwd=args.cwd,
+        priority=args.priority,
+        timeout=args.timeout
+    )
+    
+    print(f"Job ID: {job_id}")
+    
+    if args.wait:
+        print("[WAIT] Waiting for result...")
+        result = cpu.get_job_result(job_id, timeout=args.timeout + 10)
+        
+        if result:
+            print(f"Status: {result['status']}")
+            print(f"Exit code: {result['return_code']}")
+            print(f"Duration: {result['duration']:.2f}s")
+            print(f"Node: {result['node_id']}")
+            
+            if result['stdout']:
+                print("STDOUT:")
+                print(result['stdout'])
+            
+            if result['stderr']:
+                print("STDERR:")
+                print(result['stderr'])
+        else:
+            print("[ERR] Job timed out or failed")
+
+def cmd_translator_start(args):
+    """Start the file translator"""
+    print("[XLT] Starting file translator")
+    
+    translator = FileTranslator(
+        watch_dirs=args.watch_dirs,
+        output_dir=args.output_dir,
+        blob_name=args.blob_name,
+        blob_size=args.blob_size,
+        blob_seed=args.blob_seed,
+        meta_dir=args.meta_dir
+    )
+    
+    translator.start()
+    
+    try:
+        while True:
+            status = translator.get_status()
+            print(f"Translator: {status['queue_length']} queued, "
+                  f"{status['processed_files']} processed")
+            time.sleep(10)
+    except KeyboardInterrupt:
+        translator.stop()
+
+def cmd_status(args):
+    """Show cluster status"""
+    print("[STATUS] OS Walk Cluster Status")
+    print("=" * 40)
+    
+    # Check distributed CPU
+    try:
+        cpu = DistributedCPU(args.redis_host, args.redis_port)
+        status = cpu.get_cluster_status()
+        
+        print(f"[CPU] Distributed CPU:")
+        print(f"   Nodes: {status['healthy_nodes']}/{status['total_nodes']} healthy")
+        print(f"   CPUs: {status['total_cpus']} total")
+        print(f"   Memory: {status['total_memory_mb']/1024:.1f} GB total")
+        print(f"   Jobs: {status['active_jobs']} active, {status['pending_jobs']} pending")
+        
+        if args.verbose:
+            print(f"\n   Node Details:")
+            for node in status['nodes']:
+                health = "UP" if node['healthy'] else "DOWN"
+                print(f"     {health} {node['node_id']} ({node['hostname']})")
+                print(f"        CPUs: {node['cpu_count']}, Load: {node['load_avg']:.2f}")
+                print(f"        Memory: {node['memory_mb']}MB, Jobs: {node['active_jobs']}")
+        
+    except Exception as e:
+        print(f"[ERR] CPU status error: {e}")
+    
+    # Check filesystem
+    if args.config and os.path.exists(args.config):
+        try:
+            with open(args.config, 'r') as f:
+                config = json.load(f)
+            
+            print(f"\n[FS] Unified Filesystem:")
+            print(f"   Cluster: {config['cluster_name']}")
+            print(f"   Nodes: {len(config['nodes'])}")
+            
+            for node in config['nodes']:
+                mount_exists = os.path.exists(node['mount_path'])
+                status_icon = "UP" if mount_exists else "DOWN"
+                print(f"     {status_icon} {node['id']}: {node['mount_path']}")
+                
+        except Exception as e:
+            print(f"[ERR] Filesystem status error: {e}")
+
+def main():
+    parser = argparse.ArgumentParser(description='OS Walk - Distributed Operating System')
+    parser.add_argument('--config', default='./oswalk_cluster.json', help='Cluster config file')
+    parser.add_argument('--redis-host', default='localhost', help='Redis host')
+    parser.add_argument('--redis-port', type=int, default=6379, help='Redis port')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
+    
+    subparsers = parser.add_subparsers(dest='command', help='Commands')
+    
+    # Cluster management
+    cluster_parser = subparsers.add_parser('cluster', help='Cluster management')
+    cluster_subparsers = cluster_parser.add_subparsers(dest='cluster_command')
+    
+    init_parser = cluster_subparsers.add_parser('init', help='Initialize cluster')
+    init_parser.add_argument('--name', default='oswalk-cluster', help='Cluster name')
+    init_parser.add_argument('--nodes', help='Comma-separated list of node hostnames')
+    
+    # Filesystem
+    mount_parser = subparsers.add_parser('mount', help='Mount unified filesystem')
+    mount_parser.add_argument('mount_point', help='Mount point')
+    mount_parser.add_argument('--foreground', action='store_true', help='Run in foreground')
+    
+    umount_parser = subparsers.add_parser('umount', help='Unmount filesystem')
+    umount_parser.add_argument('mount_point', help='Mount point')
+    
+    # Worker
+    worker_parser = subparsers.add_parser('worker', help='Start CPU worker')
+    worker_parser.add_argument('--node-id', help='Node ID')
+    
+    # Job management
+    job_parser = subparsers.add_parser('job', help='Job management')
+    job_parser.add_argument('command', nargs='+', help='Command to execute')
+    job_parser.add_argument('--cwd', default='/tmp', help='Working directory')
+    job_parser.add_argument('--priority', type=int, default=1, help='Job priority')
+    job_parser.add_argument('--timeout', type=int, default=300, help='Job timeout')
+    job_parser.add_argument('--wait', action='store_true', help='Wait for result')
+    
+    # File translator
+    translator_parser = subparsers.add_parser('translate', help='Start file translator')
+    translator_parser.add_argument('--watch-dirs', nargs='+', required=True, help='Directories to watch')
+    translator_parser.add_argument('--output-dir', required=True, help='Output directory')
+    translator_parser.add_argument('--blob-name', default='oswalk_blob', help='Blob name')
+    translator_parser.add_argument('--blob-size', type=int, default=1<<30, help='Blob size')
+    translator_parser.add_argument('--blob-seed', type=int, default=1337, help='Blob seed')
+    translator_parser.add_argument('--meta-dir', default='./oswalk_meta', help='Metadata directory')
+    
+    # Status
+    status_parser = subparsers.add_parser('status', help='Show cluster status')
+    
+    args = parser.parse_args()
+    
+    if not args.command:
+        parser.print_help()
+        return 1
+    
+    # Route commands
+    if args.command == 'cluster':
+        if args.cluster_command == 'init':
+            return cmd_cluster_init(args)
+    elif args.command == 'mount':
+        return cmd_mount(args)
+    elif args.command == 'umount':
+        return cmd_umount(args)
+    elif args.command == 'worker':
+        return cmd_worker_start(args)
+    elif args.command == 'job':
+        return cmd_job_submit(args)
+    elif args.command == 'translate':
+        return cmd_translator_start(args)
+    elif args.command == 'status':
+        return cmd_status(args)
+    else:
+        parser.print_help()
+        return 1
+
+if __name__ == '__main__':
+    sys.exit(main() or 0)

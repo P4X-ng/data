@@ -1,0 +1,52 @@
+Source: packetfs-utils
+Section: net
+Priority: optional
+Maintainer: PacketFS Team <packetfs@example.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               python3-all,
+               python3-setuptools,
+               gcc
+Standards-Version: 4.6.0
+Homepage: https://github.com/packetfs/packetfs-utils
+Vcs-Browser: https://github.com/packetfs/packetfs-utils
+Vcs-Git: https://github.com/packetfs/packetfs-utils.git
+Rules-Requires-Root: no
+
+Package: packetfs-utils
+Architecture: any
+Depends: ${python3:Depends},
+         ${shlibs:Depends},
+         ${misc:Depends},
+         python3 (>= 3.8),
+         python3-flask,
+         python3-requests,
+         python3-tqdm,
+         python3-websocket,
+         python3-aiohttp,
+         curl,
+         jq
+Recommends: podman | docker.io,
+            just
+Suggests: prometheus-node-exporter,
+          grafana
+Description: PacketFS Transfer Utilities - Lightning Fast File Transfer
+ PacketFS is a revolutionary transport protocol that uses synchronized
+ blobs of data between machines to optimize data transfer. Instead of
+ moving expensive data, it sends lightweight offsets to a synchronized
+ data structure, achieving up to 95% compression and significant speedup
+ over traditional TCP transfers.
+ .
+ This package includes:
+  * f3transfer - CLI tool for fast file transfers
+  * pfsrsync - Directory synchronization utility
+  * pfs-infinity - Web-based transfer interface
+  * Cluster management tools
+  * Performance benchmarking utilities
+ .
+ Features:
+  * 95% compression rates with F3 protocol
+  * Cross-platform support (x86_64, ARM64)
+  * Web UI and CLI interfaces
+  * Cluster mode for distributed transfers
+  * Real-time transfer monitoring

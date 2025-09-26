@@ -1,0 +1,18 @@
+# Quick PacketFS demo container
+FROM docker.io/library/python:3.11-slim
+
+WORKDIR /app
+ENV VENV=/opt/venv PATH="$VENV/bin:$PATH"
+
+RUN python -m venv $VENV && \
+    pip install -U pip fastapi hypercorn pydantic websockets httpx python-multipart
+
+# Copy app
+COPY app /app/app
+
+# Mock IPROG directory
+RUN mkdir -p /pfs/iprog /pfs/blob && \
+    echo '{"name":"demo","windows":[{"offset":0,"length":4096}]}' > /pfs/iprog/demo.iprog.json
+
+EXPOSE 8811
+CMD ["hypercorn", "-b", "0.0.0.0:8811", "app.main:app"]

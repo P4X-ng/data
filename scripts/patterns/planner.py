@@ -15,9 +15,11 @@ def rh4(b: bytes) -> int:
     return x
 
 
-def try_match_with_anchor(win: bytes, blob: bytes, anchor: int, cand_offsets: list[int], confirm_len: int = 128):
+def try_match_with_anchor(win: bytes, blob: bytes, anchor: int, cand_offsets: list[int], confirm_len: int = 128, soft_id: bool = False, soft_thresh: float = 0.92):
     """Attempt match at a given anchor within the window using candidate blob offsets.
-    Returns (off_win, imm8, mode) where off_win is blob offset corresponding to win[0]."""
+    Returns (off_win, imm8, mode) where off_win is blob offset corresponding to win[0].
+    If soft_id is True, allow approximate identity match when equality ratio >= soft_thresh on confirm_len.
+    """
     if anchor < 0 or anchor + 4 > len(win):
         return None
     # identity
@@ -27,6 +29,17 @@ def try_match_with_anchor(win: bytes, blob: bytes, anchor: int, cand_offsets: li
             continue
         if blob[off_win:off_win+confirm_len] == win[:confirm_len]:
             return (off_win, 0, 'id')
+        if soft_id:
+            # approximate identity: allow small diff fraction
+            limit = min(confirm_len, len(win), len(blob) - off_win)
+            same = 0
+            bw = blob[off_win:off_win+limit]
+            ww = win[:limit]
+            for j in range(limit):
+                if ww[j] == bw[j]:
+                    same += 1
+            if limit > 0 and (same / float(limit)) >= soft_thresh:
+                return (off_win, 0, 'id')
     # xor imm8
     sample_pos = (0, 7, 15, 31)
     for off in cand_offsets:
@@ -58,6 +71,7 @@ def main() -> int:
     ap.add_argument("--index", required=True, help="Blob index .pkl path (k=4 recommended)")
     ap.add_argument("--index2", default="", help="Optional secondary index .pkl path (e.g., k=8)")
     ap.add_argument("--win", type=int, default=4096)
+    ap.add_argument("--hints", default="", help="LLVM-aware hints JSON (sections: text/rodata/pltgot/other)")
     ap.add_argument("--out", default="", help="Output blueprint path (defaults under logs/patterns/<ts>/<basename>.blueprint.json)")
     args = ap.parse_args()
 
@@ -70,11 +84,29 @@ def main() -> int:
         with open(args.index2, 'rb') as f:
             idx2 = pickle.load(f)
 
+    # Load hints (section ranges in file offsets)
+    sections = []
+    if args.hints:
+        try:
+            hj = json.loads(Path(args.hints).read_text())
+            sections = hj.get('sections', [])
+        except Exception:
+            sections = []
+
+    def sec_kind(file_off: int) -> str:
+        for s in sections:
+            try:
+                if s['start'] <= file_off < s['end']:
+                    return s.get('kind', 'other')
+            except Exception:
+                continue
+        return 'other'
+
     pos = 0
     n = len(data)
     out = []
     raw_spill = 0
-    anchors = (0, 16, 32, 64, 128, 256)
+    base_anchors = (0, 16, 32, 64, 128, 256)
     while pos < n:
         win = data[pos:pos+args.win]
         if len(win) < 32:
@@ -82,30 +114,48 @@ def main() -> int:
             out.append({"mode":"raw","offset":None,"len":len(win)})
             raw_spill += len(win)
             break
+        kind = sec_kind(pos)
+        # Bias by section kind
+        if kind == 'text':
+            anchors = base_anchors + (192,)
+            confirm_len = 256
+            slides = (0, 4, 8, 12)
+        elif kind == 'rodata':
+            anchors = base_anchors
+            confirm_len = 128
+            slides = (0,)
+        else:
+            anchors = base_anchors
+            confirm_len = 128
+            slides = (0,)
+
         m = None
-        # Try multiple anchors with idx, then idx2
+        # Try anchors with idx, then idx2; include small slide adjustments for text
         for a in anchors:
-            if a + 4 <= len(win):
-                h4 = rh4(win[a:a+4])
-                cand = idx.get(h4, [])
-                if cand:
-                    m = try_match_with_anchor(win, blob, a, cand)
-                    if m:
-                        break
-            if not m and idx2 and a + 8 <= len(win):
-                # 8-byte hash using fnv64 from blob_index_build (duplicated here if needed)
-                # Reuse rh4 over 8 by composing; fallback: simple Python hash of bytes (not stable across runs). We will do fnv64 inline:
-                FNV64_OFF = 0xcbf29ce484222325
-                FNV64_PRIME = 0x100000001b3
-                h = FNV64_OFF
-                for by in win[a:a+8]:
-                    h ^= by
-                    h = (h * FNV64_PRIME) & 0xFFFFFFFFFFFFFFFF
-                cand2 = idx2.get(h, []) if isinstance(idx2, dict) else []
-                if cand2:
-                    m = try_match_with_anchor(win, blob, a, cand2)
-                    if m:
-                        break
+            for sld in slides:
+                a2 = a + sld
+                if a2 + 4 <= len(win):
+                    h4 = rh4(win[a2:a2+4])
+                    cand = idx.get(h4, [])
+                    if cand:
+                        m = try_match_with_anchor(win, blob, a2, cand, confirm_len=confirm_len, soft_id=(kind=='text'))
+                        if m:
+                            break
+                if not m and idx2 and a2 + 8 <= len(win):
+                    FNV64_OFF = 0xcbf29ce484222325
+                    FNV64_PRIME = 0x100000001b3
+                    h = FNV64_OFF
+                    for by in win[a2:a2+8]:
+                        h ^= by
+                        h = (h * FNV64_PRIME) & 0xFFFFFFFFFFFFFFFF
+                    cand2 = idx2.get(h, []) if isinstance(idx2, dict) else []
+                    if cand2:
+                        m = try_match_with_anchor(win, blob, a2, cand2, confirm_len=confirm_len, soft_id=(kind=='text'))
+                        if m:
+                            break
+            if m:
+                break
+
         if m is None:
             # no match → raw
             new_seg = {"mode":"raw","offset":None,"len":len(win)}
@@ -138,6 +188,7 @@ def main() -> int:
         "win": args.win,
         "segments": out,
         "raw_spill_bytes": raw_spill,
+        "hints_used": bool(sections),
     }
 
     # Decide output path

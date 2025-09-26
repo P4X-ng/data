@@ -1,0 +1,12 @@
+{
+  "name": "pfs-infinity-e2e",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Playwright e2e tests for pfs-infinity UI",
+  "scripts": {
+    "test:e2e": "playwright test --reporter=list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.2"
+  }
+}
