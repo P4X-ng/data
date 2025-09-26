@@ -105,6 +105,119 @@ Notes
 
 ---
 
+## PacketFS Native Arithmetic Mode (Production, strict no-RAW)
+
+This section documents the current production arithmetic setup, options, and how to run it locally and in SaaS mode.
+
+### Summary (what we implemented)
+- Deterministic 1 GiB VirtualBlob with a 256 KiB palette region (constant tiles 0..255 + mixed banks: ramp, gray, LFSR, periodic stripes, numeric stride, ASCII tokens). Both sides must share the same (name,size,seed).
+- Palette-only compiler (server-side) that builds BREF-only IPROGs strictly (no RAW fallback). If a window cannot be expressed via identity or imm5 transforms (XOR/ADD) against the palette, the compile fails with HTTP 422.
+- Two content modes over the same frames (preface/MFST/WIN/END/DONE):
+  - PVRT (default): BREF-only PVRT container per window (no RAW section).
+  - OFFS (backup): raw offset tuples (OFFS) per window with imm5 flags and optional relative-to-anchor deltas.
+- WebSocket multi-channel sender/receiver support PVRT and OFFS. Receiver reconstructs strictly from the shared blob and applies imm5 transforms.
+- SaaS preflight can be disabled (PFS_BLOB_PREFLIGHT=0) to simplify central-only flows.
+- UI enhancements: content-mode dropdown (PVRT | OFFS) and “Send to self” button.
+
+### Strict policy (no RAW)
+- No RAW bytes are ever embedded or sent by arithmetic transfers.
+- The compiler (/objects/from-palette) returns HTTP 422 on unmatchable tiles instead of falling back.
+
+### Key env options (content + transport)
+- PFS_TX_MODE: pvrt (default) | offs
+  - Controls the content mode used by WS sender.
+- PFS_WS_CHANNELS: integer (default 10)
+  - Parallel WS channels for speed.
+- PFS_BLOB_PREFLIGHT: 1 (default) | 0
+  - If 1, /transfers preflights the peer’s blob fingerprint; if 0 (SaaS), skip preflight.
+- PFS_QUIC_ENABLE: 1 (default) | 0
+  - Set 0 to silence QUIC bind logs in prod if not using QUIC.
+- PFS_BLOB_NAME / PFS_BLOB_SIZE_BYTES / PFS_BLOB_SEED
+  - VirtualBlob identity. Palette lives right after header; both sides must match exactly for reconstruction.
+
+### Endpoints (arithmetic)
+- POST /objects/from-palette (multipart/form-data)
+  - Input: file (bytes)
+  - Output: { object_id, size, sha256, compressed_size, tx_ratio, policy: "palette-only" }
+  - Behavior: builds BREF-only IPROG; fails 422 on unmatchable tiles; no RAW fallback.
+- POST /transfers (application/json)
+  - Body: { object_id, mode: "ws" | "auto" | …, peer: { host, https_port }, tx_mode: "pvrt" | "offs" }
+  - Starts an arithmetic transfer over WS using the selected content mode. SaaS preflight is disabled if PFS_BLOB_PREFLIGHT=0.
+- GET /transfers/{transfer_id}
+  - Returns state + metrics (bytes_sent, speedup, throughput_mbps, windows, protocol).
+- POST /blob/setup, GET /blob/status
+  - Attach/inspect the VirtualBlob on the server.
+- POST /auth/disable, POST /auth/enable
+  - Toggle auth during local testing.
+
+### Production start (443)
+- Script: `start-production.sh` now sets SaaS-friendly defaults:
+  - PFS_AUTH_ENABLED=1 (auth on)
+  - PFS_BLOB_PREFLIGHT=0 (skip peer preflight for SaaS central)
+  - PFS_BLOB_NAME=pfs_vblob_palette, PFS_BLOB_SIZE_BYTES=1073741824, PFS_BLOB_SEED=1337
+  - Runs Hypercorn on 443 with TLS certs under ./certs
+- Optional: set `PFS_QUIC_ENABLE=0` to silence QUIC bind warnings.
+- Optional: set `PFS_TX_MODE=offs` to force OFFS globally (recommended only for experiments; keep PVRT as default in prod).
+
+### Local “full on” PVRT test (recommended)
+1) Health
+```bash
+curl -k https://localhost/health
+```
+2) Ensure palette blob
+```bash
+curl -k -X POST https://localhost/blob/setup \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"pfs_vblob_palette","size_bytes":1073741824,"seed":1337}'
+curl -k https://localhost/blob/status
+```
+3) Compile a small file (BREF-only; no RAW) and send to self over WS
+```bash
+# zeros
+dd if=/dev/zero bs=8192 count=1 of=/tmp/palette_zero.bin status=none
+OBJ_ID=$(curl -k -sS -F file=@/tmp/palette_zero.bin https://localhost/objects/from-palette \
+  | tee /dev/stderr | python3 -c 'import sys, json; print(json.load(sys.stdin)["object_id"])')
+
+curl -k -sS -X POST https://localhost/transfers \
+  -H 'Content-Type: application/json' \
+  -d "{ \"object_id\": \"$OBJ_ID\", \"mode\": \"ws\", \"peer\": { \"host\": \"127.0.0.1\", \"https_port\": 443 }, \"tx_mode\": \"pvrt\" }"
+```
+4) UI path
+- Open https://localhost/, upload a file, choose PVRT in the dropdown, click “Send to self”.
+
+### OFFS (backup) quick test
+- Same as PVRT test, but set `"tx_mode": "offs"` in the /transfers body.
+- Or choose OFFS in the UI dropdown before clicking “Send to self”.
+- Notes: OFFS frames carry only offset tuples (with imm5 transforms and optional relative deltas). The receiver reconstructs strictly from the blob.
+
+### Failure semantics
+- If a file cannot be compiled strictly from the palette with identity/XOR imm5/ADD imm5, /objects/from-palette returns HTTP 422.
+- No fallback to RAW or byte streaming is implemented anywhere in arithmetic paths.
+
+### Internals and file map
+- Palette + compiler
+  - Palette fill: `packetfs/filesystem/virtual_blob.py` (constant tiles 0..255 + mixed banks)
+  - Compiler (strict): `app/routes/palette_build.py` (identity + imm5 transforms; 4-byte k‑gram index for identity/prefix matches)
+- WS
+  - Sender: `app/services/transports/ws_proxy.py` (PVRT or OFFS, env or API-controlled)
+  - Receiver: `app/routes/websockets.py` (OFFS + PVRT decode; imm5 transforms applied; relative deltas via anchor)
+- Endpoints
+  - `app/core/routes/objects.py` (upload → strict IPROG build; no raw store)
+  - `app/core/routes/transfers.py` (tx_mode plumbed)
+  - `app/routes/iprog.py` (validates BREF-only windows; rejects RAW)
+- UI
+  - `app/static/index.html` (content-mode dropdown, send-to-self button)
+
+### Roadmap (transport experiments; still no RAW)
+- WebRTC DataChannels fallback (same frames):
+  - ctrl DC: reliable ordered; data DC: partial reliability, unordered
+  - Expose transport dropdown in UI (WS default, WebRTC optional)
+- UDP prototype (offset-only):
+  - Header + CRC16 + NAK-based control over WS
+  - MTU 1200, no fragmentation, strict offsets-only
+
+---
+
 ## PacketFS Native Arithmetic Mode (What changed)
 
 Goal: send programs, not bytes. Sender and receiver agree on a middle-of-blob anchor; all BREF offsets are sent as +/- deltas relative to that anchor. The receiver reconstructs from a shared VirtualBlob.
