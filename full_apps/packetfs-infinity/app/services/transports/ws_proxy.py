@@ -12,12 +12,12 @@ from app.services.pvrt_framing import (
 )
 
 # Send a PacketFS IPROG over WebSocket using PVRT (BREF-only when available)
-async def send_iprog_ws(host: str, port: int, iprog: dict, transfer_id: str) -> dict:
+async def send_iprog_ws(host: str, port: int, iprog: dict, transfer_id: str, tx_mode: str | None = None) -> dict:
     uris = [f"wss://{host}:{port}/ws/pfs-arith", f"ws://{host}:{port}/ws/pfs-arith"]
     import base64
     import json as _json
     debug = os.environ.get('PFS_DEBUG','0') in ('1','true','TRUE','True')
-    tx_mode = os.environ.get('PFS_TX_MODE','pvrt').lower()  # 'pvrt' or 'offs'
+    tx_mode = (tx_mode or os.environ.get('PFS_TX_MODE','pvrt')).lower()  # 'pvrt' or 'offs'
 
     def _build_offs_payload(bref, anchor: int, use_arith: bool) -> bytes:
         # OFFS format: magic 'OFFS' + u16 count + [off64 len32 fl8]*
@@ -147,7 +147,7 @@ def _ssl_ctx():
     insecure = os.environ.get('PFS_TLS_INSECURE','0') in ('1','true','TRUE','True')
     return ssl._create_unverified_context() if insecure else ssl.create_default_context()
 
-async def send_iprog_ws_multi(host: str, port: int, iprog: dict, transfer_id: str, channels: int = 4) -> dict:
+async def send_iprog_ws_multi(host: str, port: int, iprog: dict, transfer_id: str, channels: int = 4, tx_mode: str | None = None) -> dict:
     """Shard IPROG windows across N WebSocket channels.
     Channel 0 sends MFST and DONE; other channels send only their WIN/PVRT/END buckets.
     Uses relative BREF with arithmetic flag (0x01) for PVRT.
@@ -157,6 +157,7 @@ async def send_iprog_ws_multi(host: str, port: int, iprog: dict, transfer_id: st
 
     import json as _json
     debug = os.environ.get('PFS_DEBUG','0') in ('1','true','TRUE','True')
+    tx_mode = (tx_mode or os.environ.get('PFS_TX_MODE','pvrt')).lower()
 
     blob = iprog.get("blob", {})
     blob_name = blob.get('name','')

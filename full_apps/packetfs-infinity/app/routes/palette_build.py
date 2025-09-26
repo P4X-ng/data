@@ -25,6 +25,22 @@ def _build_palette_index(vb) -> dict[bytes, int]:
     return idx
 
 
+essential_k = 4
+
+def _build_kgram_index(vb) -> dict[bytes, list[int]]:
+    """Build a k-gram (first 4 bytes) index -> list of offsets (palette only)."""
+    k = essential_k
+    kg: dict[bytes, list[int]] = {}
+    off = PALETTE_START
+    end = min(PALETTE_END, vb.size)
+    while off + TILE <= end:
+        tile = vb.read(off, TILE)
+        key = tile[:k]
+        kg.setdefault(key, []).append(off)
+        off += TILE
+    return kg
+
+
 def _collect_constant_tiles(idx: dict[bytes, int]) -> list[tuple[int, int]]:
     """Return list of (offset, const_val) for palette tiles that are constant bytes."""
     out: list[tuple[int, int]] = []
@@ -57,6 +73,7 @@ def _compile_palette_bref(data: bytes, vb) -> List[Tuple[int, int, int]]:
     If no match, fail (no RAW fallback permitted).
     """
     idx = _build_palette_index(vb)
+    kgi = _build_kgram_index(vb)
     const_tiles = _collect_constant_tiles(idx)
     out: List[Tuple[int, int, int]] = []
     pos = 0
@@ -69,10 +86,19 @@ def _compile_palette_bref(data: bytes, vb) -> List[Tuple[int, int, int]]:
         if ln == TILE:
             match_off = idx.get(tile)
         else:
-            for full_tile, off in idx.items():
-                if full_tile.startswith(tile):
-                    match_off = off
-                    break
+            # Use k-gram index on prefix
+            if ln >= essential_k:
+                cand = kgi.get(tile[:essential_k], [])
+                for off in cand:
+                    if vb.read(off, ln) == tile:
+                        match_off = off
+                        break
+            else:
+                # tiny prefix: fall back to scanning a few candidates (e.g., constants)
+                for off, _val in const_tiles[:8]:
+                    if vb.read(off, ln) == tile:
+                        match_off = off
+                        break
         if match_off is not None:
             out.append((int(match_off), int(ln), 0))
             pos += ln

@@ -82,11 +82,12 @@ async def start_transfer(req: TransferRequest):
             
             # Always use multi-channel for optimal performance
             res = await send_iprog_ws_multi(
-                req.peer.host, 
-                ws_port, 
-                iprog, 
-                tid, 
-                channels=WS_CHANNELS
+                req.peer.host,
+                ws_port,
+                iprog,
+                tid,
+                channels=WS_CHANNELS,
+                tx_mode=(req.tx_mode or "pvrt")
             )
             
             ok = bool(res.get("ok"))

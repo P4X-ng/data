@@ -303,6 +303,19 @@
 
         <div class="file-list" id="fileList"></div>
 
+        <div class="card" style="border:1px solid #999; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+          <h3>Send (experiment)</h3>
+          <div class="row">
+            <label for="txMode">Content mode</label>
+            <select id="txMode">
+              <option value="pvrt" selected>PVRT (BREF-only container)</option>
+              <option value="offs">OFFS (offset tuples)</option>
+            </select>
+            <button id="sendBtn">Send to self</button>
+          </div>
+          <div class="small dim" id="sendStatus">No transfer yet.</div>
+        </div>
+        
         <div class="transfer-stats" id="transferStats" style="display: none;">
             <h3>TRANSFER STATISTICS</h3>
             <div class="stat-line">
@@ -453,16 +466,12 @@
                 progressBar.style.width = '65%';
                 const result = await response.json();
                 const uploadTime = (Date.now() - startTime) / 1000;
-
+                
                 // Estimate blueprint size from metrics if available
                 const iprogSize = result.compressed_size || Math.ceil(file.size * (result.tx_ratio || 0));
                 
-                if (!response.ok) {
-                    throw new Error(`Upload failed: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                const uploadTime = (Date.now() - startTime) / 1000;
+                // Remember last object id for sending
+                window.lastObjectId = result.object_id || null;
                 
                 // Update progress
                 progressBar.style.width = '100%';
@@ -546,6 +555,67 @@
             });
         }
         
+        // Send to self using selected txMode
+        async function sendToSelf() {
+            const statusEl = document.getElementById('sendStatus');
+            const txSel = document.getElementById('txMode');
+            const txMode = txSel ? txSel.value : 'pvrt';
+            const objectId = window.lastObjectId || null;
+            if (!objectId) {
+                statusEl.textContent = 'No object to send. Upload/compile a file first.';
+                statusEl.className = 'small error';
+                return;
+            }
+            statusEl.textContent = `Sending ${objectId} via ${txMode}...`;
+            statusEl.className = 'small info';
+            try {
+                const host = window.location.hostname || '127.0.0.1';
+                const port = (window.location.port && window.location.port.length) ? parseInt(window.location.port) : 443;
+                const body = {
+                    object_id: objectId,
+                    mode: 'ws',
+                    peer: { host: host, https_port: port },
+                    tx_mode: txMode
+                };
+                const resp = await fetch(`${API_BASE}/transfers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!resp.ok) {
+                    const txt = await resp.text();
+                    throw new Error(`Transfer start failed: ${resp.status} ${txt}`);
+                }
+                const start = await resp.json();
+                const tid = start.transfer_id;
+                // Poll a few times
+                let final = null;
+                for (let i = 0; i < 6; i++) {
+                    await new Promise(r => setTimeout(r, 800));
+                    const st = await fetch(`${API_BASE}/transfers/${tid}`);
+                    const cur = await st.json();
+                    if (cur.state !== 'running') { final = cur; break; }
+                }
+                if (final && final.state === 'success') {
+                    statusEl.textContent = `OK: sent ${final.details.bytes_sent}B, speedup ${final.details.speedup.toFixed(1)}x`; 
+                    statusEl.className = 'small success';
+                } else {
+                    statusEl.textContent = `Failed or timeout. Check logs.`;
+                    statusEl.className = 'small error';
+                }
+            } catch (e) {
+                console.error('sendToSelf error:', e);
+                statusEl.textContent = `Error: ${e.message}`;
+                statusEl.className = 'small error';
+            }
+        }
+
+        // Wire button
+        function wireSendControls() {
+            const btn = document.getElementById('sendBtn');
+            if (btn) btn.addEventListener('click', sendToSelf);
+        }
+
         // No client-side PacketFS; server does matching. Keep this as a no-op initializer for UI consistency.
         async function initPacketFS() {
             console.log('PacketFS: server-side palette compiler will be used.');
@@ -556,6 +626,7 @@
             checkBlobStatus();
             await initPacketFS();
             setupUpload();
+            wireSendControls();
             
             // Periodic blob status check
             setInterval(checkBlobStatus, 5000);

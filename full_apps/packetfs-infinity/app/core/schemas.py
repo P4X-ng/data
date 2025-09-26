@@ -22,6 +22,8 @@ class TransferRequest(BaseModel):
     peer: Peer
     timeout_s: float = 5.0
     force_cross_arch: bool = False
+    # Content transfer mode: pvrt (container with BREF-only) or offs (raw offset tuples)
+    tx_mode: Optional[Literal["pvrt", "offs"]] = "pvrt"
 
 
 class TransferStatus(BaseModel):

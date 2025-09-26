@@ -48,15 +48,13 @@ THREADS_LIST=${THREADS_LIST#threads_list=}
 run_one() {
   local T="$1"
   local paths=""
-  local pids=()
   # clean old endpoints for this thread count
   rm -f /dev/shm/pnic_sweep_${T}_*
   for ((i=1;i<=NPROD;i++)); do
     local idx;
     idx=$(printf "%03d" "$i")
     local p="/dev/shm/pnic_sweep_${T}_${idx}"
-    ( staging/pnic/pnic_tx_shm --path "$p" --ring-pow2 "$RING_POW2" --dpf "$DPF" --align "$ALIGN" --duration "$DURATION" --blob-mb "$BLOB_MB" >/dev/null 2>&1 & )
-    pids+=("$!")
+    staging/pnic/pnic_tx_shm --path "$p" --ring-pow2 "$RING_POW2" --dpf "$DPF" --align "$ALIGN" --duration "$DURATION" --blob-mb "$BLOB_MB" >/dev/null 2>&1 &
     if [[ -z "$paths" ]]; then paths="$p"; else paths="$paths,$p"; fi
   done
   sleep 0.2
@@ -64,15 +62,11 @@ run_one() {
   tmp=$(mktemp)
   # aggregator pinned starting at PIN_FIRST
   staging/pnic/pnic_agg --endpoints "$paths" --threads "$T" --pin-first "$PIN_FIRST" --duration "$DURATION" --blob-mb "$BLOB_MB" --op "$OP" --imm "$IMM" | tee "$tmp"
-  # wait producers
-  for pid in "${pids[@]}"; do
-    wait "$pid" 2>/dev/null || true
-  done
   # parse DONE line
   local MB SECS AVG
   MB=""; SECS=""; AVG=""
   # shellcheck disable=SC2016
-  read -r MB SECS AVG < <(awk '/\[pnic_agg DONE\]/{mb="";s="";a=""; for(i=1;i<=NF;i++){ if($i ~ /^bytes=/){x=$i; sub(/^bytes=/,"",x); sub(/MB$/,"",x); mb=x} if($i ~ /^secs=/){y=$i; sub(/^secs=/,"",y); s=y} if($i ~ /^avg=/){z=$i; sub(/^avg=/,"",z); sub(/MB\/s$/,"",z); a=z} } } END{ if(mb!=""){ printf "%s %s %s", mb, s, a }}' "$tmp")
+  read -r MB SECS AVG < <(awk '/\[pnic_agg DONE\]/{mb="";s="";a=""; for(i=1;i<=NF;i++){ if($i ~ /^bytes=/){x=$i; sub(/^bytes=/,"",x); sub(/MB$/,"",x); mb=x} if($i ~ /^secs=/){y=$i; sub(/^secs=/,"",y); s=y} if($i ~ /^avg=/){z=$i; sub(/^avg=/,"",z); sub(/MB\/s$/,"",z); a=z} } } END{ if(mb!=""){ printf "%s %s %s", mb, s, a }}' "$tmp") || true
   if [[ -z "${MB:-}" ]] || [[ -z "${SECS:-}" ]] || [[ -z "${AVG:-}" ]]; then
     echo "warn: could not parse aggregator output for threads=$T" >&2
   else

@@ -1,0 +1,49 @@
+# Pfyfile.pf — PacketFS ops tasks (env-first, "normal" syntax)
+# Use:
+#   NPROD=16 THREADS_LIST=1,2,4,8 pf.py agg_sweep
+#   THREADS_LIST=1,2,4,8 SIZE_MB=4096 pf.py cpu_sweep
+#   pf.py cpupwn
+#   DURATION=3 CPU_RX=0 CPU_TX=1 PROG="xor:255" pf.py fastpath_sanity
+#   DURATION=5 pf.py pnic_smoke
+#   NPROD=8 THREADS=4 DURATION=5 pf.py agg_sim
+
+# --- Aggregator scaling sweep (pNIC) ---
+task agg_sweep
+  describe pNIC aggregator scaling sweep -> logs/pnic_agg_sweep.csv
+  shell NPROD="${NPROD:-16}" THREADS_LIST="${THREADS_LIST:-1,2,4,8,16,32,64,96,128}" DURATION="${DURATION:-4}" RING_POW2="${RING_POW2:-16}" DPF="${DPF:-64}" ALIGN="${ALIGN:-64}" BLOB_MB="${BLOB_MB:-1024}" OP="${OP:-xor}" IMM="${IMM:-255}" OUT="${OUT:-logs/pnic_agg_sweep.csv}" scripts/benchmarks/pnic_agg_sweep.sh
+end
+
+# --- CPU baseline scaling sweep ---
+task cpu_sweep
+  describe CPU baseline sweep -> logs/cpu_baseline_sweep.csv
+  shell THREADS_LIST="${THREADS_LIST:-1,2,4,8,16,32,64,96,128}" SIZE_MB="${SIZE_MB:-4096}" OP="${OP:-xor8}" IMM="${IMM:-255}" OUT="${OUT:-logs/cpu_baseline_sweep.csv}" scripts/benchmarks/cpu_baseline_sweep.sh
+end
+
+# --- CPUpwn summary (join pNIC + CPU) ---
+task cpupwn
+  describe Join pNIC + CPU sweeps, emit CPUpwn -> logs/cpupwn_summary.csv
+  shell /home/punk/.venv/bin/python scripts/benchmarks/cpupwn_summarize.py --pnic "${PNIC_CSV:-logs/pnic_agg_sweep.csv}" --cpu "${CPU_CSV:-logs/cpu_baseline_sweep.csv}" --out "${OUT:-logs/cpupwn_summary.csv}"
+end
+
+# --- Real /dev/pfs_fastpath sanity ---
+task fastpath_sanity
+  describe Real /dev/pfs_fastpath RX/TX sanity (DURATION, CPU_RX, CPU_TX, PROG)
+  shell ./staging/fastpath/pfs_prog_rx --duration "${DURATION:-3}" --cpu "${CPU_RX:-0}" &
+  shell sleep 0.2
+  shell ./staging/fastpath/pfs_prog_tx --duration "${DURATION:-3}" --cpu "${CPU_TX:-1}" --prog "${PROG:-xor:255}"
+end
+
+# --- Local fake pNIC + pCPU smoke ---
+task pnic_smoke
+  describe Local fake pNIC+pCPU smoke (staging/pnic/pnic_pcpu)
+  shell staging/pnic/pnic_pcpu --duration "${DURATION:-5}" --blob-mb "${BLOB_MB:-1024}" --ports "${PORTS:-1}" --queues "${QUEUES:-2}" --ring-pow2 "${RING_POW2:-16}" --dpf "${DPF:-64}" --align "${ALIGN:-64}" --pcpu 1 --pcpu-threads "${PCPU_THREADS:-2}" --nic-threads "${NIC_THREADS:-1}" --mode "${MODE:-scatter}" --op "${OP:-xor}" --imm "${IMM:-255}"
+end
+
+# --- Many-source sim: N shm producers + aggregator ---
+task agg_sim
+  describe Simulate N shm producers and run aggregator one-shot
+  shell paths=""
+  shell i=1; while [ "$i" -le "${NPROD:-4}" ]; do p=$(printf "/dev/shm/pnic_vm_%03d" "$i"); rm -f "$p"; (staging/pnic/pnic_tx_shm --path "$p" --ring-pow2 "${RING_POW2:-14}" --dpf "${DPF:-64}" --align "${ALIGN:-64}" --duration "${DURATION:-5}" --blob-mb "${BLOB_MB:-1024}" >/dev/null 2>&1 &); if [ -z "$paths" ]; then paths="$p"; else paths="$paths,$p"; fi; i=$((i+1)); done
+  shell sleep 0.2
+  shell staging/pnic/pnic_agg --endpoints "$paths" --threads "${THREADS:-4}" --duration "${DURATION:-5}" --blob-mb "${BLOB_MB:-1024}" --op "${OP:-xor}" --imm "${IMM:-255}"
+end
