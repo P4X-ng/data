@@ -1,0 +1,46 @@
+# --- fs: translate + mount ---
+
+task fs-trans-daemon
+  describe Translate files on arrival -> IPROGs in ./iprog (watch ./ingest)
+  directory ./ingest
+  directory ./iprog
+  directory ./pfsmeta
+  shell /home/punk/.venv/bin/python -m packetfs.tools.translate_daemon \
+        --watch-dir ./ingest \
+        --out-dir ./iprog \
+        --blob-name pfs_vblob \
+        --blob-size 1073741824 \
+        --blob-seed 1337 \
+        --meta-dir ./pfsmeta \
+        --window 65536
+end
+
+task fs-mount
+  describe Mount PacketFS (rw) -> ./pfs.mnt using ./iprog + virtual blob (foreground)
+  directory ./pfs.mnt
+  shell /home/punk/.venv/bin/python -m packetfs.filesystem.pfsfs_mount \
+        --iprog-dir ./iprog \
+        --mount ./pfs.mnt \
+        --blob-name pfs_vblob \
+        --blob-size 1073741824 \
+        --blob-seed 1337 \
+        --meta-dir ./pfsmeta \
+        --window 65536 \
+        --embed-pvrt \
+        --foreground
+end
+
+task fs-mount-ro
+  describe Mount PacketFS read-only -> ./pfs.mnt (foreground)
+  directory ./pfs.mnt
+  shell /home/punk/.venv/bin/python -m packetfs.filesystem.pfsfs_mount \
+        --iprog-dir ./iprog \
+        --mount ./pfs.mnt \
+        --blob-name pfs_vblob \
+        --blob-size 1073741824 \
+        --blob-seed 1337 \
+        --meta-dir ./pfsmeta \
+        --window 65536 \
+        --read-only \
+        --foreground
+end

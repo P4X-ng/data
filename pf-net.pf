@@ -1,0 +1,8 @@
+# --- net: AF_PACKET smoke ---
+
+task net-afpkt-smoke
+  describe AF_PACKET RX 2s on lo (plan -> logs/plan_afpkt_smoke.json)
+  directory logs
+  shell bash -lc "if ! [ -x bin/pfs_afpkt_rx ]; then echo 'bin/pfs_afpkt_rx not found (build it first)'; exit 1; fi"
+  shell bash -lc "taskset -c 0 bin/pfs_afpkt_rx --iface lo --duration 2 --blob-size $((64<<20)) --huge-dir /dev/hugepages --llvm-opt 1 --llvm-hint network/crc --peek-mmio 1 --plan-out logs/plan_afpkt_smoke.json --snaplen 64 --align 64 --pin-cpu-list 0"
+end

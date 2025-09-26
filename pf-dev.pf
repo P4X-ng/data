@@ -1,0 +1,46 @@
+# --- dev: environment & builds ---
+
+task dev-setup
+  describe Setup central venv tools (pip/setuptools/wheel)
+  shell /home/punk/.venv/bin/python -m pip -q -U pip setuptools wheel
+end
+
+task dev-build-bitpack
+  describe Build C extension and install package (editable)
+  shell /home/punk/.venv/bin/python -m pip -q -U pip setuptools wheel
+  shell /home/punk/.venv/bin/python -m pip -q install -e .
+  shell /home/punk/.venv/bin/python - <<'PY'
+import importlib
+m = importlib.import_module("packetfs._bitpack")
+print("bitpack import OK:", m.__name__)
+PY
+end
+
+# --- dev: test/lint/format/clean ---
+
+task dev-test
+  describe Run unit tests (src/)
+  shell /home/punk/.venv/bin/python -m pytest -q tests
+end
+
+task dev-test-dev
+  describe Run dev/prototype tests (PYTHONPATH=realsrc)
+  shell bash -lc 'PYTHONPATH=realsrc /home/punk/.venv/bin/python -m pytest -q dev/working/tests'
+end
+
+task dev-lint
+  describe Lint (black --check, flake8)
+  shell /home/punk/.venv/bin/python -m black --check src realsrc dev/working/tools
+  shell /home/punk/.venv/bin/python -m flake8 src realsrc dev/working/tools
+end
+
+task dev-format
+  describe Auto-format (black)
+  shell /home/punk/.venv/bin/python -m black src realsrc dev/working/tools
+end
+
+task dev-clean
+  describe Clean pyc and __pycache__
+  shell bash -lc "find . -name '__pycache__' -type d -prune -exec rm -rf {} +"
+  shell bash -lc "find . -name '*.pyc' -delete"
+end
